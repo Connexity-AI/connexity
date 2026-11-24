@@ -6,15 +6,24 @@ import type {
   AgenciesCancelInviteData,
   AgenciesCancelInviteErrors,
   AgenciesCancelInviteResponses,
+  AgenciesDeleteWorkspaceData,
+  AgenciesDeleteWorkspaceErrors,
+  AgenciesDeleteWorkspaceResponses,
   AgenciesInvitePeopleData,
   AgenciesInvitePeopleErrors,
   AgenciesInvitePeopleResponses,
   AgenciesListAgenciesData,
   AgenciesListAgenciesErrors,
   AgenciesListAgenciesResponses,
+  AgenciesPreviewDeletionData,
+  AgenciesPreviewDeletionErrors,
+  AgenciesPreviewDeletionResponses,
   AgenciesReadAgencyData,
   AgenciesReadAgencyErrors,
   AgenciesReadAgencyResponses,
+  AgenciesReadWorkspacesData,
+  AgenciesReadWorkspacesErrors,
+  AgenciesReadWorkspacesResponses,
   AgenciesRemoveMemberData,
   AgenciesRemoveMemberErrors,
   AgenciesRemoveMemberResponses,
@@ -24,6 +33,9 @@ import type {
   AgenciesResendInviteData,
   AgenciesResendInviteErrors,
   AgenciesResendInviteResponses,
+  AgenciesRetryDeletionData,
+  AgenciesRetryDeletionErrors,
+  AgenciesRetryDeletionResponses,
   AgenciesUpdateMemberData,
   AgenciesUpdateMemberErrors,
   AgenciesUpdateMemberResponses,
@@ -922,6 +934,116 @@ export class AgenciesService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agencies/{agency_id}/invites/{invite_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Read Workspaces
+   *
+   * The agency's workspaces with how much each holds, and its record of deleted
+   * ones. A deletion that is running or failed keeps its row, with its state.
+   */
+  public static readWorkspaces<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesReadWorkspacesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgenciesReadWorkspacesResponses,
+      AgenciesReadWorkspacesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/workspaces',
+      ...options,
+    });
+  }
+
+  /**
+   * Preview Deletion
+   *
+   * What deleting the workspace would remove. Deletes nothing.
+   */
+  public static previewDeletion<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesPreviewDeletionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgenciesPreviewDeletionResponses,
+      AgenciesPreviewDeletionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/workspaces/{workspace_id}/deletion',
+      ...options,
+    });
+  }
+
+  /**
+   * Delete Workspace
+   *
+   * Delete the workspace and its data for good. The workspace's name must be typed
+   * exactly. The answer's `state` is `done`, or `failed` when a step broke.
+   */
+  public static deleteWorkspace<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesDeleteWorkspaceData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgenciesDeleteWorkspaceResponses,
+      AgenciesDeleteWorkspaceErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/workspaces/{workspace_id}/deletion',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Retry Deletion
+   *
+   * Continue a deletion that failed.
+   */
+  public static retryDeletion<ThrowOnError extends boolean = false>(
+    options: Options<AgenciesRetryDeletionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgenciesRetryDeletionResponses,
+      AgenciesRetryDeletionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/workspaces/{workspace_id}/deletion/retry',
       ...options,
     });
   }

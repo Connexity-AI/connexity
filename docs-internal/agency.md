@@ -116,6 +116,9 @@ the open workspace. The grouping is `groupByAgency` in
 | `POST /api/v1/invites/{token}/signup` | Anyone with the link | New account for the invited email, joined and signed in |
 | `POST /api/v1/invites/{token}/signin` | Anyone with the link and the account's password | Signs in to the invited email's account and joins; also for a person with no workspace left, whom the ordinary sign-in refuses |
 
+Deleting a workspace and its data has its own routes and rules: see
+[`workspace-deletion.md`](./workspace-deletion.md).
+
 An agency a person is not in answers 404, the same as one that does not exist.
 
 ## Assistant tools

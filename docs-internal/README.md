@@ -22,6 +22,7 @@ instead.
 - [`responsibilities.md`](./responsibilities.md) - who does what between Connexity, the assistant and the person
 - [`checks-and-incidents.md`](./checks-and-incidents.md) - the model behind checks, findings, issues and incidents
 - [`metrics.md`](./metrics.md) - how the numbers on screen are measured
+- [`workspace-deletion.md`](./workspace-deletion.md) - deleting a workspace's data: what is removed, what stays, who may
 - [`password-reset.md`](./password-reset.md) - the reset link, its limits, and how a reset ends web sessions
 - [`usage.md`](./usage.md) - what a workspace's usage counts, the list prices, and Connexity's own model cost
 - [`data-model.md`](./data-model.md) - ER diagram and table-level schema reference

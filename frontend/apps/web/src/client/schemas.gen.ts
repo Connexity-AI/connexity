@@ -400,6 +400,76 @@ export const AgencyWorkspaceSchema = {
   title: 'AgencyWorkspace',
 } as const;
 
+export const AgencyWorkspaceRowSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    agents: {
+      type: 'integer',
+      title: 'Agents',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Calls stored',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    state: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/DeletionState',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'Set while a deletion is running or after it failed',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'agents', 'calls', 'created_at', 'state'],
+  title: 'AgencyWorkspaceRow',
+} as const;
+
+export const AgencyWorkspacesTableSchema = {
+  properties: {
+    workspaces: {
+      items: {
+        $ref: '#/components/schemas/AgencyWorkspaceRow',
+      },
+      type: 'array',
+      title: 'Workspaces',
+    },
+    can_delete: {
+      type: 'boolean',
+      title: 'Can Delete',
+      description: 'Whether the person is an Admin who can approve',
+    },
+    deleted: {
+      items: {
+        $ref: '#/components/schemas/WorkspaceDeletionPublic',
+      },
+      type: 'array',
+      title: 'Deleted',
+      description: "The agency's record of deleted workspaces, newest first",
+    },
+  },
+  type: 'object',
+  required: ['workspaces', 'can_delete', 'deleted'],
+  title: 'AgencyWorkspacesTable',
+} as const;
+
 export const AgentCheckPublicSchema = {
   properties: {
     type: {
@@ -3295,6 +3365,12 @@ export const DecisionRecordPublicSchema = {
   type: 'object',
   required: ['id', 'kind', 'subject', 'decided_by_email', 'created_at'],
   title: 'DecisionRecordPublic',
+} as const;
+
+export const DeletionStateSchema = {
+  type: 'string',
+  enum: ['deleting', 'done', 'failed'],
+  title: 'DeletionState',
 } as const;
 
 export const ErrorResponseSchema = {
@@ -14350,6 +14426,143 @@ export const WorkspaceCreateSchema = {
   type: 'object',
   required: ['name'],
   title: 'WorkspaceCreate',
+} as const;
+
+export const WorkspaceDeleteRequestSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      description: "The workspace's name, typed to confirm",
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'WorkspaceDeleteRequest',
+} as const;
+
+export const WorkspaceDeletionPreviewSchema = {
+  properties: {
+    workspace_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Workspace Id',
+    },
+    workspace_name: {
+      type: 'string',
+      title: 'Workspace Name',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: "Calls, with their recordings' links and transcripts",
+    },
+    agents: {
+      type: 'integer',
+      title: 'Agents',
+      description: 'Agents, with their specs, scenarios and test runs',
+    },
+    issues: {
+      type: 'integer',
+      title: 'Issues',
+    },
+    connections: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Connections',
+      description: 'The connected platforms whose stored keys are removed',
+    },
+    is_last: {
+      type: 'boolean',
+      title: 'Is Last',
+      description: "The agency's only workspace, which cannot be deleted",
+    },
+  },
+  type: 'object',
+  required: [
+    'workspace_id',
+    'workspace_name',
+    'calls',
+    'agents',
+    'issues',
+    'connections',
+    'is_last',
+  ],
+  title: 'WorkspaceDeletionPreview',
+  description: 'What deleting a workspace removes, for the dialog that confirms it.',
+} as const;
+
+export const WorkspaceDeletionPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    workspace_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Workspace Id',
+    },
+    workspace_name: {
+      type: 'string',
+      title: 'Workspace Name',
+    },
+    deleted_by: {
+      type: 'string',
+      title: 'Deleted By',
+      description: 'The name of the person who deleted it',
+    },
+    state: {
+      $ref: '#/components/schemas/DeletionState',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+    },
+    agents: {
+      type: 'integer',
+      title: 'Agents',
+    },
+    issues: {
+      type: 'integer',
+      title: 'Issues',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    finished_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Finished At',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'workspace_id',
+    'workspace_name',
+    'deleted_by',
+    'state',
+    'calls',
+    'agents',
+    'issues',
+    'created_at',
+    'finished_at',
+  ],
+  title: 'WorkspaceDeletionPublic',
 } as const;
 
 export const WorkspacePublicSchema = {

@@ -110,6 +110,12 @@ class Agent(AgentBase, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         description="When the first scan of this agent finished",
     )
+    # Set when the agent's workspace was deleted. The row stays with its name only, so
+    # kept usage totals still name the agent.
+    deleted_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
 
     # Relationships
     runs: list["Run"] = Relationship(

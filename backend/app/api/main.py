@@ -32,6 +32,7 @@ from app.api.routes import (
     webhooks,
     work,
     workspace_calls,
+    workspace_deletions,
     workspaces,
 )
 from app.models import ErrorResponse
@@ -44,6 +45,7 @@ api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(login.router)
 api_router.include_router(agencies.router)
 api_router.include_router(invites.router)
+api_router.include_router(workspace_deletions.router)
 api_router.include_router(google_auth.router)
 api_router.include_router(password_reset.router)
 api_router.include_router(users.router)
