@@ -37,6 +37,15 @@ def store_subscription(
     *, session: Session, agency: Agency, subscription: Subscription | None
 ) -> Agency:
     """Make the agency's subscription what Stripe says it is now. Commits."""
+    # Before the period moves on, the ledger's line for the old one is brought up to
+    # date, so usage recorded since it was last settled is not lost.
+    from app.services.billing_state import settle_period
+
+    if (
+        subscription is None
+        or subscription.period_start != agency.subscription_period_start
+    ):
+        settle_period(session=session, agency=agency)
     if subscription is None:
         agency.stripe_subscription_id = None
         agency.subscription_state = SubscriptionState.none

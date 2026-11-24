@@ -25,15 +25,23 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
-from sqlmodel import Session, col, select
+from sqlalchemy.exc import IntegrityError
+from sqlmodel import Session, col, func, select
 
 from app import crud
 from app.core.encryption import decrypt
 from app.models.agent import Agent
+from app.models.billing import (
+    FIRST_SCAN_CALLS_PER_AGENCY,
+    FIRST_SCAN_CALLS_PER_AGENT,
+    IncludedScan,
+)
 from app.models.call import Call
 from app.models.company import Company
 from app.models.enums import Platform
+from app.models.integration import Integration
 from app.models.mcp import McpAgentScan, McpScanProgress
+from app.services.billing_state import scan_is_limited
 from app.services.call_sync import emit, store_retell_calls
 from app.services.component_versions import resolve_agent_versions
 from app.services.retell import (
@@ -96,12 +104,14 @@ def _next_after(current: datetime, last_start_ms: int) -> datetime:
     return datetime.fromtimestamp(last_start_ms / 1000, tz=UTC)
 
 
-async def _count_window(
+async def _window_starts(
     *, api_key: str, agent: Agent, after: datetime, until: datetime
-) -> int:
+) -> list[int]:
+    """When each finished call of the window started (epoch milliseconds), oldest
+    first."""
     assert agent.platform_agent_id is not None
     listed: set[str] = set()
-    finished: set[str] = set()
+    finished: dict[str, int] = {}
     while True:
         page = await list_retell_call_summaries(
             api_key,
@@ -112,18 +122,75 @@ async def _count_window(
         )
         fresh = [call for call in page if call.call_id not in listed]
         if not fresh:
-            return len(finished)
+            return sorted(finished.values())
         listed.update(call.call_id for call in fresh)
-        finished.update(call.call_id for call in fresh if call.finished)
+        finished.update(
+            {call.call_id: call.start_timestamp for call in fresh if call.finished}
+        )
         after = _next_after(after, page[-1].start_timestamp)
+
+
+def _included_calls_left(session: Session, agent: Agent) -> int:
+    """How many calls the included first scan may still read for this agent: the
+    latest `FIRST_SCAN_CALLS_PER_AGENT`, within `FIRST_SCAN_CALLS_PER_AGENCY` for the
+    whole agency, and none when another agency already had its included scan from the
+    same voice platform account."""
+    company = session.get(Company, agent.company_id)
+    integration = (
+        session.get(Integration, agent.integration_id) if agent.integration_id else None
+    )
+    if company is None:
+        return 0
+    fingerprint = integration.key_fingerprint if integration else None
+    if fingerprint:
+        used_by = session.get(IncludedScan, fingerprint)
+        if used_by is None:
+            session.add(
+                IncludedScan(key_fingerprint=fingerprint, agency_id=company.agency_id)
+            )
+            try:
+                session.commit()
+            except IntegrityError:
+                # Another agency's scan of the same account got there first.
+                session.rollback()
+                used_by = session.get(IncludedScan, fingerprint)
+                if used_by is None or used_by.agency_id != company.agency_id:
+                    return 0
+        elif used_by.agency_id != company.agency_id:
+            return 0
+    workspaces = [
+        w.id
+        for w in crud.agency_workspaces(session=session, agency_id=company.agency_id)
+    ]
+    taken = session.exec(
+        select(func.coalesce(func.sum(Agent.scan_total), 0)).where(
+            col(Agent.company_id).in_(workspaces), Agent.id != agent.id
+        )
+    ).one()
+    left = FIRST_SCAN_CALLS_PER_AGENCY - int(taken)
+    return max(0, min(FIRST_SCAN_CALLS_PER_AGENT, left))
 
 
 async def _start(*, session: Session, agent: Agent, api_key: str) -> None:
     until = datetime.now(UTC)
     since = until - timedelta(days=SCAN_DAYS)
-    agent.scan_total = await _count_window(
+    starts = await _window_starts(
         api_key=api_key, agent=agent, after=since, until=until
     )
+    agent.scan_total = len(starts)
+    agent.scan_window_total = None
+    if scan_is_limited(session=session, company_id=agent.company_id):
+        # The included first scan reads the latest calls only, up to its limit.
+        allowed = _included_calls_left(session, agent)
+        if len(starts) > allowed:
+            agent.scan_window_total = len(starts)
+            agent.scan_total = allowed
+            since = (
+                datetime.fromtimestamp(starts[-allowed] / 1000, tz=UTC)
+                - timedelta(milliseconds=1)
+                if allowed
+                else until
+            )
     agent.scan_from = since
     agent.scan_until = until
     agent.scan_cursor = since

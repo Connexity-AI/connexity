@@ -4,12 +4,13 @@ import { redirect } from 'next/navigation';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import { listWorkspaces } from '@/actions/workspaces';
+import { BillingStripe } from '@/components/shell/billing-stripe';
 import Sidebar from '@/components/shell/sidebar';
 import { WorkspaceDeleted } from '@/components/shell/workspace-deleted';
-import { ReadinessService, UsersService, WorkService } from '@/client/sdk.gen';
+import { BillingService, ReadinessService, UsersService, WorkService } from '@/client/sdk.gen';
 import { AUTH_COOKIE } from '@/constants/auth';
 
-import type { UserPublic } from '@/client/types.gen';
+import type { MoneyPublic, UserPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
 
 async function getAuthenticatedUser(): Promise<UserPublic | undefined> {
@@ -58,6 +59,17 @@ async function sessionWorkspaceId(): Promise<string | undefined> {
   }
 }
 
+/** What the agency has left; none where paying is not set up or it cannot be read. */
+async function agencyMoney(agencyId: string | undefined): Promise<MoneyPublic | undefined> {
+  if (!agencyId) return undefined;
+  try {
+    const result = await BillingService.readStatus({ path: { agency_id: agencyId } });
+    return result.data ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 interface Props {
   children: ReactNode;
 }
@@ -76,7 +88,11 @@ const AppLayout: FC<Props> = async ({ children }) => {
   const another = workspaces.find((w) => w.is_open) ?? workspaces[0];
   if (openedIn && another && !workspaces.some((w) => w.id === openedIn))
     return <WorkspaceDeleted workspace={{ id: another.id, name: another.name }} />;
-  const [waiting, readiness] = await Promise.all([waitingWork(), readinessPercent()]);
+  const [waiting, readiness, money] = await Promise.all([
+    waitingWork(),
+    readinessPercent(),
+    agencyMoney(another?.agency_id),
+  ]);
 
   return (
     <div className="flex min-h-screen w-full bg-surface-0">
@@ -85,9 +101,13 @@ const AppLayout: FC<Props> = async ({ children }) => {
         workspaces={workspaces}
         waitingWork={waiting}
         readiness={readiness}
+        balanceLowDays={money?.state === 'low' ? (money.days_left ?? undefined) : undefined}
       />
 
-      <main className="min-w-0 flex-1 px-8 pt-6 pb-12">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {money && <BillingStripe money={money} />}
+        <main className="min-w-0 flex-1 px-8 pt-6 pb-12">{children}</main>
+      </div>
     </div>
   );
 };

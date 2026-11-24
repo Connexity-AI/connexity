@@ -24,6 +24,7 @@ from app.models import (
     Message,
 )
 from app.models.enums import TraceCapability
+from app.services.billing_state import records_calls
 from app.services.checks.engine import check_call_safely
 from app.services.trace_capabilities import derive_capabilities
 
@@ -109,6 +110,12 @@ def ingest_trace(
     if agent is None:
         raise HTTPException(status_code=404, detail="Agent not found")
 
+    if not records_calls(session=session, company_id=token.company_id):
+        raise HTTPException(
+            status_code=402,
+            detail="Connexity is paused for this workspace: the call was not stored. "
+            "An Admin resumes it in Agency settings, Billing.",
+        )
     stored = crud.store_trace(
         session=session,
         trace=body.trace,

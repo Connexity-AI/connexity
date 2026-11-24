@@ -110,6 +110,11 @@ class Agent(AgentBase, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         description="When the first scan of this agent finished",
     )
+    scan_window_total: int | None = Field(
+        default=None,
+        description="Calls the window held before the included first scan's limit "
+        "cut it; unset when no limit applied",
+    )
     # Set when the agent's workspace was deleted. The row stays with its name only, so
     # kept usage totals still name the agent.
     deleted_at: datetime | None = Field(

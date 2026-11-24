@@ -61,6 +61,9 @@ import type {
   BillingReadBillingData,
   BillingReadBillingErrors,
   BillingReadBillingResponses,
+  BillingReadStatusData,
+  BillingReadStatusErrors,
+  BillingReadStatusResponses,
   BillingResumeSubscriptionData,
   BillingResumeSubscriptionErrors,
   BillingResumeSubscriptionResponses,
@@ -1186,6 +1189,34 @@ export class InvitesService {
 }
 
 export class BillingService {
+  /**
+   * Read Status
+   *
+   * What the agency has left and whether it is paused, for the stripe at the top of
+   * the app and the sidebar's line. Anyone in the agency. Null where paying is not set
+   * up: nothing pauses there.
+   */
+  public static readStatus<ThrowOnError extends boolean = false>(
+    options: Options<BillingReadStatusData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      BillingReadStatusResponses,
+      BillingReadStatusErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/status',
+      ...options,
+    });
+  }
+
   /**
    * Read Billing
    *

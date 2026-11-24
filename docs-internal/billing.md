@@ -9,9 +9,10 @@ stored), `app/api/routes/billing.py` (the routes), `stripe_webhook` in
 `app/api/routes/webhooks.py`, and
 `frontend/apps/web/src/components/agency/billing-view.tsx`.
 
-**Nothing depends on the subscription yet.** No usage is charged and nothing pauses;
-that is the roadmap row "Balance, included usage and pause", which reads the state kept
-here.
+What an agency has left, and the pause, are built on the subscription: see "What is
+left" and "The pause" below
+([`plans/2026-11-24-balance-and-pause.md`](../plans/2026-11-24-balance-and-pause.md),
+`app/services/billing_state.py`).
 
 ## What Connexity stores and what it does not
 
@@ -61,6 +62,82 @@ from Stripe and store it:
 When Stripe cannot be reached, Billing shows the last known state without the card and
 details, and says so.
 
+## What is left
+
+- **Included:** $299 for each period of a subscription that is active or past due. It
+  does not roll over. The period is the subscription's, not the calendar month.
+- **Balance:** the sum of the agency's ledger lines (`balance_entry`). A line of kind
+  `added` puts money in; today only Connexity adds one, by hand
+  (`backend/scripts/add_balance.py`), until top-ups exist. One line of kind `usage` per
+  period says what that period's usage beyond the included amount drew. It is rewritten
+  whenever the state is worked out, never added to, so working it out twice changes
+  nothing; it is settled once more when the period moves on.
+- **Never below zero:** the usage that crosses the line is recorded and checked, and
+  what it costs beyond the money left is not charged.
+- **Charged when recorded:** a period's usage is the usage Connexity recorded in it
+  (`usage_record.created_at`), at list price, in every workspace of the agency, deleted
+  ones too. So the first scan, recorded before there is a subscription, is never
+  charged, and a later scan of older calls is. The usage page counts by when a call
+  happened, so the two can differ at a period's edges.
+
+## States
+
+Worked out in one place (`money_of`), from the subscription and what is left:
+
+| State | When | Calls recorded, tests | First scan |
+|---|---|---|---|
+| `first_scan` | No subscription, and not every workspace with agents has finished its first scan (or none has agents) | No | Yes, with its limit |
+| `needs_subscription` | No subscription (never started, or ended), first scan done | No | No |
+| `active` | Subscription active or past due, money left | Yes | Yes |
+| `low` | As `active`, and what is left lasts less than 7 days at the average of the last 7, told only from usage on at least 3 of them, and only when that comes before the period ends | Yes | Yes |
+| `out` | Subscription active or past due, included amount and balance both used up | No | No |
+| `unpaid` | Subscription unpaid | No | No |
+
+Nothing needs to be done to resume: a payment, a new period or an added balance changes
+the state the next time it is worked out.
+
+**Only where paying is set up.** Without Stripe's settings there is no state: nothing is
+drawn, nothing pauses and no stripe shows. That is every self-hosted install, and
+production until the live keys are in.
+
+**An agency that already exists** when paying is switched on has no subscription, so it
+is paused until an Admin starts one (Decided by Dmytro, 2026-11-24).
+
+## The pause
+
+For a paused agency:
+
+- **The Retell webhook** stores nothing and still answers with success, so Retell does
+  not send the call again.
+- **The scheduled pull** passes over its calls while its position moves on.
+- **The trace ingest route** answers 402.
+- **The assistant's `add_agents`, `scan_calls` and `run_scenarios`** answer 402 with
+  what to tell the person. Reading tools keep working.
+
+Calls made during a pause are never brought in afterwards (Decided by Dmytro,
+2026-11-24). Each pause is recorded with its start, end and reason (`billing_pause`);
+nothing shows them yet.
+
+## The included first scan
+
+An agency with no subscription gets its first scan without paying (Decided by Dmytro,
+2026-11-24): the last 30 days, the latest 100 calls per agent, at most 500 calls per
+agency, and one included scan per voice platform account (`included_scan`, by the key's
+fingerprint: another agency connecting the same account gets none). `agent.scan_total`
+is what the scan reads and `agent.scan_window_total` what the 30 days held when the
+limit cut it. A subscribed agency's scans have no limit and are charged like any usage.
+
+## Screens
+
+- **The stripe** at the top of the app (`components/shell/billing-stripe.tsx`,
+  `designs/screens/Connexity Readiness Bar.dc.html`), for `needs_subscription`, `out`
+  and `unpaid`. Until top-ups exist the `out` stripe has no "Add funds" link and says
+  when the next period starts.
+- **The sidebar line** "Balance low · 3 days left", for `low`.
+
+Both read `GET /api/v1/agencies/{id}/billing/status`, which anyone in the agency may
+call and which answers null where paying is not set up.
+
 ## Routes
 
 All for Admins of the agency; a Member gets "Only Admins can see billing. Ask …". No
@@ -74,11 +151,13 @@ route takes an assistant's token.
 | `POST /api/v1/agencies/{id}/billing/cancel` | Cancel at the end of the paid period |
 | `POST /api/v1/agencies/{id}/billing/resume` | Undo a cancellation |
 | `POST /api/v1/webhooks/stripe` | Stripe's messages |
+| `GET /api/v1/agencies/{id}/billing/status` | Anyone in the agency: what is left and the state, for the stripe and the sidebar |
 
 ## The assistant
 
 `get_usage` answers `subscription` (state, price, included amount, period end, whether
-it ends then) where paying is set up. The assistant never starts, pays, cancels or
+it ends then) where paying is set up. It also answers `money`: what is left of the
+included amount and the balance, the state, and about how many days it lasts. The assistant never starts, pays, cancels or
 changes a subscription and never handles card details.
 
 ## Settings

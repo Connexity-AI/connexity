@@ -20,9 +20,11 @@ from app.models import (
     BillingLink,
     BillingPublic,
     CardPublic,
+    MoneyPublic,
 )
 from app.models.agency import Agency, AgencyRole, SubscriptionState
 from app.services import stripe
+from app.services.billing_state import money_public
 from app.services.stripe import StripeError
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,17 @@ async def sync_subscription(session: SessionDep, agency: Agency) -> Agency:
     return crud_billing.store_subscription(
         session=session, agency=agency, subscription=subscription
     )
+
+
+@router.get("/{agency_id}/billing/status", response_model=MoneyPublic | None)
+def read_status(
+    session: SessionDep, current_user: CurrentUser, agency_id: uuid.UUID
+) -> MoneyPublic | None:
+    """What the agency has left and whether it is paused, for the stripe at the top of
+    the app and the sidebar's line. Anyone in the agency. Null where paying is not set
+    up: nothing pauses there."""
+    agency, _ = _mine(session, current_user.id, agency_id)
+    return money_public(session=session, agency_id=agency.id)
 
 
 @router.get("/{agency_id}/billing", response_model=BillingPublic)

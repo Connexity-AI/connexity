@@ -61,6 +61,7 @@ from app.models.agency import (
     AgencyRole,
     SubscriptionState,
 )
+from app.models.billing import SCANNING, AgencyState
 from app.models.check import Issue
 from app.models.clarification import (
     ClarificationListPublic,
@@ -157,6 +158,12 @@ from app.models.user import User
 from app.models.work import WorkMoveIn
 from app.services.agent_list import agent_types, live_since
 from app.services.agent_page import agent_page
+from app.services.billing_state import (
+    PAUSED_NEXT_STEP,
+    may_scan,
+    money_public,
+    records_calls,
+)
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
 from app.services.checks.base import Check, ModelCheck
@@ -2226,6 +2233,7 @@ async def add_agents(
     current_user: McpCurrentUser,
     body: McpAddAgents,
 ) -> McpAnswer[McpAddedAgents]:
+    _refuse_when_paused(session, workspace, "agents cannot be added")
     integration = crud.get_platform_integration(
         session=session, company_id=workspace.id, provider=IntegrationProvider.RETELL
     )
@@ -2351,6 +2359,7 @@ async def scan_calls(
                 guide=GUIDE_READINESS,
             ).model_dump(),
         )
+    _refuse_when_paused(session, workspace, "calls cannot be scanned")
     try:
         progress = await scan_step(session=session, company_id=workspace.id)
     except HTTPException:
@@ -2743,6 +2752,8 @@ async def run_agent_scenarios(
     body: McpRunScenarios,
 ) -> McpAnswer[McpStartedRun]:
     agent = _mcp_agent_in(session, workspace, agent_id)
+    # Before anything is asked of the voice platform.
+    _refuse_when_paused(session, workspace, "tests cannot run", needs_running=True)
     try:
         tested = await version_to_test(session=session, agent=agent, asked=body.version)
         run = start_run(
@@ -3380,6 +3391,29 @@ _USAGE_RULES = [
 ]
 
 
+def _refuse_when_paused(
+    session: SessionDep, workspace: Company, what: str, *, needs_running: bool = False
+) -> None:
+    """Refuse work that brings in or checks calls while the agency is paused. Tests
+    need a running agency (`needs_running`); a scan may also run as an agency's
+    included first scan."""
+    allowed = (
+        records_calls(session=session, company_id=workspace.id)
+        if needs_running
+        else may_scan(session=session, company_id=workspace.id)
+    )
+    if allowed:
+        return
+    raise HTTPException(
+        status_code=402,
+        detail=McpErrorDetail(
+            error=f"Connexity is paused for this agency, so {what}.",
+            next_steps=[PAUSED_NEXT_STEP],
+            guide=GUIDE_USAGE,
+        ).model_dump(),
+    )
+
+
 @router.get(
     "/workspaces/{workspace_id}/usage",
     response_model=McpAnswer[UsagePublic],
@@ -3442,12 +3476,31 @@ def get_workspace_usage(
     agency = session.get(Agency, workspace.agency_id)
     if settings.billing_enabled and agency is not None:
         page.subscription = crud_billing.subscription_public(agency)
+        page.money = money_public(session=session, agency_id=agency.id)
         rules.append(
             "`subscription` is the agency's one subscription: $299 a month, which "
             "includes $299 of usage. You never start, pay, cancel or change it, and "
             "you never ask for card details: an Admin does that in Agency settings, "
             "Billing."
         )
+        rules.append(
+            "`money` is what the agency has left, in dollars: each period includes "
+            "$299 of usage, and usage beyond it draws from the prepaid `balance_usd`, "
+            "which never goes below zero. Usage is charged in the period Connexity "
+            "recorded it. `state`: `first_scan` (no subscription yet; the included "
+            "first scan runs), `needs_subscription`, `active`, `low`, `out` or "
+            "`unpaid`. In `needs_subscription`, `out` and `unpaid` Connexity is "
+            "paused: new calls are not recorded or checked, tests cannot run, and "
+            "calls made meanwhile are never brought in afterwards. What is already "
+            "recorded stays readable. You never add funds or pay."
+        )
+        if page.money is not None and page.money.state not in SCANNING:
+            steps.append(PAUSED_NEXT_STEP)
+        elif page.money is not None and page.money.state is AgencyState.low:
+            steps.append(
+                "Tell the person the balance is running low and about how many days "
+                "it lasts (`days_left`)."
+            )
         state = page.subscription.state
         if state is SubscriptionState.past_due:
             steps.append(

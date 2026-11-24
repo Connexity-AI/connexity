@@ -41,10 +41,17 @@ from app.models.agent_contract import (  # noqa: F401
 )
 from app.models.assistant_task import AssistantTask  # noqa: F401
 from app.models.billing import (  # noqa: F401
+    AgencyState,
+    BalanceEntry,
+    BalanceKind,
     BillingDetailsPublic,
     BillingLink,
+    BillingPause,
     BillingPublic,
     CardPublic,
+    FirstScanPublic,
+    IncludedScan,
+    MoneyPublic,
     StripeEvent,
     SubscriptionPublic,
 )

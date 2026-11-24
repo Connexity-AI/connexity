@@ -46,6 +46,7 @@ from app.models.call import Call
 from app.models.call_pull import CallPullAccount, CallPullLease
 from app.models.enums import IntegrationProvider
 from app.models.integration import Integration
+from app.services.billing_state import records_calls
 from app.services.call_sync import emit, store_retell_calls
 from app.services.checks import engine as checks_engine
 from app.services.checks.engine import check_calls_needing_it
@@ -277,6 +278,10 @@ async def _pull_account(
     )
     stored = _stored_ids(session, account.agents, [c.call_id for c in page])
     created = 0
+    recording = {
+        company_id: records_calls(session=session, company_id=company_id)
+        for company_id in {agent.company_id for agent in account.agents}
+    }
     # The position stops just before the first call still in progress, so it is
     # listed again; finished calls after it are stored now, and skipped when listed
     # again.
@@ -288,10 +293,13 @@ async def _pull_account(
         ):
             held = True
             continue
+        # A paused agency's calls are passed over, and the position still moves on:
+        # they are never brought in afterwards (`services/billing_state.py`).
         missing = [
             agent
             for agent in account.copies(summary.agent_id)
             if (summary.call_id, agent.id) not in stored
+            and recording.get(agent.company_id, True)
         ]
         if summary.finished and missing:
             if not budget.can_read():

@@ -1,7 +1,8 @@
 # Usage
 
-What a workspace used, counted in units, and what that comes to at list price. Nothing
-is billed: billing, plans and credits come later and read the same records.
+What a workspace used, counted in units, and what that comes to at list price. Where
+paying is set up, the same records are what an agency's included amount and balance are
+drawn down by: see [`billing.md`](./billing.md).
 
 Code: `backend/app/models/usage.py` (the table), `backend/app/crud/usage.py` (counting
 and recording), `backend/app/services/usage.py` (prices and reading). Plan:
