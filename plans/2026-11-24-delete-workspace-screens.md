@@ -132,8 +132,8 @@ to that screen.
 - **The connection line lists every connected platform** ("Its Retell and n8n
   connections are removed…") and is left out when the workspace has none.
 - **The tool's guide text is a section of the people guide,** not a new guide.
-- **This branch is built on part 1's branch** (pull request 263), which was still open
-  when the build started.
+- **This branch was built on part 1's branch** while pull request 263 was open, and
+  `main` was merged in after 263 merged; it now differs from `main` by this change only.
 
 ### Check results
 
@@ -146,7 +146,7 @@ play-through server):
 | Agency, invite and sign-in tests | passed |
 | MCP server tests (66), with the tool, its contract entry and the tool list | passed |
 | Backend `ruff` and `pyright`; frontend types, lint and formatting; client regenerated | passed |
-| Full `make check`, after the review fixes | every code step passed. The plan step failed because the branch still sat on part 1's unmerged branch and so carried two plans; TO RUN again once the branch is on `main` |
+| Full `make check`, after the review fixes | every code step passed. The plan step failed while the branch sat on part 1's unmerged branch and carried two plans; after part 1 merged and `main` was brought in (no other change), the plan check was run again: passed |
 
 For Dmytro to check on screen (dark, light and phone width, against
 `designs/screens/Connexity Workspaces.dc.html`), in an agency with two workspaces:
