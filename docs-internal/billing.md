@@ -68,7 +68,8 @@ details, and says so.
   does not roll over. The period is the subscription's, not the calendar month.
 - **Balance:** the sum of the agency's ledger lines (`balance_entry`). A line of kind
   `added` puts money in; today only Connexity adds one, by hand
-  (`backend/scripts/add_balance.py`), until top-ups exist. One line of kind `usage` per
+  (`backend/scripts/add_balance.py`); `top_up` and `auto_top_up` lines come from paid
+  invoices (see "Adding funds"). One line of kind `usage` per
   period says what that period's usage beyond the included amount drew. It is rewritten
   whenever the state is worked out, never added to, so working it out twice changes
   nothing; it is settled once more when the period moves on.
@@ -90,7 +91,7 @@ Worked out in one place (`money_of`), from the subscription and what is left:
 | `needs_subscription` | No subscription (never started, or ended), first scan done | No | No |
 | `active` | Subscription active or past due, money left | Yes | Yes |
 | `low` | As `active`, and what is left lasts less than 7 days at the average of the last 7, told only from usage on at least 3 of them, and only when that comes before the period ends | Yes | Yes |
-| `out` | Subscription active or past due, included amount and balance both used up | No | No |
+| `out` | Subscription active or past due, included amount and balance both used up, and auto top-up off or its last payment failed | No | No |
 | `unpaid` | Subscription unpaid | No | No |
 
 Nothing needs to be done to resume: a payment, a new period or an added balance changes
@@ -127,6 +128,61 @@ fingerprint: another agency connecting the same account gets none). `agent.scan_
 is what the scan reads and `agent.scan_window_total` what the 30 days held when the
 limit cut it. A subscribed agency's scans have no limit and are charged like any usage.
 
+## Adding funds
+
+An Admin of an agency with a subscription adds $50 to $10,000 to the balance
+(`app/services/top_up.py`, `components/agency/billing-payments.tsx`).
+
+- **By hand:** "Add funds" opens a Stripe Checkout page for a one-time payment, and
+  Stripe makes an invoice for it, marked `top_up`.
+- **Auto top-up:** the setting is on the agency (on or off, and the amount). The
+  scheduled run (every minute, with the call pull) looks at every agency that has it
+  on: when the period's included amount and the balance are both used up (Decided by
+  Dmytro, 2026-11-24) it makes an invoice marked `auto_top_up` and has Stripe charge
+  the saved card. While there is money left it asks Stripe nothing. An agency with it
+  on is not paused in the minute between running out and the charge, so no call is
+  lost in between; what it uses then comes off the top-up. Only one run can take an
+  agency's turn, so two runs that overlap cannot both charge. The invoice's id is kept on the
+  agency before the card is charged, so a run that dies in between is finished by the
+  next one and never charges twice. There is no limit on how often it may charge
+  (Decided by Dmytro, 2026-11-24): with usage that uses up each top-up within the
+  minute, that is up to one charge a minute.
+- **Crediting:** a paid invoice marked as a top-up adds one ledger line for its amount
+  before tax. The line carries the invoice's id and the database allows one line per
+  invoice, so a payment is credited once however often it is reported. Three things
+  credit it, whichever comes first: Stripe's message, the person coming back from
+  Stripe's page, and opening Billing.
+- **A failed automatic payment** voids its invoice (so Stripe cannot charge it later by
+  itself) and is recorded on the agency with Stripe's reason and the card that failed.
+  Nothing is charged again until the card is a different one or auto top-up is switched
+  off and on. Billing shows a line, the app a warning stripe, and the Admins get one
+  email.
+
+The part of a call's cost that went beyond the money left is not charged at the time.
+If funds are added later in the same period it is drawn then, because a period's line
+is always worked out from the whole period.
+
+## Invoices
+
+Read from Stripe when Billing opens and never stored: date, "Subscription", "Added
+funds" or "Auto top-up", the total with tax, a status (paid; processing for one still
+open; failed for one voided or uncollectible) and the link to Stripe's page with the
+PDF. Drafts are left out.
+
+## Emails
+
+Sent by the scheduled run to every Admin of the agency
+(`app/services/billing_notify.py`), each once per stretch of its state:
+
+| Email | When |
+|---|---|
+| "Your Connexity balance is low" | The state becomes `low`, unless auto top-up is on |
+| "A Connexity payment failed" | An automatic payment fails |
+| "Connexity is paused" | The state becomes `out` or `unpaid` |
+
+A state that begins and ends between two runs sends nothing. An agency that never
+subscribed gets none of them.
+
 ## Usage on Billing
 
 Agency settings › Billing shows, for Admins, what is left (the included amount with its
@@ -157,8 +213,8 @@ calendar month and by when a call happened; `docs-internal/usage.md` describes i
 
 - **The stripe** at the top of the app (`components/shell/billing-stripe.tsx`,
   `designs/screens/Connexity Readiness Bar.dc.html`), for `needs_subscription`, `out`
-  and `unpaid`. Until top-ups exist the `out` stripe has no "Add funds" link and says
-  when the next period starts.
+  and `unpaid`, and in the warning colour for a failed automatic payment while the
+  balance is above zero. The `out` stripe ends with "Add funds".
 - **The sidebar line** "Balance low · 3 days left", for `low`.
 
 Both read `GET /api/v1/agencies/{id}/billing/status`, which anyone in the agency may
@@ -178,6 +234,9 @@ route takes an assistant's token.
 | `POST /api/v1/agencies/{id}/billing/resume` | Undo a cancellation |
 | `POST /api/v1/webhooks/stripe` | Stripe's messages |
 | `GET /api/v1/agencies/{id}/billing/status` | Anyone in the agency: what is left and the state, for the stripe and the sidebar |
+| `POST /api/v1/agencies/{id}/billing/top-up` | Admins: the address of Stripe's page to add an amount |
+| `POST /api/v1/agencies/{id}/billing/top-up/confirm` | Admins: what became of a top-up they came back from; credits it if not yet credited |
+| `PUT /api/v1/agencies/{id}/billing/auto-top-up` | Admins: switch auto top-up and set its amounts; needs a card on file |
 | `GET /api/v1/agencies/{id}/billing/usage?period=` | Admins: the period's usage per workspace and agent, at list price |
 | `GET /api/v1/agencies/{id}/billing/usage.csv?period=` | Admins: the same as a CSV |
 
@@ -197,6 +256,7 @@ changes a subscription and never handles card details.
 | `STRIPE_SECRET_KEY` | Stripe's secret key. A sandbox key (`sk_test_…`) on a developer's machine, the live key only in production |
 | `STRIPE_PRICE_ID` | The $299 monthly price |
 | `STRIPE_WEBHOOK_SECRET` | The signing secret of the webhook endpoint (`whsec_…`). Without it messages are refused |
+| `SALES_CONTACT_URL` | Where "Talk to us about volume pricing" leads. Without it the line is not shown, so a self-hosted install does not link to Connexity's calendar |
 | `STRIPE_AUTOMATIC_TAX` | On by default (Decided by Dmytro, 2026-11-24): Checkout adds tax through Stripe Tax. Stripe refuses to start Checkout until the head office address and tax registrations are entered in Stripe |
 
 Without the key and the price there is no Billing section and every route answers 404.
@@ -211,7 +271,8 @@ These are set in Stripe's dashboard, not in code:
    editable. Cancelling is done in Connexity, so it can stay off in the portal.
 4. A webhook endpoint at `<backend>/api/v1/webhooks/stripe` for the events
    `customer.subscription.created`, `customer.subscription.updated`,
-   `customer.subscription.deleted`, `invoice.paid` and `invoice.payment_failed`; its
+   `customer.subscription.deleted`, `checkout.session.completed`, `invoice.paid` and
+   `invoice.payment_failed`; its
    signing secret goes into `STRIPE_WEBHOOK_SECRET`.
 5. Under Billing, what happens when all retries of a renewal fail: "mark the
    subscription as unpaid" (or cancel it). If it is left as past due, an agency that

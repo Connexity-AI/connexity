@@ -1156,6 +1156,41 @@ export const AuthProviderSchema = {
   title: 'AuthProvider',
 } as const;
 
+export const AutoTopUpPublicSchema = {
+  properties: {
+    enabled: {
+      type: 'boolean',
+      title: 'Enabled',
+    },
+    amount_usd: {
+      type: 'integer',
+      title: 'Amount Usd',
+      description: 'What is added each time the included amount and the balance are both used up',
+    },
+  },
+  type: 'object',
+  required: ['enabled', 'amount_usd'],
+  title: 'AutoTopUpPublic',
+} as const;
+
+export const AutoTopUpUpdateSchema = {
+  properties: {
+    enabled: {
+      type: 'boolean',
+      title: 'Enabled',
+    },
+    amount_usd: {
+      type: 'integer',
+      maximum: 10000,
+      minimum: 50,
+      title: 'Amount Usd',
+    },
+  },
+  type: 'object',
+  required: ['enabled', 'amount_usd'],
+  title: 'AutoTopUpUpdate',
+} as const;
+
 export const BillingDetailsPublicSchema = {
   properties: {
     name: {
@@ -1228,6 +1263,40 @@ export const BillingPublicSchema = {
         },
       ],
     },
+    invoices: {
+      items: {
+        $ref: '#/components/schemas/InvoicePublic',
+      },
+      type: 'array',
+      title: 'Invoices',
+      description: 'Newest first; empty when Stripe was not read',
+    },
+    auto_top_up: {
+      $ref: '#/components/schemas/AutoTopUpPublic',
+    },
+    failed_payment: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FailedPaymentPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'The last automatic payment that failed, if any',
+    },
+    sales_contact_url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Sales Contact Url',
+      description: 'Where "Talk to us" leads, when the deployment names one',
+    },
     read_from_stripe: {
       type: 'boolean',
       title: 'Read From Stripe',
@@ -1236,7 +1305,7 @@ export const BillingPublicSchema = {
     },
   },
   type: 'object',
-  required: ['subscription', 'card', 'details', 'read_from_stripe'],
+  required: ['subscription', 'card', 'details', 'auto_top_up', 'read_from_stripe'],
   title: 'BillingPublic',
 } as const;
 
@@ -2532,6 +2601,12 @@ export const CardPublicSchema = {
       type: 'integer',
       title: 'Exp Year',
     },
+    expires_soon: {
+      type: 'boolean',
+      title: 'Expires Soon',
+      description: 'It expires this month or next',
+      default: false,
+    },
   },
   type: 'object',
   required: ['brand', 'last4', 'exp_month', 'exp_year'],
@@ -3802,6 +3877,28 @@ export const ExecutionSyncResultSchema = {
   description: "What looking for a call's executions found.",
 } as const;
 
+export const FailedPaymentPublicSchema = {
+  properties: {
+    amount_usd: {
+      type: 'integer',
+      title: 'Amount Usd',
+    },
+    reason: {
+      type: 'string',
+      title: 'Reason',
+      description: "Stripe's own words, such as a declined card",
+    },
+    at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'At',
+    },
+  },
+  type: 'object',
+  required: ['amount_usd', 'reason', 'at'],
+  title: 'FailedPaymentPublic',
+} as const;
+
 export const FakeToolResultPublicSchema = {
   properties: {
     tool: {
@@ -4367,6 +4464,50 @@ export const InviteSignUpSchema = {
   type: 'object',
   required: ['full_name', 'password'],
   title: 'InviteSignUp',
+} as const;
+
+export const InvoicePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'Subscription, Added funds or Auto top-up',
+    },
+    amount_usd: {
+      type: 'number',
+      title: 'Amount Usd',
+      description: 'The total, tax included',
+    },
+    status: {
+      type: 'string',
+      title: 'Status',
+      description: 'paid, processing or failed',
+    },
+    url: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Url',
+      description: "Stripe's page with the invoice and its PDF",
+    },
+  },
+  type: 'object',
+  required: ['id', 'created_at', 'description', 'amount_usd', 'status', 'url'],
+  title: 'InvoicePublic',
 } as const;
 
 export const IssueAffectedCallPublicSchema = {
@@ -9711,6 +9852,12 @@ export const MoneyPublicSchema = {
       description:
         'About how many days what is left lasts at the rate of the last 7 days; absent with too little usage to tell',
     },
+    payment_failed: {
+      type: 'boolean',
+      title: 'Payment Failed',
+      description: 'An automatic payment failed and the card has not changed since',
+      default: false,
+    },
     subscription_ended: {
       type: 'boolean',
       title: 'Subscription Ended',
@@ -13064,6 +13211,58 @@ export const ToolCallStatusSchema = {
   title: 'ToolCallStatus',
 } as const;
 
+export const TopUpConfirmSchema = {
+  properties: {
+    session_id: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Session Id',
+    },
+  },
+  type: 'object',
+  required: ['session_id'],
+  title: 'TopUpConfirm',
+} as const;
+
+export const TopUpRequestSchema = {
+  properties: {
+    amount_usd: {
+      type: 'integer',
+      maximum: 10000,
+      minimum: 50,
+      title: 'Amount Usd',
+    },
+  },
+  type: 'object',
+  required: ['amount_usd'],
+  title: 'TopUpRequest',
+} as const;
+
+export const TopUpResultSchema = {
+  properties: {
+    status: {
+      type: 'string',
+      title: 'Status',
+      description: 'paid or processing',
+    },
+    amount_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Amount Usd',
+      description: 'What was added to the balance',
+    },
+  },
+  type: 'object',
+  required: ['status', 'amount_usd'],
+  title: 'TopUpResult',
+} as const;
+
 export const Trace_InputSchema = {
   properties: {
     schema_version: {
@@ -13956,6 +14155,33 @@ export const UsagePublicSchema = {
       ],
       description:
         "The whole agency's usage per workspace and agent, when asked for with `agency`. Counted by subscription period, as the money is drawn",
+    },
+    invoices: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/InvoicePublic',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Invoices',
+      description:
+        "The agency's latest invoices, newest first, with `agency`. Absent when the payment provider could not be read",
+    },
+    auto_top_up: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AutoTopUpPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: "The agency's auto top-up setting, with `agency`. You never change it",
     },
     money: {
       anyOf: [

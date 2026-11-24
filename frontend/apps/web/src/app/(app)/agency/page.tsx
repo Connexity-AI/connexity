@@ -27,14 +27,21 @@ const PERIODS = ['this', 'last', '30d'] as const;
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** The agency of the workspace the person has open. */
-const AgencySettings: FC<{ section: Section; justPaid: boolean; period?: string }> = async ({
-  section,
-  justPaid,
-  period,
-}) => {
+const AgencySettings: FC<{
+  section: Section;
+  justPaid: boolean;
+  period?: string;
+  topUpSession?: string;
+}> = async ({ section, justPaid, period, topUpSession }) => {
   const open = (await listWorkspaces()).find((w) => w.is_open);
   if (!open) notFound();
   const path = { agency_id: open.agency_id };
+  // Back from Stripe after adding funds: credit it before Billing is read, so the
+  // balance below already has it. Asking again changes nothing.
+  const topUp =
+    section === 'billing' && topUpSession
+      ? await BillingService.confirmTopUp({ path, body: { session_id: topUpSession } })
+      : undefined;
   const [{ data: agency }, { data: table }, billing] = await Promise.all([
     AgenciesService.readAgency({ path }),
     section === 'workspaces'
@@ -90,6 +97,7 @@ const AgencySettings: FC<{ section: Section; justPaid: boolean; period?: string 
             justPaid={justPaid}
             money={money?.data ?? null}
             usage={usage?.data ?? null}
+            topUp={topUp?.data ?? null}
           />
         ) : billing ? (
           // Members are refused with the sentence that names the Admins.
@@ -103,7 +111,12 @@ const AgencySettings: FC<{ section: Section; justPaid: boolean; period?: string 
 };
 
 interface PageProps {
-  searchParams: Promise<{ section?: string; checkout?: string; period?: string }>;
+  searchParams: Promise<{
+    section?: string;
+    checkout?: string;
+    period?: string;
+    topup?: string;
+  }>;
 }
 
 /**
@@ -122,6 +135,7 @@ const AgencyPage: FC<PageProps> = async ({ searchParams }) => {
         section={section}
         justPaid={params.checkout === 'done'}
         period={params.period}
+        topUpSession={params.topup}
       />
     </ErrorBoundarySuspense>
   );

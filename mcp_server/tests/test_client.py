@@ -1450,6 +1450,40 @@ async def test_get_usage_asks_for_the_agency_only_when_told_to() -> None:
     assert seen == [{"agency": "true", "agency_period": "last"}, {}]
     assert result.data.agency_usage is not None
     assert result.data.agency_usage.workspaces[0].cost_usd == 28.32
+    assert result.data.invoices is None and result.data.auto_top_up is None
+
+
+def test_usage_carries_invoices_and_the_auto_top_up_setting() -> None:
+    from connexity_mcp_server.models import Usage
+
+    usage = Usage.model_validate(
+        {
+            "period": "month",
+            "starts_at": "2026-11-01T00:00:00Z",
+            "ends_at": "2026-12-01T00:00:00Z",
+            "lines": [],
+            "cost_usd": 0,
+            "agents": [],
+            "invoices": [
+                {
+                    "id": "in_1",
+                    "created_at": "2026-11-19T00:00:00Z",
+                    "description": "Auto top-up",
+                    "amount_usd": 200.0,
+                    "status": "failed",
+                    "url": None,
+                }
+            ],
+            "auto_top_up": {"enabled": True, "amount_usd": 200},
+        }
+    )
+
+    assert usage.invoices is not None
+    assert (usage.invoices[0].description, usage.invoices[0].status) == (
+        "Auto top-up",
+        "failed",
+    )
+    assert usage.auto_top_up is not None and usage.auto_top_up.amount_usd == 200
 
 
 def test_usage_carries_what_the_agency_has_left() -> None:

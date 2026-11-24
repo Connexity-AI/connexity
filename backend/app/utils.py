@@ -178,4 +178,56 @@ def generate_workspace_deleted_email(
     return EmailData(html_content=html_content, subject=subject)
 
 
+def _billing_email(*, subject: str, line: str, button: str) -> EmailData:
+    """One sentence and one button that opens Agency settings, Billing."""
+    html_content = render_email_template(
+        template_name="billing.html",
+        context={
+            "subject": subject,
+            "line": line,
+            "button": button,
+            "link": f"{settings.public_site_url}/agency/?section=billing",
+        },
+    )
+    return EmailData(html_content=html_content, subject=subject)
+
+
+def generate_balance_low_email(*, balance_usd: str, days_left: int | None) -> EmailData:
+    lasts = (
+        f" At your current rate it lasts about {days_left} "
+        f"{'day' if days_left == 1 else 'days'}."
+        if days_left is not None
+        else ""
+    )
+    return _billing_email(
+        subject="Your Connexity balance is low",
+        line=f"You have ${balance_usd} left.{lasts} When it runs out, Connexity "
+        "pauses: new calls are not checked and tests can't run.",
+        button="Add funds",
+    )
+
+
+def generate_payment_failed_email(*, amount_usd: int, reason: str) -> EmailData:
+    return _billing_email(
+        subject="A Connexity payment failed",
+        line=f"Your auto top-up of ${amount_usd} failed: {reason} Update your card "
+        "before your balance runs out.",
+        button="Update card",
+    )
+
+
+def generate_paused_email(*, unpaid: bool) -> EmailData:
+    what = (
+        "Your subscription is unpaid. Update your card and it resumes by itself."
+        if unpaid
+        else "Add funds and it resumes by itself."
+    )
+    return _billing_email(
+        subject="Connexity is paused",
+        line="New calls are not being checked and tests can't run. Everything you "
+        f"have stays safe. {what}",
+        button="Update card" if unpaid else "Add funds",
+    )
+
+
 is_prod = settings.ENVIRONMENT == "production"

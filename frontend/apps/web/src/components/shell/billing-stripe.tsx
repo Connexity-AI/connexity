@@ -3,13 +3,12 @@ import Link from 'next/link';
 import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { CircleCheck, CircleMinus } from 'lucide-react';
 
+import { cn } from '@workspace/ui/lib/utils';
+
 import type { MoneyPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
 
 const number = (n: number) => n.toLocaleString('en-US');
-const day = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
-
 interface Props {
   money: MoneyPublic;
 }
@@ -28,6 +27,8 @@ export const BillingStripe: FC<Props> = ({ money }) => {
   );
   let icon = <CircleMinus className="size-3.5 flex-none text-ink-secondary" aria-hidden />;
   let line: ReactNode;
+  // While the balance is above zero a failed payment is a warning, not a pause.
+  let warning = false;
 
   if (money.state === 'needs_subscription') {
     const scan = money.first_scan;
@@ -60,9 +61,8 @@ export const BillingStripe: FC<Props> = ({ money }) => {
         <span className="text-ink-secondary">
           {' '}
           Connexity is paused: new calls are not being checked and tests can’t run.
-          {money.period_end &&
-            ` It resumes when your next period starts on ${day(money.period_end)}.`}
-        </span>
+        </span>{' '}
+        {link('Add funds')}
       </>
     );
   else if (money.state === 'unpaid')
@@ -72,12 +72,27 @@ export const BillingStripe: FC<Props> = ({ money }) => {
         <span className="text-ink-secondary"> Connexity is paused.</span> {link('Update card')}
       </>
     );
-  else return null;
+  else if (money.payment_failed) {
+    warning = true;
+    line = (
+      <>
+        <span className="font-medium">A payment failed.</span>
+        <span className="text-ink-secondary">
+          {' '}
+          Update your card before your balance runs out.
+        </span>{' '}
+        {link('Update card')}
+      </>
+    );
+  } else return null;
 
   return (
     <div
       role="status"
-      className="flex min-h-9 items-center gap-2.5 border-b border-hairline bg-wash px-4 py-2 text-label text-ink"
+      className={cn(
+        'flex min-h-9 items-center gap-2.5 border-b border-hairline px-4 py-2 text-label text-ink',
+        warning ? 'bg-warning-bg' : 'bg-wash'
+      )}
     >
       {icon}
       <p className="m-0 min-w-0 flex-1 text-pretty">{line}</p>

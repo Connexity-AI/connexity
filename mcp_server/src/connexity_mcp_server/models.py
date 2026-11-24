@@ -525,6 +525,23 @@ class AgencyUsage(BaseModel):
     movers: list[UsageMoverLine] = Field(default_factory=list)
 
 
+class InvoiceLine(BaseModel):
+    id: str
+    created_at: str
+    description: str = Field(description="Subscription, Added funds or Auto top-up")
+    amount_usd: float = Field(description="The total, tax included")
+    status: str = Field(description="paid, processing or failed")
+    url: str | None = None
+
+
+class AutoTopUp(BaseModel):
+    enabled: bool
+    amount_usd: int = Field(
+        description="What is added each time the included amount and the balance "
+        "are both used up"
+    )
+
+
 class FirstScan(BaseModel):
     checked: int = Field(description="Calls the included first scan read")
     of: int = Field(
@@ -553,6 +570,10 @@ class Money(BaseModel):
         "usage to tell",
     )
     subscription_ended: bool = False
+    payment_failed: bool = Field(
+        default=False,
+        description="An automatic payment failed and the card has not changed since",
+    )
     first_scan: FirstScan | None = Field(
         default=None,
         description="The included first scan, for an agency with no subscription",
@@ -581,6 +602,16 @@ class Usage(BaseModel):
         default=None,
         description="The whole agency's usage per workspace and agent, when asked "
         "for with `agency`. Counted by subscription period, as the money is drawn",
+    )
+    invoices: list[InvoiceLine] | None = Field(
+        default=None,
+        description="The agency's latest invoices, newest first, with `agency`. "
+        "Absent when the payment provider could not be read",
+    )
+    auto_top_up: AutoTopUp | None = Field(
+        default=None,
+        description="The agency's auto top-up setting, with `agency`. You never "
+        "change it",
     )
     money: Money | None = Field(
         default=None,

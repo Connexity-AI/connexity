@@ -264,7 +264,11 @@ def money_of(*, session: Session, agency: Agency, now: datetime | None = None) -
             else AgencyState.first_scan
         )
     elif included_left + balance <= ZERO:
-        state = AgencyState.out
+        # With auto top-up on, the card is charged within a minute of running out.
+        # The agency keeps running meanwhile, so no call is lost in between; what it
+        # uses then comes off the top-up. After a failed payment it is paused.
+        armed = agency.auto_top_up_enabled and agency.payment_failed_at is None
+        state = AgencyState.active if armed else AgencyState.out
     else:
         state = AgencyState.active
         days = _days_left(session, agency, included_left + balance, now)
@@ -370,6 +374,11 @@ def first_scan_summary(*, session: Session, agency_id: uuid.UUID) -> FirstScanPu
     return FirstScanPublic(checked=int(checked), of=int(of))
 
 
+def _payment_failed(session: Session, agency_id: uuid.UUID) -> bool:
+    agency = session.get(Agency, agency_id)
+    return agency is not None and agency.payment_failed_at is not None
+
+
 def _ended(session: Session, agency_id: uuid.UUID) -> bool:
     agency = session.get(Agency, agency_id)
     return agency is not None and agency.subscription_state is SubscriptionState.ended
@@ -390,6 +399,7 @@ def money_public(*, session: Session, agency_id: uuid.UUID) -> MoneyPublic | Non
         balance_usd=float(money.balance),
         period_end=money.period_end,
         days_left=money.days_left,
+        payment_failed=_payment_failed(session, agency_id),
         subscription_ended=_ended(session, agency_id),
         first_scan=first_scan_summary(session=session, agency_id=agency_id)
         if no_subscription

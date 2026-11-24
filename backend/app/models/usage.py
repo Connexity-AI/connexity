@@ -17,7 +17,13 @@ from pydantic import Field as PydanticField
 from sqlalchemy import DateTime, Index, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
-from app.models.billing import AgencyUsagePublic, MoneyPublic, SubscriptionPublic
+from app.models.billing import (
+    AgencyUsagePublic,
+    AutoTopUpPublic,
+    InvoicePublic,
+    MoneyPublic,
+    SubscriptionPublic,
+)
 from app.models.columns import enum_type
 from app.models.enums import UsageMeter
 
@@ -137,6 +143,16 @@ class UsagePublic(BaseModel):
         default=None,
         description="The whole agency's usage per workspace and agent, when asked "
         "for with `agency`. Counted by subscription period, as the money is drawn",
+    )
+    invoices: list[InvoicePublic] | None = PydanticField(
+        default=None,
+        description="The agency's latest invoices, newest first, with `agency`. "
+        "Absent when the payment provider could not be read",
+    )
+    auto_top_up: AutoTopUpPublic | None = PydanticField(
+        default=None,
+        description="The agency's auto top-up setting, with `agency`. You never "
+        "change it",
     )
     money: MoneyPublic | None = PydanticField(
         default=None,

@@ -8,7 +8,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@workspace/ui/lib/utils';
 
 import type { AgencyUsagePublic, MoneyPublic } from '@/client/types.gen';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 
 const CARD = 'rounded-xl border border-hairline bg-surface-1';
 const GRID = 'md:grid md:grid-cols-[minmax(0,1fr)_128px_160px_104px] md:items-center md:gap-4';
@@ -32,6 +32,10 @@ interface Props {
   /** What the agency has left; absent when it could not be read. */
   money: MoneyPublic | null;
   usage: AgencyUsagePublic;
+  /** "Add funds", beside the balance; absent while there is no subscription. */
+  addFunds?: ReactNode;
+  /** What sits directly under the usage summary: auto top-up. */
+  underSummary?: ReactNode;
 }
 
 /**
@@ -41,7 +45,7 @@ interface Props {
  * period" is what came off the included amount and the balance. Dollars are at list
  * price; Connexity's own costs are never shown.
  */
-export const BillingUsage: FC<Props> = ({ agencyId, money, usage }) => {
+export const BillingUsage: FC<Props> = ({ agencyId, money, usage, addFunds, underSummary }) => {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const hasPeriod = money !== null && money.period_end !== null && money.included_usd > 0;
   const scan = money?.first_scan ?? null;
@@ -82,13 +86,16 @@ export const BillingUsage: FC<Props> = ({ agencyId, money, usage }) => {
             )}
             <div className="flex flex-col gap-1.5">
               <span className="text-label text-ink-secondary">Balance</span>
-              <span
-                className={cn(
-                  'text-title font-medium tabular-nums',
-                  money.state === 'out' ? 'text-critical' : 'text-ink'
-                )}
-              >
-                {usd(money.balance_usd)}
+              <span className="flex flex-wrap items-center justify-between gap-3">
+                <span
+                  className={cn(
+                    'text-title font-medium tabular-nums',
+                    money.state === 'out' ? 'text-critical' : 'text-ink'
+                  )}
+                >
+                  {usd(money.balance_usd)}
+                </span>
+                {addFunds}
               </span>
               <span className="text-label text-ink-muted">
                 Used after your included amount. Never expires.
@@ -168,6 +175,8 @@ export const BillingUsage: FC<Props> = ({ agencyId, money, usage }) => {
           <span className="text-ink-secondary">No usage yet</span>
         )}
       </div>
+
+      {underSummary}
 
       {usage.workspaces.length > 0 && (
         <div className={CARD}>

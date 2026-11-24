@@ -15,9 +15,11 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from app.api.deps import SessionDep
 from app.core.config import settings
 from app.crud.test_run import fail_stale_runs
+from app.services.billing_notify import run_notifications
 from app.services.call_pull import PullRun, run_pull
 from app.services.feedback import post_unsent
 from app.services.provider_cost import read_provider_costs
+from app.services.top_up import run_auto_top_ups
 
 logger = logging.getLogger(__name__)
 
@@ -80,4 +82,12 @@ async def pull_calls(session: SessionDep) -> PullRun:
     fail_stale_runs(session=session)
     # And, a few times a day, reads what Anthropic billed for the last days.
     await read_provider_costs(session=session)
+    # And looks after each agency's money: auto top-up, then the emails about it.
+    # Trouble here never stops the pull.
+    try:
+        await run_auto_top_ups(session=session)
+        run_notifications(session=session)
+    except Exception:
+        session.rollback()
+        logger.exception("The billing step of the scheduled run failed")
     return run

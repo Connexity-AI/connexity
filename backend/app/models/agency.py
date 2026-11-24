@@ -77,6 +77,37 @@ class Agency(SQLModel, table=True):
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
+    # Auto top-up: when the included amount and the balance are both used up, the
+    # saved card is charged for the amount (`app/services/top_up.py`).
+    auto_top_up_enabled: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
+    )
+    auto_top_up_amount_usd: int = Field(
+        default=200, sa_column_kwargs={"server_default": text("200")}
+    )
+    # The automatic top-up's invoice at Stripe that is not settled yet. While it is
+    # set no other automatic charge is made.
+    auto_top_up_invoice_id: str | None = Field(default=None, max_length=64)
+    # The last automatic payment that failed, until the card changes or auto top-up
+    # is switched off and on. While it is set nothing is charged automatically.
+    payment_failed_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    payment_failed_amount_usd: int | None = Field(default=None)
+    payment_failed_reason: str | None = Field(default=None, max_length=255)
+    # The card that failed, as brand, last digits and expiry, to tell when it changed.
+    payment_failed_card: str | None = Field(default=None, max_length=64)
+    # When the "balance is low" and "paused" emails were sent for the current stretch
+    # of that state; emptied when the state ends, so each stretch sends one.
+    low_notified_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    paused_notified_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
     # Cancelled: it runs to the end of the paid period and is not renewed.
     subscription_ends_at_period_end: bool = Field(
         default=False, sa_column_kwargs={"server_default": text("false")}

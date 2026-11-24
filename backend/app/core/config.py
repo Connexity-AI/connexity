@@ -91,6 +91,9 @@ class Settings(BaseSettings):
     # Checkout adds tax through Stripe Tax. It needs the head office address and tax
     # registrations entered in Stripe; without them Stripe refuses to start Checkout.
     STRIPE_AUTOMATIC_TAX: bool = True
+    # Where "Talk to us about volume pricing" on Billing leads. Without it the line
+    # is not shown.
+    SALES_CONTACT_URL: str | None = None
     OAUTH_ALLOWED_REDIRECT_URIS: str = (
         "https://claude.ai/api/mcp/auth_callback,"
         "https://claude.com/api/mcp/auth_callback"
