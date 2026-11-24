@@ -445,6 +445,9 @@ def test_billing_reads_the_subscription_card_and_details_from_stripe(
     customer_id = _with_customer(db, agency)
     respx.get(f"{STRIPE}/subscriptions").mock(return_value=_listing(_subscription()))
     respx.get(f"{STRIPE}/customers/{customer_id}").mock(return_value=_customer_answer())
+    respx.get(f"{STRIPE}/invoices").mock(
+        return_value=httpx.Response(200, json={"data": []})
+    )
 
     r = client.get(f"{API}/agencies/{agency.id}/billing", cookies=_web(db, admin))
 
@@ -457,12 +460,22 @@ def test_billing_reads_the_subscription_card_and_details_from_stripe(
             "period_end": "2026-12-31T00:00:00Z",
             "ends_at_period_end": False,
         },
-        "card": {"brand": "visa", "last4": "4242", "exp_month": 8, "exp_year": 2028},
+        "card": {
+            "brand": "visa",
+            "last4": "4242",
+            "exp_month": 8,
+            "exp_year": 2028,
+            "expires_soon": False,
+        },
         "details": {
             "name": "Signal Voice Inc.",
             "address": ["1 Example Street", "Ottawa ON K1A 0A1", "CA"],
             "tax_ids": ["123456789RT0001"],
         },
+        "invoices": [],
+        "auto_top_up": {"enabled": False, "amount_usd": 200},
+        "failed_payment": None,
+        "sales_contact_url": None,
         "read_from_stripe": True,
     }
 

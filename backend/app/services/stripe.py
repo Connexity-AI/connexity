@@ -32,6 +32,10 @@ SIGNATURE_MAX_AGE_SECONDS = 5 * 60
 class StripeError(Exception):
     """Stripe could not be reached, refused, or answered something unexpected."""
 
+    # Stripe answered that the card was refused (HTTP 402), as opposed to not being
+    # reachable or the request being wrong.
+    refused: bool = False
+
 
 @dataclass(frozen=True)
 class Subscription:
@@ -111,7 +115,9 @@ async def _request(
     if response.status_code >= 400:
         error = body.get("error")
         message = error.get("message") if isinstance(error, dict) else None
-        raise StripeError(str(message or f"Stripe answered {response.status_code}"))
+        failure = StripeError(str(message or f"Stripe answered {response.status_code}"))
+        failure.refused = response.status_code == 402
+        raise failure
     return body
 
 
@@ -344,3 +350,179 @@ def signature_is_valid(
         secret.encode(), timestamp.encode() + b"." + raw_body, hashlib.sha256
     ).hexdigest()
     return any(hmac.compare_digest(expected, given) for given in signatures)
+
+
+# ── Top-ups and invoices ──
+
+
+class StripeDeclined(StripeError):
+    """Stripe tried to charge and the payment did not go through."""
+
+    def __init__(self, reason: str, invoice_id: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+        self.invoice_id = invoice_id
+
+
+@dataclass(frozen=True)
+class Invoice:
+    id: str
+    customer_id: str | None
+    # Stripe's own: draft, open, paid, void or uncollectible.
+    status: str
+    # What the invoice is for: `subscription`, `top_up`, `auto_top_up` or `other`.
+    kind: str
+    subtotal_cents: int
+    total_cents: int
+    created: datetime | None
+    url: str | None
+
+
+@dataclass(frozen=True)
+class CheckoutSession:
+    id: str
+    customer_id: str | None
+    paid: bool
+    invoice_id: str | None
+
+
+def read_invoice(body: dict[str, Any]) -> Invoice:
+    """An invoice from Stripe's answer.
+
+    Raises:
+        StripeError: the answer is not an invoice Connexity can read.
+    """
+    status = body.get("status")
+    subtotal, total = body.get("subtotal"), body.get("total")
+    if (
+        not isinstance(status, str)
+        or not isinstance(subtotal, int)
+        or not isinstance(total, int)
+    ):
+        raise StripeError("Stripe's invoice could not be read")
+    metadata = body.get("metadata")
+    marked = metadata.get("kind") if isinstance(metadata, dict) else None
+    reason = body.get("billing_reason")
+    if marked in ("top_up", "auto_top_up"):
+        kind = str(marked)
+    elif isinstance(reason, str) and reason.startswith("subscription"):
+        kind = "subscription"
+    else:
+        kind = "other"
+    customer = body.get("customer")
+    url = body.get("hosted_invoice_url")
+    return Invoice(
+        id=_text(body, "id"),
+        customer_id=customer if isinstance(customer, str) else None,
+        status=status,
+        kind=kind,
+        subtotal_cents=subtotal,
+        total_cents=total,
+        created=_moment(body.get("created")),
+        url=url if isinstance(url, str) and url else None,
+    )
+
+
+async def create_top_up_checkout(
+    *, customer_id: str, amount_cents: int, success_url: str, cancel_url: str
+) -> str:
+    """A Checkout page for a one-time payment that adds to the balance. Stripe makes
+    an invoice for it, marked as a top-up. Answers the page's address."""
+    data = {
+        "mode": "payment",
+        "customer": customer_id,
+        "line_items[0][price_data][currency]": "usd",
+        "line_items[0][price_data][unit_amount]": str(amount_cents),
+        "line_items[0][price_data][product_data][name]": "Connexity balance",
+        "line_items[0][quantity]": "1",
+        "invoice_creation[enabled]": "true",
+        "invoice_creation[invoice_data][description]": "Added funds",
+        "invoice_creation[invoice_data][metadata][kind]": "top_up",
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+        "billing_address_collection": "required",
+        "tax_id_collection[enabled]": "true",
+        "customer_update[address]": "auto",
+        "customer_update[name]": "auto",
+    }
+    if settings.STRIPE_AUTOMATIC_TAX:
+        data["automatic_tax[enabled]"] = "true"
+    return _text(await _request("POST", "/checkout/sessions", data=data), "url")
+
+
+async def get_checkout(*, session_id: str) -> CheckoutSession:
+    body = await _request("GET", f"/checkout/sessions/{session_id}")
+    customer, invoice = body.get("customer"), body.get("invoice")
+    return CheckoutSession(
+        id=_text(body, "id"),
+        customer_id=customer if isinstance(customer, str) else None,
+        paid=body.get("payment_status") == "paid",
+        invoice_id=invoice if isinstance(invoice, str) else None,
+    )
+
+
+async def get_invoice(*, invoice_id: str) -> Invoice:
+    return read_invoice(await _request("GET", f"/invoices/{invoice_id}"))
+
+
+async def list_invoices(*, customer_id: str, limit: int = 100) -> list[Invoice]:
+    """The customer's invoices, newest first. Drafts are left out."""
+    body = await _request(
+        "GET", "/invoices", data={"customer": customer_id, "limit": str(limit)}
+    )
+    rows = body.get("data")
+    if not isinstance(rows, list):
+        raise StripeError("Stripe's answer has no invoices")
+    found = [read_invoice(row) for row in rows if isinstance(row, dict)]
+    return [invoice for invoice in found if invoice.status != "draft"]
+
+
+async def start_auto_top_up(*, customer_id: str, amount_cents: int) -> str:
+    """An invoice for an automatic top-up, ready to be charged. Answers its id, which
+    the caller keeps before charging, so a charge is never made twice."""
+    data = {
+        "customer": customer_id,
+        "collection_method": "charge_automatically",
+        "auto_advance": "false",
+        "description": "Auto top-up",
+        "metadata[kind]": "auto_top_up",
+    }
+    if settings.STRIPE_AUTOMATIC_TAX:
+        data["automatic_tax[enabled]"] = "true"
+    invoice_id = _text(await _request("POST", "/invoices", data=data), "id")
+    await _request(
+        "POST",
+        "/invoiceitems",
+        data={
+            "customer": customer_id,
+            "invoice": invoice_id,
+            "amount": str(amount_cents),
+            "currency": "usd",
+            "description": "Connexity balance",
+        },
+    )
+    return invoice_id
+
+
+async def charge_invoice(*, invoice_id: str) -> Invoice:
+    """Charge the customer's saved card for an invoice.
+
+    Raises:
+        StripeDeclined: the card was refused; the invoice is voided so it cannot be
+            charged later by itself.
+        StripeError: Stripe could not be reached; the invoice is left as it is.
+    """
+    current = await get_invoice(invoice_id=invoice_id)
+    if current.status == "paid":
+        return current
+    if current.status in ("void", "uncollectible"):
+        raise StripeDeclined("The payment did not go through.", invoice_id)
+    if current.status == "draft":
+        await _request("POST", f"/invoices/{invoice_id}/finalize")
+    try:
+        return read_invoice(await _request("POST", f"/invoices/{invoice_id}/pay"))
+    except StripeError as exc:
+        if not getattr(exc, "refused", False):
+            raise
+        await _request("POST", f"/invoices/{invoice_id}/void")
+        raise StripeDeclined(str(exc), invoice_id) from exc

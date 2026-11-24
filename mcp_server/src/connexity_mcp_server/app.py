@@ -1000,7 +1000,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         `scan_calls` and `run_scenarios` are refused. You never start, pay, cancel or
         change a subscription, and never add funds. With `agency` an admin's assistant
         also gets the whole agency's usage per workspace and agent, counted by the
-        subscription's period, to bill each client. Use it when the person asks what
+        subscription's period, to bill each client, with the latest invoices and the
+        auto top-up setting, which you only read. Use it when the person asks what
         the work costs, what to bill a client, about their subscription, or before a
         large run."""
         return await _get_usage(

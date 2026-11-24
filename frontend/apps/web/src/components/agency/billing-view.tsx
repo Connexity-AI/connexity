@@ -18,6 +18,7 @@ import {
   resumeSubscriptionAction,
   startSubscriptionAction,
 } from '@/actions/billing';
+import { AddFunds, AutoTopUp, Invoices } from '@/components/agency/billing-payments';
 import { BillingUsage } from '@/components/agency/billing-usage';
 
 import type { BillingChangeResult, BillingLinkResult } from '@/actions/billing';
@@ -42,6 +43,8 @@ interface Props {
   money: MoneyPublic | null;
   /** The picked period's usage; absent when it could not be read. */
   usage: AgencyUsagePublic | null;
+  /** A top-up the person has just come back from: what was added, or still waiting. */
+  topUp: { status: string; amount_usd?: number | null } | null;
 }
 
 /**
@@ -50,7 +53,7 @@ interface Props {
  * Paying and every card field are on Stripe's pages; this screen links to them. The
  * top-ups and invoices of the design are not built yet and are not shown.
  */
-export const BillingView: FC<Props> = ({ agencyId, billing, justPaid, money, usage }) => {
+export const BillingView: FC<Props> = ({ agencyId, billing, justPaid, money, usage, topUp }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [failure, setFailure] = useState<string | null>(null);
@@ -80,6 +83,8 @@ export const BillingView: FC<Props> = ({ agencyId, billing, justPaid, money, usa
     });
   };
   const toPortal = () => leave(() => openPortalAction(agencyId));
+  // Funds are added to a subscription; while it has not started, only it is offered.
+  const canAddFunds = state === 'active' || state === 'past_due';
 
   let subscriptionCard: ReactNode;
   if (!running)
@@ -160,8 +165,46 @@ export const BillingView: FC<Props> = ({ agencyId, billing, justPaid, money, usa
             : 'Your payment is processing. This page updates when it’s done.'}
         </span>
       )}
+      {topUp && (
+        <span role="status" className="text-label text-ink-secondary tabular-nums">
+          {topUp.status === 'paid' && typeof topUp.amount_usd === 'number'
+            ? `$${topUp.amount_usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} added to your balance`
+            : 'Your payment is processing. The balance updates when it’s done.'}
+        </span>
+      )}
+      {billing.failed_payment && (
+        <span role="alert" className="text-label text-critical tabular-nums">
+          Your auto top-up of ${billing.failed_payment.amount_usd} failed:{' '}
+          {billing.failed_payment.reason}{' '}
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={toPortal}
+            className="cursor-pointer border-0 bg-transparent p-0 font-medium text-critical underline"
+          >
+            Update card
+          </button>
+        </span>
+      )}
       {subscriptionCard}
-      {usage && <BillingUsage agencyId={agencyId} money={money} usage={usage} />}
+      {usage && (
+        <BillingUsage
+          agencyId={agencyId}
+          money={money}
+          usage={usage}
+          addFunds={canAddFunds ? <AddFunds agencyId={agencyId} money={money} /> : undefined}
+          underSummary={
+            canAddFunds ? (
+              <AutoTopUp
+                agencyId={agencyId}
+                setting={billing.auto_top_up}
+                hasCard={card !== null}
+                onNeedsCard={toPortal}
+              />
+            ) : undefined
+          }
+        />
+      )}
 
       {hasCustomer && (
         <div className={CARD}>
@@ -173,6 +216,11 @@ export const BillingView: FC<Props> = ({ agencyId, billing, justPaid, money, usa
                   ? `${brand(card.brand)} ending ${card.last4} · expires ${two(card.exp_month)}/${two(card.exp_year % 100)}`
                   : 'No card on file'}
               </span>
+              {card?.expires_soon && (
+                <span role="alert" className="text-label text-warning">
+                  This card expires soon. Update it so payments keep working.
+                </span>
+              )}
             </div>
             <button type="button" disabled={isPending} onClick={toPortal} className={QUIET}>
               {card ? 'Change' : 'Add card'}
@@ -207,6 +255,23 @@ export const BillingView: FC<Props> = ({ agencyId, billing, justPaid, money, usa
             Card and billing details are entered on our payment provider’s page, never in Connexity.
           </div>
         </div>
+      )}
+
+      {hasCustomer && billing.read_from_stripe && <Invoices invoices={billing.invoices ?? []} />}
+
+      {billing.sales_contact_url && (
+        <span className="text-label text-ink-muted">
+          Running a large fleet?{' '}
+          <a
+            href={billing.sales_contact_url}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-ink-secondary underline hover:text-ink"
+          >
+            Talk to us
+          </a>{' '}
+          about volume pricing.
+        </span>
       )}
 
       {!billing.read_from_stripe && (

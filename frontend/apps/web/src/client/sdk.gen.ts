@@ -55,6 +55,9 @@ import type {
   BillingCancelSubscriptionData,
   BillingCancelSubscriptionErrors,
   BillingCancelSubscriptionResponses,
+  BillingConfirmTopUpData,
+  BillingConfirmTopUpErrors,
+  BillingConfirmTopUpResponses,
   BillingDownloadUsageData,
   BillingDownloadUsageErrors,
   BillingDownloadUsageResponses,
@@ -73,9 +76,15 @@ import type {
   BillingResumeSubscriptionData,
   BillingResumeSubscriptionErrors,
   BillingResumeSubscriptionResponses,
+  BillingSetAutoTopUpData,
+  BillingSetAutoTopUpErrors,
+  BillingSetAutoTopUpResponses,
   BillingStartSubscriptionData,
   BillingStartSubscriptionErrors,
   BillingStartSubscriptionResponses,
+  BillingStartTopUpData,
+  BillingStartTopUpErrors,
+  BillingStartTopUpResponses,
   CallsGetCallDetailData,
   CallsGetCallDetailErrors,
   CallsGetCallDetailResponses,
@@ -1408,6 +1417,100 @@ export class BillingService {
       ],
       url: '/api/v1/agencies/{agency_id}/billing/resume',
       ...options,
+    });
+  }
+
+  /**
+   * Start Top Up
+   *
+   * Stripe's page to add funds to the balance: $50 to $10,000. For an agency with a
+   * subscription. The balance is credited when Stripe says the payment went through.
+   */
+  public static startTopUp<ThrowOnError extends boolean = false>(
+    options: Options<BillingStartTopUpData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      BillingStartTopUpResponses,
+      BillingStartTopUpErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/top-up',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Confirm Top Up
+   *
+   * What became of a top-up the person has just come back from: `paid` with the
+   * amount added, or `processing`. Credits the balance if Stripe's message has not
+   * done so yet; a payment is never credited twice.
+   */
+  public static confirmTopUp<ThrowOnError extends boolean = false>(
+    options: Options<BillingConfirmTopUpData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      BillingConfirmTopUpResponses,
+      BillingConfirmTopUpErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/top-up/confirm',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Set Auto Top Up
+   *
+   * Switch auto top-up on or off and set its amount. Turning it on needs a
+   * card on file, and forgets an earlier failed payment so the card is tried again.
+   */
+  public static setAutoTopUp<ThrowOnError extends boolean = false>(
+    options: Options<BillingSetAutoTopUpData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      BillingSetAutoTopUpResponses,
+      BillingSetAutoTopUpErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/auto-top-up',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 }

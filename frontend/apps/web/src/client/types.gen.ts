@@ -823,6 +823,36 @@ export const AuthProvider = { EMAIL: 'email', GOOGLE: 'google' } as const;
 export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider];
 
 /**
+ * AutoTopUpPublic
+ */
+export type AutoTopUpPublic = {
+  /**
+   * Enabled
+   */
+  enabled: boolean;
+  /**
+   * Amount Usd
+   *
+   * What is added each time the included amount and the balance are both used up
+   */
+  amount_usd: number;
+};
+
+/**
+ * AutoTopUpUpdate
+ */
+export type AutoTopUpUpdate = {
+  /**
+   * Enabled
+   */
+  enabled: boolean;
+  /**
+   * Amount Usd
+   */
+  amount_usd: number;
+};
+
+/**
  * BillingDetailsPublic
  */
 export type BillingDetailsPublic = {
@@ -861,6 +891,23 @@ export type BillingPublic = {
   subscription: SubscriptionPublic;
   card: CardPublic | null;
   details: BillingDetailsPublic | null;
+  /**
+   * Invoices
+   *
+   * Newest first; empty when Stripe was not read
+   */
+  invoices?: Array<InvoicePublic>;
+  auto_top_up: AutoTopUpPublic;
+  /**
+   * The last automatic payment that failed, if any
+   */
+  failed_payment?: FailedPaymentPublic | null;
+  /**
+   * Sales Contact Url
+   *
+   * Where "Talk to us" leads, when the deployment names one
+   */
+  sales_contact_url?: string | null;
   /**
    * Read From Stripe
    *
@@ -1686,6 +1733,12 @@ export type CardPublic = {
    * Exp Year
    */
   exp_year: number;
+  /**
+   * Expires Soon
+   *
+   * It expires this month or next
+   */
+  expires_soon?: boolean;
 };
 
 /**
@@ -2631,6 +2684,26 @@ export type ExecutionSyncResult = {
 };
 
 /**
+ * FailedPaymentPublic
+ */
+export type FailedPaymentPublic = {
+  /**
+   * Amount Usd
+   */
+  amount_usd: number;
+  /**
+   * Reason
+   *
+   * Stripe's own words, such as a declined card
+   */
+  reason: string;
+  /**
+   * At
+   */
+  at: string;
+};
+
+/**
  * FakeToolResultPublic
  */
 export type FakeToolResultPublic = {
@@ -3054,6 +3127,44 @@ export type InviteSignUp = {
    * Password
    */
   password: string;
+};
+
+/**
+ * InvoicePublic
+ */
+export type InvoicePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Description
+   *
+   * Subscription, Added funds or Auto top-up
+   */
+  description: string;
+  /**
+   * Amount Usd
+   *
+   * The total, tax included
+   */
+  amount_usd: number;
+  /**
+   * Status
+   *
+   * paid, processing or failed
+   */
+  status: string;
+  /**
+   * Url
+   *
+   * Stripe's page with the invoice and its PDF
+   */
+  url: string | null;
 };
 
 /**
@@ -6699,6 +6810,12 @@ export type MoneyPublic = {
    */
   days_left: number | null;
   /**
+   * Payment Failed
+   *
+   * An automatic payment failed and the card has not changed since
+   */
+  payment_failed?: boolean;
+  /**
    * Subscription Ended
    *
    * In `needs_subscription`: a subscription existed and ended, rather than never having started
@@ -9058,6 +9175,44 @@ export const ToolCallStatus = {
 export type ToolCallStatus = (typeof ToolCallStatus)[keyof typeof ToolCallStatus];
 
 /**
+ * TopUpConfirm
+ */
+export type TopUpConfirm = {
+  /**
+   * Session Id
+   */
+  session_id: string;
+};
+
+/**
+ * TopUpRequest
+ */
+export type TopUpRequest = {
+  /**
+   * Amount Usd
+   */
+  amount_usd: number;
+};
+
+/**
+ * TopUpResult
+ */
+export type TopUpResult = {
+  /**
+   * Status
+   *
+   * paid or processing
+   */
+  status: string;
+  /**
+   * Amount Usd
+   *
+   * What was added to the balance
+   */
+  amount_usd: number | null;
+};
+
+/**
  * Trace
  *
  * Connexity's record of one call, in a provider-neutral shape.
@@ -9622,6 +9777,16 @@ export type UsagePublic = {
    * The whole agency's usage per workspace and agent, when asked for with `agency`. Counted by subscription period, as the money is drawn
    */
   agency_usage?: AgencyUsagePublic | null;
+  /**
+   * Invoices
+   *
+   * The agency's latest invoices, newest first, with `agency`. Absent when the payment provider could not be read
+   */
+  invoices?: Array<InvoicePublic> | null;
+  /**
+   * The agency's auto top-up setting, with `agency`. You never change it
+   */
+  auto_top_up?: AutoTopUpPublic | null;
   /**
    * What the agency has left and whether it is paused. Only in an assistant's answer, and only where paying is set up
    */
@@ -12241,6 +12406,171 @@ export type BillingResumeSubscriptionResponses = {
 
 export type BillingResumeSubscriptionResponse =
   BillingResumeSubscriptionResponses[keyof BillingResumeSubscriptionResponses];
+
+export type BillingStartTopUpData = {
+  body: TopUpRequest;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/top-up';
+};
+
+export type BillingStartTopUpErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingStartTopUpError = BillingStartTopUpErrors[keyof BillingStartTopUpErrors];
+
+export type BillingStartTopUpResponses = {
+  /**
+   * Successful Response
+   */
+  200: BillingLink;
+};
+
+export type BillingStartTopUpResponse =
+  BillingStartTopUpResponses[keyof BillingStartTopUpResponses];
+
+export type BillingConfirmTopUpData = {
+  body: TopUpConfirm;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/top-up/confirm';
+};
+
+export type BillingConfirmTopUpErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingConfirmTopUpError = BillingConfirmTopUpErrors[keyof BillingConfirmTopUpErrors];
+
+export type BillingConfirmTopUpResponses = {
+  /**
+   * Successful Response
+   */
+  200: TopUpResult;
+};
+
+export type BillingConfirmTopUpResponse =
+  BillingConfirmTopUpResponses[keyof BillingConfirmTopUpResponses];
+
+export type BillingSetAutoTopUpData = {
+  body: AutoTopUpUpdate;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/auto-top-up';
+};
+
+export type BillingSetAutoTopUpErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingSetAutoTopUpError = BillingSetAutoTopUpErrors[keyof BillingSetAutoTopUpErrors];
+
+export type BillingSetAutoTopUpResponses = {
+  /**
+   * Successful Response
+   */
+  200: AutoTopUpPublic;
+};
+
+export type BillingSetAutoTopUpResponse =
+  BillingSetAutoTopUpResponses[keyof BillingSetAutoTopUpResponses];
 
 export type AgenciesReadWorkspacesData = {
   body?: never;

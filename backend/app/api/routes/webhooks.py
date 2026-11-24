@@ -28,6 +28,7 @@ from app.services.checks.engine import check_call_safely
 from app.services.component_versions import add_retell_components
 from app.services.executions import sync_call_executions_in_background
 from app.services.mappings.retell import RetellMappingError, retell_call_to_trace
+from app.services.top_up import credit_invoice
 
 logger = logging.getLogger(__name__)
 
@@ -214,5 +215,31 @@ async def stripe_webhook(session: SessionDep, request: Request) -> WebhookResult
     crud_billing.store_subscription(
         session=session, agency=agency, subscription=subscription
     )
+    # A paid top-up is credited from the invoice as Stripe has it now, never from
+    # what the message says. An invoice is credited once, whatever arrives.
+    invoice_id = _invoice_of(kind, subject)
+    if invoice_id is not None:
+        try:
+            invoice = await stripe.get_invoice(invoice_id=invoice_id)
+        except stripe.StripeError as exc:
+            logger.warning("A Stripe invoice could not be read: %s", exc)
+            raise HTTPException(
+                status_code=503, detail="Stripe could not be read; send it again"
+            ) from exc
+        credit_invoice(session=session, agency=agency, invoice=invoice)
     crud_billing.mark_event_handled(session=session, event_id=event_id, kind=kind)
     return WebhookResult(status="stored")
+
+
+def _invoice_of(kind: str, subject: object) -> str | None:
+    """The invoice a message is about: the invoice itself, or the one a finished
+    Checkout payment made."""
+    if not isinstance(subject, dict):
+        return None
+    if kind.startswith("invoice."):
+        found = subject.get("id")
+    elif kind == "checkout.session.completed":
+        found = subject.get("invoice")
+    else:
+        return None
+    return found if isinstance(found, str) and found else None

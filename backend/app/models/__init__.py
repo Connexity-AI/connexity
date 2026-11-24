@@ -43,6 +43,8 @@ from app.models.assistant_task import AssistantTask  # noqa: F401
 from app.models.billing import (  # noqa: F401
     AgencyState,
     AgencyUsagePublic,
+    AutoTopUpPublic,
+    AutoTopUpUpdate,
     BalanceEntry,
     BalanceKind,
     BillingDetailsPublic,
@@ -50,11 +52,16 @@ from app.models.billing import (  # noqa: F401
     BillingPause,
     BillingPublic,
     CardPublic,
+    FailedPaymentPublic,
     FirstScanPublic,
     IncludedScan,
+    InvoicePublic,
     MoneyPublic,
     StripeEvent,
     SubscriptionPublic,
+    TopUpConfirm,
+    TopUpRequest,
+    TopUpResult,
 )
 
 # ── Call (Observer) ────────────────────────────────────────────────

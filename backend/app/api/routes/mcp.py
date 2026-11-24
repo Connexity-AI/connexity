@@ -7,6 +7,7 @@ to a workspace in its path, resolved by `require_mcp_workspace`.
 
 import base64
 import binascii
+import logging
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -22,6 +23,7 @@ from app.api.deps import (
     require_mcp_user,
 )
 from app.api.routes import agencies as agencies_routes
+from app.api.routes import billing as billing_routes
 from app.core.config import settings
 from app.core.encryption import decrypt
 from app.crud import billing as crud_billing
@@ -156,6 +158,7 @@ from app.models.test_run import (
 from app.models.usage import UsagePublic
 from app.models.user import User
 from app.models.work import WorkMoveIn
+from app.services import stripe
 from app.services.agent_list import agent_types, live_since
 from app.services.agent_page import agent_page
 from app.services.billing_state import (
@@ -246,6 +249,8 @@ from app.services.test_run import (
 )
 from app.services.usage import BadMonth, UsagePeriod, messages_price, usage
 from app.services.work import MoveRefused, Task, move_task, next_task, work_page
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/mcp",
@@ -3419,7 +3424,7 @@ def _refuse_when_paused(
     "/workspaces/{workspace_id}/usage",
     response_model=McpAnswer[UsagePublic],
 )
-def get_workspace_usage(
+async def get_workspace_usage(
     session: SessionDep,
     workspace: McpWorkspaceDep,
     current_user: McpCurrentUser,
@@ -3510,6 +3515,27 @@ def get_workspace_usage(
             "For billing clients, give the person `agency_usage.workspaces`: each "
             "workspace with its minutes, messages and cost, for `agency_usage.period`."
         )
+        if settings.billing_enabled:
+            page.auto_top_up = billing_routes._auto_top_up_public(its_agency)
+            if its_agency.stripe_customer_id:
+                try:
+                    page.invoices = [
+                        billing_routes._invoice_public(invoice)
+                        for invoice in await stripe.list_invoices(
+                            customer_id=its_agency.stripe_customer_id, limit=10
+                        )
+                    ]
+                except stripe.StripeError as exc:
+                    logger.warning(
+                        "Invoices could not be read for an assistant: %s", exc
+                    )
+            rules.append(
+                "`invoices` are the agency's latest invoices and `auto_top_up` its "
+                "setting: when the included amount and the balance are both used up, "
+                "the saved card is charged `amount_usd`. You only read them. You never add "
+                "funds, pay, change auto top-up or ask for card details: an Admin "
+                "does that in Agency settings, Billing."
+            )
     if settings.billing_enabled and its_agency is not None:
         page.subscription = crud_billing.subscription_public(its_agency)
         page.money = money_public(session=session, agency_id=its_agency.id)

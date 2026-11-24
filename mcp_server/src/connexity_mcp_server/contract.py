@@ -280,7 +280,7 @@ TOOLS: dict[str, ToolEntry] = {
         "Shows a period's observed minutes and simulated caller messages, with their "
         "list-price cost per agent and per run, your agency's subscription, what it "
         "has left before Connexity pauses, and, for an Admin, usage per client "
-        "workspace to bill from.",
+        "workspace to bill from, the latest invoices and the auto top-up setting.",
         "usage",
     ),
     "send_feedback": ToolEntry(

@@ -48,9 +48,18 @@ RUNNING = frozenset({AgencyState.active, AgencyState.low})
 SCANNING = RUNNING | {AgencyState.first_scan}
 
 
+# A top-up, by hand or automatic, in dollars (Proposed and accepted with the plan).
+TOP_UP_MIN_USD = 50
+TOP_UP_MAX_USD = 10_000
+
+
 class BalanceKind(str, enum.Enum):
-    # Added by Connexity by hand. Top-ups add their own kind with their row.
+    # Added by Connexity by hand.
     added = "added"
+    # Paid by an Admin through Stripe.
+    top_up = "top_up"
+    # Charged to the saved card by auto top-up.
+    auto_top_up = "auto_top_up"
     # What one period's usage beyond the included amount drew. Negative.
     usage = "usage"
 
@@ -77,6 +86,9 @@ class BalanceEntry(SQLModel, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
     note: str | None = Field(default=None, max_length=255)
+    # For a top-up: Stripe's invoice that paid for it. One line per invoice, so a
+    # payment can never be credited twice.
+    stripe_invoice_id: str | None = Field(default=None, max_length=64, unique=True)
     created_by: uuid.UUID | None = Field(
         default=None, foreign_key="user.id", ondelete="SET NULL"
     )
@@ -147,6 +159,10 @@ class MoneyPublic(SQLModel):
         description="About how many days what is left lasts at the rate of the last "
         "7 days; absent with too little usage to tell"
     )
+    payment_failed: bool = Field(
+        default=False,
+        description="An automatic payment failed and the card has not changed since",
+    )
     subscription_ended: bool = Field(
         default=False,
         description="In `needs_subscription`: a subscription existed and ended, "
@@ -191,6 +207,50 @@ class CardPublic(SQLModel):
     last4: str
     exp_month: int
     exp_year: int
+    expires_soon: bool = Field(
+        default=False, description="It expires this month or next"
+    )
+
+
+class InvoicePublic(SQLModel):
+    id: str
+    created_at: datetime
+    description: str = Field(description="Subscription, Added funds or Auto top-up")
+    amount_usd: float = Field(description="The total, tax included")
+    status: str = Field(description="paid, processing or failed")
+    url: str | None = Field(description="Stripe's page with the invoice and its PDF")
+
+
+class AutoTopUpPublic(SQLModel):
+    enabled: bool
+    amount_usd: int = Field(
+        description="What is added each time the included amount and the balance "
+        "are both used up"
+    )
+
+
+class AutoTopUpUpdate(SQLModel):
+    enabled: bool
+    amount_usd: int = Field(ge=TOP_UP_MIN_USD, le=TOP_UP_MAX_USD)
+
+
+class FailedPaymentPublic(SQLModel):
+    amount_usd: int
+    reason: str = Field(description="Stripe's own words, such as a declined card")
+    at: datetime
+
+
+class TopUpRequest(SQLModel):
+    amount_usd: int = Field(ge=TOP_UP_MIN_USD, le=TOP_UP_MAX_USD)
+
+
+class TopUpConfirm(SQLModel):
+    session_id: str = Field(max_length=255)
+
+
+class TopUpResult(SQLModel):
+    status: str = Field(description="paid or processing")
+    amount_usd: float | None = Field(description="What was added to the balance")
 
 
 class BillingDetailsPublic(SQLModel):
@@ -203,6 +263,17 @@ class BillingPublic(SQLModel):
     subscription: SubscriptionPublic
     card: CardPublic | None
     details: BillingDetailsPublic | None
+    invoices: list[InvoicePublic] = Field(
+        default_factory=list, description="Newest first; empty when Stripe was not read"
+    )
+    auto_top_up: AutoTopUpPublic
+    failed_payment: FailedPaymentPublic | None = Field(
+        default=None, description="The last automatic payment that failed, if any"
+    )
+    sales_contact_url: str | None = Field(
+        default=None,
+        description='Where "Talk to us" leads, when the deployment ' "names one",
+    )
     read_from_stripe: bool = Field(
         description="False when Stripe could not be reached: the subscription is the "
         "last known one and the card and details are missing"

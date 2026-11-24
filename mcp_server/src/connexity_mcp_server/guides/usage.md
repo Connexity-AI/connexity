@@ -99,3 +99,20 @@ It counts differently from the rest of the answer, on purpose:
 `agency_usage` is what came off the included amount and the balance, so use it for what
 to bill a client and for "where did the money go". A deleted workspace keeps its line.
 A member's assistant is refused: only admins see billing.
+
+## Invoices, adding funds and auto top-up
+
+With `agency`, an admin's assistant also gets:
+
+- `invoices`: the agency's latest invoices, newest first, each "Subscription", "Added
+  funds" or "Auto top-up", with its total and status (`paid`, `processing`, `failed`).
+- `auto_top_up`: whether it is on, and its amount. When the period's included amount
+  and the balance are both used up, the saved card is charged `amount_usd`, and
+  Connexity keeps running meanwhile. It charges again each time both run out.
+- `money.payment_failed`: an automatic payment failed and the card has not changed.
+  Nothing is charged automatically until it does.
+
+You only read these. You never add funds, pay an invoice, switch auto top-up on or off,
+change its amount, or ask for card details. When the person wants any of that, send
+them to Agency settings, Billing: "Add funds", the auto top-up switch, and "Change" on
+the payment method all open the payment provider's own pages.
