@@ -1752,7 +1752,8 @@ class WorkspaceDeletion(BaseModel):
         "is deleted on the platform itself"
     )
     is_last_workspace: bool = Field(
-        description="The agency's only workspace, which cannot be deleted"
+        description="The agency's only workspace. It can be deleted; the agency then "
+        "has none, and its subscription keeps running until an admin cancels it"
     )
     your_person_can_delete: bool = Field(
         description="Whether the person you act for is an admin who can approve"

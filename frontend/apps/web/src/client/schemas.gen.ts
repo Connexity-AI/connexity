@@ -9831,7 +9831,8 @@ export const McpWorkspaceDeletionSchema = {
     is_last_workspace: {
       type: 'boolean',
       title: 'Is Last Workspace',
-      description: "The agency's only workspace, which cannot be deleted",
+      description:
+        "The agency's only workspace. It can be deleted; the agency then has none, and its subscription keeps running until an Admin cancels it",
     },
     your_person_can_delete: {
       type: 'boolean',
@@ -15441,7 +15442,8 @@ export const WorkspaceDeletionPreviewSchema = {
     is_last: {
       type: 'boolean',
       title: 'Is Last',
-      description: "The agency's only workspace, which cannot be deleted",
+      description:
+        "The agency's only workspace. It can be deleted; the agency then has none, and its subscription keeps running until it is cancelled",
     },
   },
   type: 'object',

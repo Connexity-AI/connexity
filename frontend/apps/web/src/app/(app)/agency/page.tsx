@@ -34,8 +34,12 @@ const AgencySettings: FC<{
   topUpSession?: string;
 }> = async ({ section, justPaid, period, topUpSession }) => {
   const open = (await listWorkspaces()).find((w) => w.is_open);
-  if (!open) notFound();
-  const path = { agency_id: open.agency_id };
+  // With no workspace open, the agency the person is an Admin of.
+  const agencyId =
+    open?.agency_id ??
+    (await AgenciesService.listAgencies()).data?.find((a) => a.role === 'admin')?.id;
+  if (!agencyId) notFound();
+  const path = { agency_id: agencyId };
   // Back from Stripe after adding funds: credit it before Billing is read, so the
   // balance below already has it. Asking again changes nothing.
   const topUp =
@@ -67,7 +71,10 @@ const AgencySettings: FC<{
       <div className="flex min-h-10 flex-col justify-center">
         <h1 className="m-0 text-title font-medium text-ink">Agency settings</h1>
         <span className="text-label text-ink-secondary">
-          {agency.name} · {plural(agency.workspaces.length, 'workspace', 'workspaces')}
+          {agency.name} ·{' '}
+          {agency.workspaces.length === 0
+            ? 'No workspaces'
+            : plural(agency.workspaces.length, 'workspace', 'workspaces')}
         </span>
       </div>
       <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[176px_minmax(0,1fr)]">

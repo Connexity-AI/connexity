@@ -269,6 +269,28 @@ def has_a_workspace(*, session: Session, user: User) -> bool:
     return session.get(WorkspaceMember, (user.id, user.company_id)) is not None
 
 
+def admin_agencies(*, session: Session, user: User) -> list[Agency]:
+    """The agencies the person is an Admin of, by name."""
+    return list(
+        session.exec(
+            select(Agency)
+            .join(AgencyMember, col(AgencyMember.agency_id) == Agency.id)
+            .where(
+                AgencyMember.user_id == user.id,
+                AgencyMember.role == AgencyRole.admin,
+            )
+            .order_by(func.lower(Agency.name), col(Agency.id))
+        ).all()
+    )
+
+
+def may_be_without_a_workspace(*, session: Session, user: User) -> bool:
+    """Whether a person who reaches no workspace is still let in: an Admin of an
+    agency is, to create the agency's next workspace and reach its settings (Decided by
+    Dmytro, 2026-11-24). A Member who reaches none is not."""
+    return bool(admin_agencies(session=session, user=user))
+
+
 def _reopen_if_needed(*, session: Session, user_id: uuid.UUID) -> None:
     """When the workspace a person has open is no longer theirs, open another one they
     reach. With none left the open one stays as it is: every request is refused, which

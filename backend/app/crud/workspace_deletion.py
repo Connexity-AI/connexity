@@ -24,7 +24,7 @@ from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, SQLModel, col
 
-from app.crud.agency import _reopen_if_needed, agency_workspaces
+from app.crud.agency import _reopen_if_needed
 from app.models.agency import Agency, AgencyMember, AgencyRole
 from app.models.agent import Agent
 from app.models.call import Call
@@ -47,6 +47,9 @@ KEPT_TABLES = frozenset(
         "usage_record",  # invoices
         "agent",  # reduced to id and name
         "workspace_deletion",  # the record of the deletion itself
+        # An assistant's connection: moved to the workspace its person has open, or
+        # left as it is when they have none, so the assistant stays connected.
+        "oauth_refresh_token",
     }
 )
 
@@ -68,10 +71,6 @@ def shown_state(deletion: WorkspaceDeletion) -> DeletionState:
     ):
         return DeletionState.failed
     return deletion.state
-
-
-class LastWorkspaceError(Exception):
-    """An agency keeps at least one workspace."""
 
 
 class DeletionRunningError(Exception):
@@ -162,15 +161,14 @@ def start_deletion(
     From the first commit nobody reaches the workspace, on the web or through an
     assistant, whatever happens to the rest of the run.
 
+    An agency's last workspace can be deleted too: its Admins then have no workspace
+    open and are shown how to create the next one.
+
     Raises:
-        LastWorkspaceError: it is the agency's only workspace.
         DeletionRunningError: it is already deleted or being deleted.
     """
     if workspace.deleted_at is not None:
         raise DeletionRunningError
-    remaining = agency_workspaces(session=session, agency_id=agency.id)
-    if len(remaining) <= 1:
-        raise LastWorkspaceError
     held = counts(session=session, company_id=workspace.id)
     deletion = WorkspaceDeletion(
         agency_id=agency.id,
@@ -252,7 +250,8 @@ def run_deletion(*, session: Session, deletion: WorkspaceDeletion) -> WorkspaceD
         )
         # An assistant connected while this workspace was open stays connected, now on
         # the workspace its person has open. One whose person reaches no other
-        # workspace is removed with the rest below.
+        # workspace keeps pointing at this one's row, which stays; it reaches
+        # nothing until its person has a workspace again.
         step = "oauth_refresh_token"
         session.execute(
             text(

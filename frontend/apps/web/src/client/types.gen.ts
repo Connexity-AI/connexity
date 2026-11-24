@@ -6804,7 +6804,7 @@ export type McpWorkspaceDeletion = {
   /**
    * Is Last Workspace
    *
-   * The agency's only workspace, which cannot be deleted
+   * The agency's only workspace. It can be deleted; the agency then has none, and its subscription keeps running until an Admin cancels it
    */
   is_last_workspace: boolean;
   /**
@@ -10647,7 +10647,7 @@ export type WorkspaceDeletionPreview = {
   /**
    * Is Last
    *
-   * The agency's only workspace, which cannot be deleted
+   * The agency's only workspace. It can be deleted; the agency then has none, and its subscription keeps running until it is cancelled
    */
   is_last: boolean;
 };

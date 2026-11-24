@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 
 from app.core.config import settings
 from app.models import User, WorkspaceMember
+from app.models.agency import AgencyMember, AgencyRole
 from app.tests.utils.eval import create_agent_as
 from app.tests.utils.utils import random_email, random_lower_string
 
@@ -96,7 +97,29 @@ def test_a_blank_workspace_name_is_refused(client: TestClient) -> None:
         assert r.status_code == 422
 
 
-def test_losing_membership_of_the_open_workspace_ends_the_session(
+def test_losing_membership_of_the_open_workspace_ends_a_members_session(
+    client: TestClient, db: Session
+) -> None:
+    email = random_email()
+    cookies = _sign_up(client, email)
+    user = db.exec(select(User).where(User.email == email)).one()
+    member = db.get(WorkspaceMember, (user.id, user.company_id))
+    assert member is not None
+    # A Member: an Admin is let in with no workspace (the next test).
+    for place in db.exec(
+        select(AgencyMember).where(AgencyMember.user_id == user.id)
+    ).all():
+        place.role = AgencyRole.member
+        db.add(place)
+
+    db.delete(member)
+    db.commit()
+
+    r = client.get(f"{API}/agents/list", cookies=cookies)
+    assert r.status_code == 401
+
+
+def test_an_admin_who_reaches_no_workspace_stays_in_with_none_open(
     client: TestClient, db: Session
 ) -> None:
     email = random_email()
@@ -108,8 +131,15 @@ def test_losing_membership_of_the_open_workspace_ends_the_session(
     db.delete(member)
     db.commit()
 
-    r = client.get(f"{API}/agents/list", cookies=cookies)
-    assert r.status_code == 401
+    needs_one = client.get(f"{API}/agents/list", cookies=cookies)
+    assert needs_one.status_code == 409
+    assert (
+        needs_one.json()["detail"] == "No workspace is open. Create a workspace first."
+    )
+    assert client.get(f"{API}/users/me", cookies=cookies).status_code == 200
+    # Put back, so no access row is left without its workspace's agency.
+    db.add(WorkspaceMember(user_id=user.id, company_id=user.company_id))
+    db.commit()
 
 
 def test_workspaces_are_listed_by_name_ignoring_case(client: TestClient) -> None:

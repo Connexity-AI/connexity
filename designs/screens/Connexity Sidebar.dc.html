@@ -14,7 +14,7 @@
     <span role="img" aria-label="Connexity" style="display:block;flex:none;width:24px;height:24px;background:var(--brand);-webkit-mask:url(assets/connexity-logo.png) center/contain no-repeat;mask:url(assets/connexity-logo.png) center/contain no-repeat"></span>
     <span style="font-size:15px;font-weight:500;color:var(--ink)">Connexity</span>
   </div>
-  <nav style="display:flex;flex-direction:column;gap:2px">
+  <sc-if value="{{ hasNav }}" hint-placeholder-val="{{ true }}"><nav style="display:flex;flex-direction:column;gap:2px">
     <a href="Connexity Work.dc.html" style="{{ navWork }}">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>
       <span>Work</span>
@@ -45,7 +45,7 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
       <span>Settings</span>
     </a>
-  </nav>
+  </nav></sc-if>
   <div style="margin-top:auto;position:sticky;bottom:0;display:flex;flex-direction:column;gap:4px;padding-top:12px;border-top:1px solid var(--border);background:var(--s1)">
     <sc-if value="{{ showReady }}" hint-placeholder-val="{{ true }}">
     <a href="Connexity Roadmap.dc.html#readiness" title="Open the Readiness stage of the Roadmap" style="display:flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:8px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">
@@ -64,7 +64,7 @@
     <div style="position:absolute;left:0;right:0;bottom:50px;z-index:30;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column">
       <span style="padding:6px 10px 4px;font-size:13px;line-height:18px;color:var(--ink3)">Workspaces</span>
       <sc-if value="{{ wsSearchable }}"><input value="{{ wsQ }}" onChange="{{ onWsQ }}" placeholder="Find a workspace" style="height:32px;margin:2px 2px 4px;padding:0 10px;border-radius:6px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font:inherit;font-size:13px;outline:none"></sc-if>
-      <div style="display:flex;flex-direction:column;max-height:240px;overflow-y:auto">
+      <sc-if value="{{ hasList }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;max-height:240px;overflow-y:auto">
       <sc-if value="{{ multi }}" hint-placeholder-val="{{ false }}">
       <sc-for list="{{ groups }}" as="g" hint-placeholder-count="0">
       <span style="flex:none;padding:8px 10px 2px;font-size:13px;line-height:18px;color:var(--ink3)">{{ g.name }}</span>
@@ -84,8 +84,9 @@
       </a>
       </sc-for>
       </sc-if>
-      </div>
+      </div></sc-if>
       <button onClick="{{ openDialog }}" style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M12 5v14"></path></svg>New workspace</button>
+      <sc-if value="{{ emptyAgency }}" hint-placeholder-val="{{ false }}"><a href="Connexity Agency.dc.html?empty=1" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Agency settings</a></sc-if>
       <div style="height:1px;margin:4px 0;background:var(--border)"></div>
       <sc-if value="{{ multi }}" hint-placeholder-val="{{ false }}"><a href="Connexity Agency.dc.html" title="Opens {{ curAgency }}, the agency of this workspace" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Agency settings</a></sc-if>
       <a href="Connexity Account.dc.html" style="display:flex;align-items:center;height:36px;padding:0 10px;border-radius:6px;color:var(--ink);font-size:13px;text-decoration:none" style-hover="background:var(--wash);opacity:1">Account</a>
@@ -124,7 +125,7 @@
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;work&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'work' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;workspaceCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:9,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;wsDialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;open&quot;,&quot;tooLong&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;empty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;actions&quot;,&quot;agents&quot;,&quot;calls&quot;,&quot;work&quot;,&quot;issues&quot;,&quot;incidents&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;'home' | 'actions' | 'agents' | 'calls' | 'work' | 'issues'&quot;},&quot;incident&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;menuOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;readiness&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;setup&quot;,&quot;dropped&quot;,&quot;complete&quot;],&quot;default&quot;:&quot;setup&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;workspaceCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:9,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;wsDialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;open&quot;,&quot;tooLong&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   constructor(props) {
     super(props);
@@ -161,13 +162,15 @@ class Component extends DCLogic {
     const S = this.state, fresh = !!this.props.fresh || S.newWs;
     const nm = S.wsNew, tooLong = nm.length > 255, canCreate = !!nm.trim() && !tooLong;
     const closeDialog = () => this.setState({ dialog:false, wsNew:'' });
-    const createWs = () => { if (!canCreate) return; const n = nm.trim(); this.setState(s => ({ created:[...s.created, n], current:n, dialog:false, wsNew:'', newWs:true, menuOpen:false })); };
+    const empty = !!this.props.empty;
+    const createWs = () => { if (!canCreate) return; const n = nm.trim();
+      if (empty) { try { window.location.href = 'Connexity Home.dc.html?ws=' + encodeURIComponent(n); } catch (_) {} return; } this.setState(s => ({ created:[...s.created, n], current:n, dialog:false, wsNew:'', newWs:true, menuOpen:false })); };
     const seg = on => ({ flex:1, height:26, padding:'0 6px', borderRadius:6, border:0, background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:13, fontWeight: on ? 500 : 400, cursor:'pointer' });
     const n = Math.max(1, Math.min(9, this.props.workspaceCount ?? 6));
     const W = [...(this.urlWs ? [this.urlWs] : Component.WS.slice(0, n)), ...S.created].filter(x => x !== this.props.exclude), cur = S.current || W[0], q = S.wsQ.trim().toLowerCase();
     const multi = (this.props.agencies || 1) > 1;
     const groups = [['Signal Voice', W], ['Fieldwork Media', Component.WS2]].map(([name, list]) => ({ name, items: list.filter(n => !q || n.toLowerCase().includes(q)).map(n => ({ name:n, current: n === cur })) })).filter(g => g.items.length);
-    return { wsName: cur, wsSearchable: (multi ? W.length + Component.WS2.length : W.length) > 8, multi, single: !multi, groups, curAgency: 'Signal Voice',
+    return { wsName: empty ? 'No workspace' : cur, hasNav: !empty, hasList: !empty, emptyAgency: empty, wsSearchable: !empty && (multi ? W.length + Component.WS2.length : W.length) > 8, multi, single: !multi, groups, curAgency: 'Signal Voice',
       dialogOpen: S.dialog, wsInputRef: this.wsInputRef, wsNew: nm, onWsNew: e => this.setState({ wsNew: e.target.value }),
       onWsKey: e => { if (e.key === 'Enter') createWs(); if (e.key === 'Escape') closeDialog(); },
       wsHint: !tooLong, wsTooLong: tooLong, cantCreate: !canCreate, createWs, cancelDialog: closeDialog,
@@ -178,7 +181,7 @@ class Component extends DCLogic {
       workspaces: W.filter(n => !q || n.toLowerCase().includes(q)).map((name, i) => ({ name, initial: name[0], current: name === cur })),
       menuRef: this.menuRef, menuOpen: this.state.menuOpen, toggleMenu: () => this.setState(st => ({ menuOpen: !st.menuOpen })), closeMenu: () => this.setState({ menuOpen:false }),
       themes: [['dark','Dark'],['light','Light'],['system','System']].map(([v, label]) => ({ label, style: seg(this.state.theme === v), pick: () => { try { localStorage.setItem('cx-theme', v); } catch (_) {} this.setState({ theme:v }); } })),
-      creditsLow: this.props.credits === 'low' && !fresh, notFresh: !fresh, showReady: pct < 100 && !fresh, readyPct: pct, readyDash: `${(pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`, glimmer: this.props.incident === false || fresh ? null : this.glimmer(), navHome: this.navStyle(a === 'home'), navActions: this.navStyle(a === 'actions'), navAgents: this.navStyle(a === 'agents'), navCalls: this.navStyle(a === 'calls'), navWork: this.navStyle(a === 'work' || a === 'roadmap'), navIssues: this.navStyle(a === 'issues'), navIncidents: this.navStyle(a === 'incidents'), navSettings: this.navStyle(a === 'settings') };
+      creditsLow: this.props.credits === 'low' && !fresh && !empty, notFresh: !fresh, showReady: pct < 100 && !fresh && !empty, readyPct: pct, readyDash: `${(pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`, glimmer: this.props.incident === false || fresh ? null : this.glimmer(), navHome: this.navStyle(a === 'home'), navActions: this.navStyle(a === 'actions'), navAgents: this.navStyle(a === 'agents'), navCalls: this.navStyle(a === 'calls'), navWork: this.navStyle(a === 'work' || a === 'roadmap'), navIssues: this.navStyle(a === 'issues'), navIncidents: this.navStyle(a === 'incidents'), navSettings: this.navStyle(a === 'settings') };
   }
 }
 </script>

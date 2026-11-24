@@ -134,7 +134,9 @@ const WorkspaceList: FC<{ workspaces: WorkspacePublic[]; onNew: () => void }> = 
 
   return (
     <>
-      <span className="px-2.5 pt-1.5 pb-1 text-label text-ink-muted">Workspaces</span>
+      {workspaces.length > 0 && (
+        <span className="px-2.5 pt-1.5 pb-1 text-label text-ink-muted">Workspaces</span>
+      )}
       {workspaces.length >= SEARCH_FROM && (
         <input
           value={query}
@@ -210,8 +212,10 @@ export const ProfileMenu: FC<Props> = ({ name, workspaces }) => {
           </span>
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-label text-ink">{name}</span>
-            {openWorkspace && (
-              <span className="truncate text-label text-ink-muted">{openWorkspace.name}</span>
+            {(openWorkspace || workspaces.length === 0) && (
+              <span className="truncate text-label text-ink-muted">
+                {openWorkspace ? openWorkspace.name : 'No workspace'}
+              </span>
             )}
           </span>
           <ChevronsUpDown className="size-3.5 flex-none text-ink-muted" aria-hidden />

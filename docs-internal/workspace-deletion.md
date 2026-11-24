@@ -15,11 +15,12 @@ keys, ingest tokens and feedback reports. Connexity stores no audio, only the vo
 platform's link to a recording, so nothing lives outside the database. Nothing is called
 on the voice platform, n8n or a CRM: the agency's calls there are not touched.
 
-Three kinds of row stay, with no call content:
+Four kinds of row stay, with no call content:
 
 | Row | What is left of it | Why |
 |---|---|---|
 | `usage_record` | Units, meter, time, own cost; links to the call, run and result emptied | Invoices |
+| `oauth_refresh_token` | An assistant's connection: moved to the workspace its person has open, or left as it is when they reach no other | The assistant stays connected, and reaches nothing until its person has a workspace again |
 | `company` and `agent` | Id and name, `deleted_at` set; an agent's platform ids, connection, metadata and scan state emptied | Kept usage still says whose it was (Decided by Dmytro, 2026-11-24) |
 | `workspace_deletion` | Who deleted which workspace and when, its state, and how many calls, agents and issues it held | The agency's record of the decision |
 
@@ -51,8 +52,11 @@ and can be tried again the same way.
 
 - **Who:** an Admin of the agency who can approve. Others are refused and told who can.
 - **Confirmation:** the workspace's name, typed exactly.
-- **The last workspace** of an agency cannot be deleted (Decided by Dmytro, 2026-11-24):
-  every account needs an open workspace. The refusal says to create another first.
+- **The last workspace** of an agency is deleted like any other (Decided by Dmytro,
+  2026-11-24, replacing the earlier rule that it could not be). The dialog adds that it
+  is the last one and that the subscription keeps running until it is cancelled. Its
+  Admins then have no workspace open: see "With no workspace" in
+  [`agency.md`](./agency.md).
 - **No assistant can delete.** The routes take a web session only, and there is no MCP
   tool that deletes; `prepare_workspace_deletion` only reads.
 - **Backups** of the hosted database are outside the app; nothing here promises when

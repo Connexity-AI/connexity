@@ -89,6 +89,28 @@ Resolving an issue and answering the assistant's clarification questions need no
 approval (Decided by Dmytro, 2026-11-23). Closing incidents, overriding the gate and
 changing the Playbook take the same rule (`require_approver`) when they are built.
 
+## With no workspace
+
+An agency can have no workspace: before its first, or after its last was deleted.
+
+- **Who is let in:** a person who reaches no workspace signs in only when they are an
+  Admin of an agency (Decided by Dmytro, 2026-11-24). A Member who reaches none is
+  refused with "You no longer have access to any workspace."
+- **Their session** has no workspace open. Routes that are scoped to a workspace answer
+  409 "No workspace is open. Create a workspace first." (`get_current_company_id`).
+  Routes about the person, their agencies, Agency settings and Billing work.
+- **Creating a workspace** with none open puts it in the agency the person is an Admin
+  of and opens it at once, so their session goes on. An Admin of several agencies says
+  which.
+- **The web app** shows "No workspaces yet" with "New workspace" in place of the pages
+  that show one workspace (the route group `app/(app)/(workspace)`); Agency settings and
+  Account sit outside that group and stay reachable. Agency settings finds its agency
+  through the open workspace, or, with none, the agency the person is an Admin of.
+- **The subscription** is untouched: an agency with no workspace keeps paying until an
+  Admin cancels.
+- **An assistant** lists no workspaces and is told to create one for an Admin, or to
+  ask an Admin.
+
 ## The profile menu
 
 A person in more than one agency sees their workspaces grouped under the agencies'

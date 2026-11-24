@@ -57,7 +57,9 @@ the person you act for can delete it, and who can.
 Tell the person what would be removed and that it cannot be undone. If they still want
 it, send them to the address in `where`: they open the workspace's menu in Agency
 settings, choose Delete workspace and type its name. Only an admin who can approve can
-do that. An agency's only workspace cannot be deleted.
+do that. An agency's last workspace can be deleted too: say so first, and that the
+agency then has no workspace and its subscription keeps running until an admin cancels
+it in Agency settings, Billing.
 
 Usage totals stay for invoices, with no call content. Nothing is deleted on the voice
 platform. After a deletion every tool answers that the workspace is not found.

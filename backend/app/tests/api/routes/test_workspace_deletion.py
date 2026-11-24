@@ -358,6 +358,10 @@ def test_a_session_in_a_deleted_workspace_goes_on_when_the_person_has_another(
     db.execute(
         delete(WorkspaceMember).where(WorkspaceMember.user_id == only_here.id)  # type: ignore[arg-type]
     )
+    # And who is an Admin nowhere: an Admin is let in with no workspace.
+    db.execute(
+        delete(AgencyMember).where(AgencyMember.user_id == only_here.id)  # type: ignore[arg-type]
+    )
     db.add(
         AgencyMember(
             agency_id=agency.id,
@@ -515,33 +519,151 @@ def test_an_assistant_prepares_a_deletion_and_deletes_nothing(
     told = for_member.json()
     assert told["data"]["your_person_can_delete"] is False
     assert "Alex Morgan" in told["next_steps"][0]
-    assert only.json()["data"]["is_last_workspace"] is True
+    last = only.json()
+    assert last["data"]["is_last_workspace"] is True
+    # The last workspace is no longer refused; the assistant says what follows.
+    assert "last workspace" in last["next_steps"][0]
+    assert "subscription keeps running" in last["next_steps"][0]
     # Reading it removed nothing.
     assert _rows(db, gone.id) == before
     assert db.get(Company, gone.id).deleted_at is None  # type: ignore[union-attr]
 
 
-def test_an_agency_keeps_its_last_workspace(
+def test_an_agencys_last_workspace_can_be_deleted_and_its_admin_stays_in(
     client: TestClient, db: Session, outbox: Outbox
 ) -> None:
-    admin = _person(db)
+    admin = _person(db, "Alex Morgan")
     agency = _agency_of(db, admin)
     only = db.get(Company, admin.company_id)
     assert only is not None
+    _fill(db, only, admin)
+    password = "correct-horse-7"
+    admin.hashed_password = security.get_password_hash(password)
+    db.add(admin)
+    db.commit()
+    session = _web(db, admin)
+    assistant = _assistant(db, admin)
 
     preview = client.get(
-        f"{API}/agencies/{agency.id}/workspaces/{only.id}/deletion",
-        cookies=_web(db, admin),
+        f"{API}/agencies/{agency.id}/workspaces/{only.id}/deletion", cookies=session
     )
-    refused = _delete(client, db, admin, only, None)
+    deleted = _delete(client, db, admin, only, None)
 
     assert preview.json()["is_last"] is True
-    assert refused.status_code == 409
-    assert refused.json()["detail"] == (
-        "Create another workspace first. An agency needs at least one."
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json()["state"] == "done"
+    # The same session goes on, with no workspace open.
+    assert client.get(f"{API}/users/me", cookies=session).status_code == 200
+    assert client.get(f"{API}/workspaces/", cookies=session).json() == []
+    # Routes that need a workspace say so; the agency's own routes work.
+    needs_one = client.get(f"{API}/readiness", cookies=session)
+    assert needs_one.status_code == 409
+    assert (
+        needs_one.json()["detail"] == "No workspace is open. Create a workspace first."
     )
-    db.expire_all()
-    assert db.get(Company, only.id).deleted_at is None  # type: ignore[union-attr]
+    assert client.get(f"{API}/agencies/{agency.id}", cookies=session).status_code == 200
+    table = client.get(f"{API}/agencies/{agency.id}/workspaces", cookies=session).json()
+    assert table["workspaces"] == []
+    assert [d["workspace_name"] for d in table["deleted"]] == [only.name]
+    # Signing in again lets the Admin in.
+    login = client.post(
+        f"{API}/login/access-token",
+        data={"username": admin.email, "password": password},
+    )
+    assert login.status_code == 200, login.text
+    fresh = {settings.AUTH_COOKIE: login.json()["access_token"]}
+    assert client.get(f"{API}/users/me", cookies=fresh).status_code == 200
+
+    # Their assistant is still connected, lists nothing, and is told what to do.
+    listed = client.get(f"{API}/mcp/workspaces", headers=assistant).json()
+    assert listed["data"] == []
+    assert "create_workspace" in listed["next_steps"][0]
+
+    # Creating a workspace needs no agency named, and opening it brings the app back.
+    made = client.post(
+        f"{API}/workspaces/", json={"name": "Bright Dental"}, cookies=fresh
+    )
+    assert made.status_code == 200, made.text
+    assert made.json()["agency_id"] == str(agency.id)
+    opened = client.post(f"{API}/workspaces/{made.json()['id']}/open", cookies=fresh)
+    assert opened.status_code == 200, opened.text
+    back = {settings.AUTH_COOKIE: opened.json()["access_token"]}
+    assert client.get(f"{API}/readiness", cookies=back).status_code == 200
+
+
+def test_a_member_with_no_workspace_is_still_refused(
+    client: TestClient, db: Session, outbox: Outbox
+) -> None:
+    admin, member = _person(db), _person(db)
+    agency = _agency_of(db, admin)
+    only = db.get(Company, admin.company_id)
+    assert only is not None
+    password = "correct-horse-7"
+    member.hashed_password = security.get_password_hash(password)
+    db.add(member)
+    db.execute(delete(WorkspaceMember).where(WorkspaceMember.user_id == member.id))  # type: ignore[arg-type]
+    db.execute(delete(AgencyMember).where(AgencyMember.user_id == member.id))  # type: ignore[arg-type]
+    db.add(
+        AgencyMember(
+            agency_id=agency.id,
+            user_id=member.id,
+            role=AgencyRole.member,
+            all_workspaces=True,
+            can_approve=True,
+        )
+    )
+    db.add(WorkspaceMember(user_id=member.id, company_id=only.id))
+    member.company_id = only.id
+    db.commit()
+    session = _web(db, member)
+    assert client.get(f"{API}/users/me", cookies=session).status_code == 200
+
+    assert _delete(client, db, admin, only, None).status_code == 200
+
+    assert client.get(f"{API}/users/me", cookies=session).status_code == 401
+    login = client.post(
+        f"{API}/login/access-token",
+        data={"username": member.email, "password": password},
+    )
+    assert login.status_code == 403
+    # A Member cannot create the agency's next workspace through an assistant either.
+    made = client.post(
+        f"{API}/mcp/workspaces", json={"name": "Next"}, headers=_assistant(db, member)
+    )
+    assert made.status_code == 403
+
+
+def test_an_admin_of_two_agencies_with_no_workspace_says_which(
+    client: TestClient, db: Session, outbox: Outbox
+) -> None:
+    admin, other = _person(db), _person(db)
+    agency, second = _agency_of(db, admin), _agency_of(db, other)
+    only = db.get(Company, admin.company_id)
+    assert only is not None
+    db.add(
+        AgencyMember(
+            agency_id=second.id,
+            user_id=admin.id,
+            role=AgencyRole.admin,
+            all_workspaces=False,
+            can_approve=True,
+        )
+    )
+    db.commit()
+    session = _web(db, admin)
+    assert _delete(client, db, admin, only, None).status_code == 200
+
+    unsaid = client.post(f"{API}/workspaces/", json={"name": "Next"}, cookies=session)
+    said = client.post(
+        f"{API}/workspaces/",
+        json={"name": "Next", "agency_id": str(agency.id)},
+        cookies=session,
+    )
+
+    assert unsaid.status_code == 422
+    assert unsaid.json()["detail"] == "Say which agency the workspace is for."
+    assert said.status_code == 200, said.text
+    assert said.json()["agency_id"] == str(agency.id)
 
 
 def test_a_failed_deletion_can_be_tried_again(

@@ -139,7 +139,8 @@ const WorkspacePicker: FC<WorkspacePickerProps> = ({
         className={cn(
           TRIGGER,
           bordered ? 'border border-border-control pl-2.5' : '-ml-2',
-          !all && ids.length === 0 && 'text-warning'
+          // A warning only when the agency has workspaces this person could reach.
+          !all && ids.length === 0 && workspaces.length > 0 && 'text-warning'
         )}
       >
         {workspacesLabel(all, ids, workspaces)}
@@ -347,7 +348,9 @@ export const MembersView: FC<Props> = ({ agency }) => {
                     <span
                       className={cn(
                         'text-label',
-                        !member.all_workspaces && member.workspace_ids.length === 0
+                        !member.all_workspaces &&
+                          member.workspace_ids.length === 0 &&
+                          agency.workspaces.length > 0
                           ? 'text-warning'
                           : 'text-ink-secondary'
                       )}
