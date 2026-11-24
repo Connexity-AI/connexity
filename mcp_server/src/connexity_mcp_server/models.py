@@ -820,7 +820,51 @@ class IssuePage(BaseModel):
 
 ListIssuesResult = Answer[Issues]
 IssueResult = Answer[IssuePage]
+class ReadTurn(BaseModel):
+    speaker: str | None = Field(
+        default=None, description="agent, caller or other; absent on a tool call"
+    )
+    text: str | None = Field(default=None, description="What was said")
+    tool: str | None = Field(default=None, description="The tool's name; a tool call")
+    status: str | None = Field(
+        default=None, description="A tool call's: ok, failed, timed out or no result"
+    )
+    arguments: dict[str, str] | None = Field(
+        default=None, description="What the tool was called with; secrets are masked"
+    )
+    result: dict[str, str] | None = Field(
+        default=None, description="What the tool answered; secrets are masked"
+    )
+
+
+class ReadCall(BaseModel):
+    id: str = Field(description="Pass to `get_call` for timings and findings")
+    agent_id: str
+    agent_name: str
+    started_at: str
+    duration_seconds: int | None = None
+    caller_last_four: str | None = None
+    result: str = Field(description="failed, degraded, clean or unchecked")
+    version: str | None = Field(default=None, description="The agent version it ran on")
+    findings: list[str] = Field(
+        default_factory=list, description="What the checks found, worst first"
+    )
+    conversation: list[ReadTurn] = Field(
+        default_factory=list,
+        description="In order. Empty when the call has no transcript yet",
+    )
+
+
+class ReadCalls(BaseModel):
+    calls: list[ReadCall] = Field(
+        description="Newest first. A page stops at a size limit, not at a round "
+        "number: go on with `next_cursor`"
+    )
+    matching: int = Field(description="Calls matching the filters in the period")
+
+
 ListCallsResult = Answer[Calls]
+ReadCallsResult = Answer[ReadCalls]
 GetCallResult = Answer[CallDetail]
 
 

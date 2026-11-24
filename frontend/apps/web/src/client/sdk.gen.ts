@@ -300,6 +300,9 @@ import type {
   McpRaiseAgentClarificationsData,
   McpRaiseAgentClarificationsErrors,
   McpRaiseAgentClarificationsResponses,
+  McpReadWorkspaceCallsData,
+  McpReadWorkspaceCallsErrors,
+  McpReadWorkspaceCallsResponses,
   McpRemovePersonData,
   McpRemovePersonErrors,
   McpRemovePersonResponses,
@@ -2063,6 +2066,26 @@ export class McpService {
     return (options.client ?? client).get<McpListCallsResponses, McpListCallsErrors, ThrowOnError>({
       security: [{ scheme: 'bearer', type: 'http' }],
       url: '/api/v1/mcp/workspaces/{workspace_id}/calls',
+      ...options,
+    });
+  }
+
+  /**
+   * Read Workspace Calls
+   *
+   * Many calls in full, with `list_calls`' filters. Declared before the single-call
+   * route, whose id would otherwise swallow the word "read".
+   */
+  public static readWorkspaceCalls<ThrowOnError extends boolean = false>(
+    options: Options<McpReadWorkspaceCallsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpReadWorkspaceCallsResponses,
+      McpReadWorkspaceCallsErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/calls/read',
       ...options,
     });
   }

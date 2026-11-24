@@ -60,6 +60,7 @@ from connexity_mcp_server.models import (
     SpecRuleToWrite,
     ListAgentsResult,
     ListCallsResult,
+    ReadCallsResult,
     ListCategoriesResult,
     ListIssuesResult,
     ListWorkspacesResult,
@@ -118,6 +119,7 @@ from connexity_mcp_server.tools import (
 )
 from connexity_mcp_server.tools import (
     list_calls as _list_calls,
+    read_calls as _read_calls,
 )
 from connexity_mcp_server.tools import (
     list_issues as _list_issues,
@@ -434,6 +436,42 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         version (only calls on that agent version). Each call carries its agent version.
         limit (1 to 100) caps a page. Callers come as their last four digits."""
         return await _list_calls(
+            client=backend_client,
+            workspace_id=workspace_id,
+            query=query,
+            agent_id=agent_id,
+            result=result,
+            category=category,
+            period=period,
+            issue_id=issue_id,
+            version=version,
+            cursor=cursor,
+            limit=limit,
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def read_calls(
+        workspace_id: WorkspaceId,
+        query: Annotated[str | None, Field(description="The end of a caller's number, or a whole call id.")] = None,
+        agent_id: Annotated[str | None, Field(description="Only this agent's calls.")] = None,
+        result: Annotated[str | None, Field(description="failed, degraded, clean or unchecked.")] = None,
+        category: Annotated[str | None, Field(description="A category key, from `list_categories`.")] = None,
+        period: Period = None,
+        issue_id: Annotated[str | None, Field(description="Only the calls this issue was found on.")] = None,
+        version: Annotated[str | None, Field(description="Only calls on this agent version, from `get_agent`'s versions.")] = None,
+        cursor: Cursor = None,
+        limit: Annotated[int | None, Field(description="The most calls in one answer, 1 to 50. A page may hold fewer: it also stops at a size limit.")] = None,
+    ) -> ReadCallsResult:
+        """Many calls in full in one answer, newest first: each call's conversation in
+        order (what the agent and the caller said, and every tool call with its
+        arguments and result), its result, agent version and what the checks found.
+        Takes exactly `list_calls`' filters. Use it to measure a pattern across a
+        period's calls yourself, such as how often a tool was called with an empty
+        argument, instead of one `get_call` per call. A page holds as many calls as
+        fit in one answer, usually 10 to 15: keep calling with `next_cursor` until
+        there is none. Use `list_calls` when you only need the list, and `get_call`
+        for one call's timings and the events its findings point at."""
+        return await _read_calls(
             client=backend_client,
             workspace_id=workspace_id,
             query=query,

@@ -4701,6 +4701,40 @@ export type McpAnswerMcpPerson = {
 };
 
 /**
+ * McpAnswer[McpReadCalls]
+ */
+export type McpAnswerMcpReadCalls = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpReadCalls;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpRemoved]
  */
 export type McpAnswerMcpRemoved = {
@@ -6112,6 +6146,86 @@ export type McpRaiseClarifications = {
    * Questions
    */
   questions: Array<McpClarificationQuestion>;
+};
+
+/**
+ * McpReadCall
+ */
+export type McpReadCall = {
+  /**
+   * Id
+   *
+   * Pass to `get_call` for timings and findings
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Name
+   */
+  agent_name: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Duration Seconds
+   */
+  duration_seconds?: number | null;
+  /**
+   * Caller Last Four
+   *
+   * The caller's last four digits; never the number
+   */
+  caller_last_four?: string | null;
+  result: CallCheckStatus;
+  /**
+   * Version
+   *
+   * The agent version it ran on
+   */
+  version?: string | null;
+  /**
+   * Findings
+   *
+   * What the checks found, worst first
+   */
+  findings?: Array<string>;
+  /**
+   * Conversation
+   *
+   * In order. Empty when the call has no transcript yet
+   */
+  conversation: Array<McpReadTurn>;
+};
+
+/**
+ * McpReadCalls
+ */
+export type McpReadCalls = {
+  /**
+   * Calls
+   *
+   * Newest first. A page stops at a size limit, not at a round number: go on with `next_cursor`
+   */
+  calls: Array<McpReadCall>;
+  /**
+   * Matching
+   *
+   * Calls matching the filters in the period
+   */
+  matching: number;
+};
+
+/**
+ * McpReadTurn
+ *
+ * One step of a call's conversation: something said, or a tool call.
+ */
+export type McpReadTurn = {
+  [key: string]: unknown;
 };
 
 /**
@@ -14092,6 +14206,99 @@ export type McpListCallsResponses = {
 };
 
 export type McpListCallsResponse = McpListCallsResponses[keyof McpListCallsResponses];
+
+export type McpReadWorkspaceCallsData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: {
+    /**
+     * Query
+     */
+    query?: string | null;
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Result
+     */
+    result?: CallCheckStatus | null;
+    /**
+     * Category
+     */
+    category?: string | null;
+    /**
+     * Period
+     */
+    period?: '7d' | '30d' | '90d';
+    /**
+     * Issue Id
+     */
+    issue_id?: string | null;
+    /**
+     * Version
+     */
+    version?: string | null;
+    /**
+     * Cursor
+     */
+    cursor?: string | null;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/mcp/workspaces/{workspace_id}/calls/read';
+};
+
+export type McpReadWorkspaceCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpReadWorkspaceCallsError =
+  McpReadWorkspaceCallsErrors[keyof McpReadWorkspaceCallsErrors];
+
+export type McpReadWorkspaceCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpReadCalls;
+};
+
+export type McpReadWorkspaceCallsResponse =
+  McpReadWorkspaceCallsResponses[keyof McpReadWorkspaceCallsResponses];
 
 export type McpGetCallData = {
   body?: never;

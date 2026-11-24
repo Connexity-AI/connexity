@@ -28,6 +28,7 @@ from connexity_mcp_server.models import (
     SpecRuleToWrite,
     ListAgentsResult,
     ListCallsResult,
+    ReadCallsResult,
     ListCategoriesResult,
     ListIssuesResult,
     ListWorkspacesResult,
@@ -225,6 +226,35 @@ async def list_calls(
 ) -> ListCallsResult:
     return ListCallsResult.model_validate(
         await client.list_calls(
+            workspace_id=workspace_id,
+            query=query,
+            agent_id=agent_id,
+            result=result,
+            category=category,
+            period=period,
+            issue_id=issue_id,
+            version=version,
+            cursor=cursor,
+            limit=limit,
+        )
+    )
+
+
+async def read_calls(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    query: str | None = None,
+    agent_id: str | None = None,
+    result: str | None = None,
+    category: str | None = None,
+    period: str | None = None,
+    issue_id: str | None = None,
+    version: str | None = None,
+    cursor: str | None = None,
+    limit: int | None = None,
+) -> ReadCallsResult:
+    return ReadCallsResult.model_validate(
+        await client.read_calls(
             workspace_id=workspace_id,
             query=query,
             agent_id=agent_id,

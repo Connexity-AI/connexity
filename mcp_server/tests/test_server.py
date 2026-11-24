@@ -46,6 +46,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "move_task",
         "prepare_workspace_deletion",
         "raise_clarifications",
+        "read_calls",
         "remove_person",
         "run_scenarios",
         "scan_calls",

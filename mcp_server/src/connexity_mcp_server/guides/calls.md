@@ -22,6 +22,29 @@ with a `workspace_id`.
 Results: **failed** when a finding fails the call, **degraded** when one only flags it,
 **clean** when checks ran and found nothing, **unchecked** when none could run.
 
+## Many calls in full
+
+Call `read_calls` when you need to look across calls yourself: how often a tool was
+called with an empty argument, what callers ask for first, where conversations stall.
+It takes exactly `list_calls`' filters and answers each call's conversation in order: a
+turn has `speaker` and `text`; a tool call has `tool`, `status`, `arguments` and
+`result`. Each call also has its result, agent version and what the checks found.
+
+- **It is a page, not all of them.** A page holds as many calls as fit in one answer,
+  usually 10 to 15 and at most 50, and can hold fewer than `limit`. Keep calling with
+  `cursor` set to `next_cursor` until there is none; `matching` says how many calls
+  the filters match.
+- **Narrow first.** Use `agent_id`, `result`, `category`, `issue_id`, `version` and
+  `period` so you read the calls that matter.
+- **The analysis is yours.** Connexity filters on what it owns: issues, findings,
+  versions, results, categories and the period. It does not search what was said or
+  what a tool was called with. When a pattern is worth watching on every call, tell the
+  person: it belongs in a check, and then `list_issues` answers it.
+- **The same protections as one call:** callers as their last four digits, secrets in
+  tool arguments and results masked.
+
+For one call's timings and the events its findings point at, use `get_call`.
+
 ## One call
 
 Call `get_call` with the call's `id` from `list_calls`. It answers the call's timeline in

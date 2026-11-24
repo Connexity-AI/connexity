@@ -11,7 +11,14 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field, JsonValue, StringConstraints
+from pydantic import (
+    BaseModel,
+    Field,
+    JsonValue,
+    SerializerFunctionWrapHandler,
+    StringConstraints,
+    model_serializer,
+)
 
 from app.models.agency import AgencyRole
 from app.models.agent_list import AgentType
@@ -19,6 +26,7 @@ from app.models.agent_page import AgentPagePublic
 from app.models.call_list import CallListItemPublic, CallTilesPublic
 from app.models.enums import (
     AssistantTaskState,
+    CallCheckStatus,
     CheckKind,
     CheckMode,
     FeedbackKind,
@@ -593,6 +601,60 @@ class McpCallItem(CallListItemPublic):
     issue_findings: list[McpIssueFinding] | None = Field(
         default=None, description="With issue_id: that issue's findings on the call"
     )
+
+
+class McpReadTurn(BaseModel):
+    """One step of a call's conversation: something said, or a tool call."""
+
+    speaker: Literal["agent", "caller", "other"] | None = Field(
+        default=None, description="Who spoke; absent on a tool call"
+    )
+    text: str | None = Field(default=None, description="What was said")
+    tool: str | None = Field(default=None, description="The tool's name; a tool call")
+    status: str | None = Field(
+        default=None, description="A tool call's: ok, failed, timed out or no result"
+    )
+    arguments: dict[str, str] | None = Field(
+        default=None, description="What the tool was called with; secrets are masked"
+    )
+    result: dict[str, str] | None = Field(
+        default=None, description="What the tool answered; secrets are masked"
+    )
+
+    @model_serializer(mode="wrap")
+    def _only_what_is_set(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, Any]:
+        """A turn carries only its own fields: a page holds hundreds of turns, and
+        every empty field would be repeated on each."""
+        return {key: value for key, value in handler(self).items() if value is not None}
+
+
+class McpReadCall(BaseModel):
+    id: uuid.UUID = Field(description="Pass to `get_call` for timings and findings")
+    agent_id: uuid.UUID
+    agent_name: str
+    started_at: datetime
+    duration_seconds: int | None = None
+    caller_last_four: str | None = Field(
+        default=None, description="The caller's last four digits; never the number"
+    )
+    result: CallCheckStatus
+    version: str | None = Field(default=None, description="The agent version it ran on")
+    findings: list[str] = Field(
+        default_factory=list, description="What the checks found, worst first"
+    )
+    conversation: list[McpReadTurn] = Field(
+        description="In order. Empty when the call has no transcript yet"
+    )
+
+
+class McpReadCalls(BaseModel):
+    calls: list[McpReadCall] = Field(
+        description="Newest first. A page stops at a size limit, not at a round "
+        "number: go on with `next_cursor`"
+    )
+    matching: int = Field(description="Calls matching the filters in the period")
 
 
 class McpCalls(BaseModel):
