@@ -1,5 +1,6 @@
 """CRUD package — re-exports all functions for ``from app import crud`` compatibility."""
 
+from app.crud import workspace_deletion  # noqa: F401
 from app.crud.agency import (  # noqa: F401
     LastAdminError,
     MemberRow,

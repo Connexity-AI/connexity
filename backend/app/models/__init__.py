@@ -234,6 +234,15 @@ from app.models.user import (  # noqa: F401
     UserUpdate,
     UserUpdateMe,
 )
+from app.models.workspace_deletion import (  # noqa: F401
+    AgencyWorkspaceRow,
+    AgencyWorkspacesTable,
+    DeletionState,
+    WorkspaceDeleteRequest,
+    WorkspaceDeletion,
+    WorkspaceDeletionPreview,
+    WorkspaceDeletionPublic,
+)
 from app.models.workspace_member import (  # noqa: F401
     WorkspaceCreate,
     WorkspaceMember,

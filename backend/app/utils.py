@@ -1,6 +1,7 @@
 import logging
 import smtplib
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -155,6 +156,23 @@ def generate_invite_email(
             "subject": subject,
             "line": f"{who} invited you to work on {what} at {agency_name}.",
             "link": f"{settings.public_site_url}/invite/{token}",
+        },
+    )
+    return EmailData(html_content=html_content, subject=subject)
+
+
+def generate_workspace_deleted_email(
+    *, workspace_name: str, deleted_by: str, on: datetime
+) -> EmailData:
+    """Tells an agency's Admins that a workspace and its data were deleted."""
+    subject = f"{workspace_name} was deleted from Connexity"
+    day = f"{on.day} {on:%b %Y}"
+    html_content = render_email_template(
+        template_name="workspace-deleted.html",
+        context={
+            "subject": subject,
+            "line": f"{deleted_by} deleted the workspace {workspace_name} and its "
+            f"data on {day}.",
         },
     )
     return EmailData(html_content=html_content, subject=subject)

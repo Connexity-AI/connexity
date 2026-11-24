@@ -38,6 +38,12 @@ class Company(SQLModel, table=True):
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
+    # Set when the workspace was deleted (`app/crud/workspace_deletion.py`). The row
+    # stays with its name only, so kept usage totals still say whose they were.
+    deleted_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
     # When onboarding was first complete (`services/onboarding_finish.py`). Stays set:
     # a question raised later does not reopen onboarding.
     onboarding_completed_at: datetime | None = Field(

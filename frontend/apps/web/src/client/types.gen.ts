@@ -269,6 +269,60 @@ export type AgencyWorkspace = {
 };
 
 /**
+ * AgencyWorkspaceRow
+ */
+export type AgencyWorkspaceRow = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Agents
+   */
+  agents: number;
+  /**
+   * Calls
+   *
+   * Calls stored
+   */
+  calls: number;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Set while a deletion is running or after it failed
+   */
+  state: DeletionState | null;
+};
+
+/**
+ * AgencyWorkspacesTable
+ */
+export type AgencyWorkspacesTable = {
+  /**
+   * Workspaces
+   */
+  workspaces: Array<AgencyWorkspaceRow>;
+  /**
+   * Can Delete
+   *
+   * Whether the person is an Admin who can approve
+   */
+  can_delete: boolean;
+  /**
+   * Deleted
+   *
+   * The agency's record of deleted workspaces, newest first
+   */
+  deleted: Array<WorkspaceDeletionPublic>;
+};
+
+/**
  * AgentCheckPublic
  */
 export type AgentCheckPublic = {
@@ -2244,6 +2298,20 @@ export type DecisionRecordPublic = {
    */
   created_at: string;
 };
+
+/**
+ * DeletionState
+ */
+export const DeletionState = {
+  DELETING: 'deleting',
+  DONE: 'done',
+  FAILED: 'failed',
+} as const;
+
+/**
+ * DeletionState
+ */
+export type DeletionState = (typeof DeletionState)[keyof typeof DeletionState];
 
 /**
  * ErrorResponse
@@ -9785,6 +9853,107 @@ export type WorkspaceCreate = {
 };
 
 /**
+ * WorkspaceDeleteRequest
+ */
+export type WorkspaceDeleteRequest = {
+  /**
+   * Name
+   *
+   * The workspace's name, typed to confirm
+   */
+  name: string;
+};
+
+/**
+ * WorkspaceDeletionPreview
+ *
+ * What deleting a workspace removes, for the dialog that confirms it.
+ */
+export type WorkspaceDeletionPreview = {
+  /**
+   * Workspace Id
+   */
+  workspace_id: string;
+  /**
+   * Workspace Name
+   */
+  workspace_name: string;
+  /**
+   * Calls
+   *
+   * Calls, with their recordings' links and transcripts
+   */
+  calls: number;
+  /**
+   * Agents
+   *
+   * Agents, with their specs, scenarios and test runs
+   */
+  agents: number;
+  /**
+   * Issues
+   */
+  issues: number;
+  /**
+   * Connections
+   *
+   * The connected platforms whose stored keys are removed
+   */
+  connections: Array<string>;
+  /**
+   * Is Last
+   *
+   * The agency's only workspace, which cannot be deleted
+   */
+  is_last: boolean;
+};
+
+/**
+ * WorkspaceDeletionPublic
+ */
+export type WorkspaceDeletionPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Workspace Id
+   */
+  workspace_id: string;
+  /**
+   * Workspace Name
+   */
+  workspace_name: string;
+  /**
+   * Deleted By
+   *
+   * The name of the person who deleted it
+   */
+  deleted_by: string;
+  state: DeletionState;
+  /**
+   * Calls
+   */
+  calls: number;
+  /**
+   * Agents
+   */
+  agents: number;
+  /**
+   * Issues
+   */
+  issues: number;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Finished At
+   */
+  finished_at: string | null;
+};
+
+/**
  * WorkspacePublic
  */
 export type WorkspacePublic = {
@@ -11119,6 +11288,242 @@ export type InvitesSignInAndJoinResponses = {
 
 export type InvitesSignInAndJoinResponse =
   InvitesSignInAndJoinResponses[keyof InvitesSignInAndJoinResponses];
+
+export type AgenciesReadWorkspacesData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/workspaces';
+};
+
+export type AgenciesReadWorkspacesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesReadWorkspacesError =
+  AgenciesReadWorkspacesErrors[keyof AgenciesReadWorkspacesErrors];
+
+export type AgenciesReadWorkspacesResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgencyWorkspacesTable;
+};
+
+export type AgenciesReadWorkspacesResponse =
+  AgenciesReadWorkspacesResponses[keyof AgenciesReadWorkspacesResponses];
+
+export type AgenciesPreviewDeletionData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/workspaces/{workspace_id}/deletion';
+};
+
+export type AgenciesPreviewDeletionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesPreviewDeletionError =
+  AgenciesPreviewDeletionErrors[keyof AgenciesPreviewDeletionErrors];
+
+export type AgenciesPreviewDeletionResponses = {
+  /**
+   * Successful Response
+   */
+  200: WorkspaceDeletionPreview;
+};
+
+export type AgenciesPreviewDeletionResponse =
+  AgenciesPreviewDeletionResponses[keyof AgenciesPreviewDeletionResponses];
+
+export type AgenciesDeleteWorkspaceData = {
+  body: WorkspaceDeleteRequest;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/workspaces/{workspace_id}/deletion';
+};
+
+export type AgenciesDeleteWorkspaceErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesDeleteWorkspaceError =
+  AgenciesDeleteWorkspaceErrors[keyof AgenciesDeleteWorkspaceErrors];
+
+export type AgenciesDeleteWorkspaceResponses = {
+  /**
+   * Successful Response
+   */
+  200: WorkspaceDeletionPublic;
+};
+
+export type AgenciesDeleteWorkspaceResponse =
+  AgenciesDeleteWorkspaceResponses[keyof AgenciesDeleteWorkspaceResponses];
+
+export type AgenciesRetryDeletionData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/workspaces/{workspace_id}/deletion/retry';
+};
+
+export type AgenciesRetryDeletionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgenciesRetryDeletionError =
+  AgenciesRetryDeletionErrors[keyof AgenciesRetryDeletionErrors];
+
+export type AgenciesRetryDeletionResponses = {
+  /**
+   * Successful Response
+   */
+  200: WorkspaceDeletionPublic;
+};
+
+export type AgenciesRetryDeletionResponse =
+  AgenciesRetryDeletionResponses[keyof AgenciesRetryDeletionResponses];
 
 export type AuthGoogleStatusData = {
   body?: never;

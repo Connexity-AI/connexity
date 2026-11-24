@@ -62,10 +62,11 @@ def list_agencies(*, session: Session, user: User) -> list[tuple[Agency, AgencyM
 
 
 def agency_workspaces(*, session: Session, agency_id: uuid.UUID) -> list[Company]:
+    """The agency's workspaces, without deleted ones."""
     return list(
         session.exec(
             select(Company)
-            .where(Company.agency_id == agency_id)
+            .where(Company.agency_id == agency_id, col(Company.deleted_at).is_(None))
             .order_by(func.lower(Company.name), col(Company.id))
         ).all()
     )
