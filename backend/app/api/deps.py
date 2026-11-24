@@ -67,7 +67,8 @@ def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) 
         )
 
     # The token names the workspace that was open when it was issued. It stays valid
-    # while the person is still a member of that workspace; requests are scoped to the
+    # while the person is still a member of that workspace, or after that workspace
+    # was deleted while they reach another; requests are scoped to the
     # workspace open now (`user.company_id`), which another tab may have switched.
     if not _is_member(session=session, user=user, cid=token_data.cid):
         raise HTTPException(
@@ -88,9 +89,14 @@ def _is_member(*, session: Session, user: User, cid: str | None) -> bool:
         workspace_id = uuid.UUID(cid)
     except ValueError:
         return False
-    return crud.is_member_of_all(
-        session=session, user=user, workspace_ids={workspace_id, user.company_id}
-    )
+    needed = {workspace_id, user.company_id}
+    token_workspace = session.get(Company, workspace_id)
+    if token_workspace is not None and token_workspace.deleted_at is not None:
+        # A deleted workspace is not a change to the person's access: the session
+        # goes on in the workspace they have open now, when they reach one. The web
+        # app tells them (`components/shell/workspace-deleted.tsx`).
+        needed = {user.company_id}
+    return crud.is_member_of_all(session=session, user=user, workspace_ids=needed)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

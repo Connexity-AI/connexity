@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500&display=swap" rel="stylesheet">
+<style>body{margin:0}*{box-sizing:border-box}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}</style>
+</helmet>
+<div style="{{ rootStyle }}">
+<div style="flex:none;padding:24px 32px">
+<span style="display:inline-flex;align-items:center;gap:8px;height:32px">
+<span role="img" aria-label="Connexity" style="display:block;flex:none;width:24px;height:24px;background:var(--brand);-webkit-mask:url(assets/connexity-logo.png) center/contain no-repeat;mask:url(assets/connexity-logo.png) center/contain no-repeat"></span>
+<span style="font-size:15px;font-weight:500">Connexity</span>
+</span>
+</div>
+<main style="flex:1;display:flex;align-items:center;justify-content:center;padding:0 24px 128px">
+<div role="status" style="display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+<p style="margin:0;font-size:17px;line-height:24px">This workspace is being deleted.</p>
+<a href="Connexity Home.dc.html" style="color:var(--ink2)">Go to Northfield Group</a>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;}}">
+class Component extends DCLogic {
+  static THEMES = {
+    dark: { '--s0':'#121314','--ink':'#ececea','--ink2':'#a3a5a9','--brand':'#ee6a40' },
+    light: { '--s0':'#f5f4f2','--ink':'#17181a','--ink2':'#5e6065','--brand':'#e8552a' }
+  };
+  renderVals() {
+    return { rootStyle: { ...Component.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], minHeight:'100vh', display:'flex', flexDirection:'column', background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', WebkitFontSmoothing:'antialiased' } };
+  }
+}
+</script>
+</body>
+</html>

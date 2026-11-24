@@ -6662,6 +6662,51 @@ export const McpAnswer_McpTestRuns_Schema = {
   title: 'McpAnswer[McpTestRuns]',
 } as const;
 
+export const McpAnswer_McpWorkspaceDeletion_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpWorkspaceDeletion',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpWorkspaceDeletion]',
+} as const;
+
 export const McpAnswer_McpWorkspace_Schema = {
   properties: {
     data: {
@@ -9234,6 +9279,75 @@ export const McpWorkspaceSchema = {
   type: 'object',
   required: ['id', 'name', 'agency', 'role', 'can_approve'],
   title: 'McpWorkspace',
+} as const;
+
+export const McpWorkspaceDeletionSchema = {
+  properties: {
+    workspace: {
+      $ref: '#/components/schemas/McpAgencyRef',
+    },
+    agency: {
+      $ref: '#/components/schemas/McpAgencyRef',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: 'Calls, with their transcripts and findings',
+    },
+    agents: {
+      type: 'integer',
+      title: 'Agents',
+      description: 'Agents, with their specs, scenarios and test runs',
+    },
+    issues: {
+      type: 'integer',
+      title: 'Issues',
+    },
+    connections: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Connections',
+      description:
+        'Connected platforms whose stored keys would be removed. Nothing is deleted on the platform itself',
+    },
+    is_last_workspace: {
+      type: 'boolean',
+      title: 'Is Last Workspace',
+      description: "The agency's only workspace, which cannot be deleted",
+    },
+    your_person_can_delete: {
+      type: 'boolean',
+      title: 'Your Person Can Delete',
+      description: 'Whether the person you act for is an admin who can approve',
+    },
+    who_can_delete: {
+      type: 'string',
+      title: 'Who Can Delete',
+      description: 'The people who can delete it',
+    },
+    where: {
+      type: 'string',
+      title: 'Where',
+      description: 'Where the person deletes it: Agency settings, Workspaces',
+    },
+  },
+  type: 'object',
+  required: [
+    'workspace',
+    'agency',
+    'calls',
+    'agents',
+    'issues',
+    'connections',
+    'is_last_workspace',
+    'your_person_can_delete',
+    'who_can_delete',
+    'where',
+  ],
+  title: 'McpWorkspaceDeletion',
+  description: 'What deleting a workspace would remove. Nothing is deleted by reading it.',
 } as const;
 
 export const McpWriteScenarioSetSchema = {

@@ -4580,6 +4580,40 @@ export type McpAnswerMcpTestRuns = {
 };
 
 /**
+ * McpAnswer[McpWorkspaceDeletion]
+ */
+export type McpAnswerMcpWorkspaceDeletion = {
+  /**
+   * The facts: the result of the call
+   */
+  data: McpWorkspaceDeletion;
+  /**
+   * Rules
+   *
+   * The rules that apply to what was returned, one sentence each
+   */
+  rules?: Array<string>;
+  /**
+   * Next Steps
+   *
+   * Steps the assistant can take next, in order, naming the tool
+   */
+  next_steps?: Array<string>;
+  /**
+   * Guide
+   *
+   * The guide for this part of Connexity
+   */
+  guide: string;
+  /**
+   * Next Cursor
+   *
+   * On lists: pass as `cursor` for the next page; empty on the last
+   */
+  next_cursor?: string | null;
+};
+
+/**
  * McpAnswer[McpWorkspace]
  */
 export type McpAnswerMcpWorkspace = {
@@ -6330,6 +6364,62 @@ export type McpWorkspace = {
    * Against the 30 days before
    */
   score_change?: number | null;
+};
+
+/**
+ * McpWorkspaceDeletion
+ *
+ * What deleting a workspace would remove. Nothing is deleted by reading it.
+ */
+export type McpWorkspaceDeletion = {
+  workspace: McpAgencyRef;
+  agency: McpAgencyRef;
+  /**
+   * Calls
+   *
+   * Calls, with their transcripts and findings
+   */
+  calls: number;
+  /**
+   * Agents
+   *
+   * Agents, with their specs, scenarios and test runs
+   */
+  agents: number;
+  /**
+   * Issues
+   */
+  issues: number;
+  /**
+   * Connections
+   *
+   * Connected platforms whose stored keys would be removed. Nothing is deleted on the platform itself
+   */
+  connections: Array<string>;
+  /**
+   * Is Last Workspace
+   *
+   * The agency's only workspace, which cannot be deleted
+   */
+  is_last_workspace: boolean;
+  /**
+   * Your Person Can Delete
+   *
+   * Whether the person you act for is an admin who can approve
+   */
+  your_person_can_delete: boolean;
+  /**
+   * Who Can Delete
+   *
+   * The people who can delete it
+   */
+  who_can_delete: string;
+  /**
+   * Where
+   *
+   * Where the person deletes it: Agency settings, Workspaces
+   */
+  where: string;
 };
 
 /**
@@ -14857,6 +14947,62 @@ export type McpUpdatePersonResponses = {
 };
 
 export type McpUpdatePersonResponse = McpUpdatePersonResponses[keyof McpUpdatePersonResponses];
+
+export type McpPrepareWorkspaceDeletionData = {
+  body?: never;
+  path: {
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/deletion';
+};
+
+export type McpPrepareWorkspaceDeletionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpPrepareWorkspaceDeletionError =
+  McpPrepareWorkspaceDeletionErrors[keyof McpPrepareWorkspaceDeletionErrors];
+
+export type McpPrepareWorkspaceDeletionResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpWorkspaceDeletion;
+};
+
+export type McpPrepareWorkspaceDeletionResponse =
+  McpPrepareWorkspaceDeletionResponses[keyof McpPrepareWorkspaceDeletionResponses];
 
 export type AgentsListWorkspaceAgentsData = {
   body?: never;

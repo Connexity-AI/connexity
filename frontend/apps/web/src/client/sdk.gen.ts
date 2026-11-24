@@ -261,6 +261,9 @@ import type {
   McpMoveWorkspaceTaskData,
   McpMoveWorkspaceTaskErrors,
   McpMoveWorkspaceTaskResponses,
+  McpPrepareWorkspaceDeletionData,
+  McpPrepareWorkspaceDeletionErrors,
+  McpPrepareWorkspaceDeletionResponses,
   McpRaiseAgentClarificationsData,
   McpRaiseAgentClarificationsErrors,
   McpRaiseAgentClarificationsResponses,
@@ -1025,7 +1028,7 @@ export class AgenciesService {
   /**
    * Retry Deletion
    *
-   * Continue a deletion that failed.
+   * Continue a deletion that failed, or one whose request died midway.
    */
   public static retryDeletion<ThrowOnError extends boolean = false>(
     options: Options<AgenciesRetryDeletionData, ThrowOnError>
@@ -2314,6 +2317,26 @@ export class McpService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Prepare Workspace Deletion
+   *
+   * What deleting this workspace would remove, and who can do it. Deletes nothing:
+   * only a person deletes, on the web.
+   */
+  public static prepareWorkspaceDeletion<ThrowOnError extends boolean = false>(
+    options: Options<McpPrepareWorkspaceDeletionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      McpPrepareWorkspaceDeletionResponses,
+      McpPrepareWorkspaceDeletionErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/deletion',
+      ...options,
     });
   }
 }

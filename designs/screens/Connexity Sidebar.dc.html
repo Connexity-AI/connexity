@@ -164,7 +164,7 @@ class Component extends DCLogic {
     const createWs = () => { if (!canCreate) return; const n = nm.trim(); this.setState(s => ({ created:[...s.created, n], current:n, dialog:false, wsNew:'', newWs:true, menuOpen:false })); };
     const seg = on => ({ flex:1, height:26, padding:'0 6px', borderRadius:6, border:0, background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:13, fontWeight: on ? 500 : 400, cursor:'pointer' });
     const n = Math.max(1, Math.min(9, this.props.workspaceCount ?? 6));
-    const W = [...(this.urlWs ? [this.urlWs] : Component.WS.slice(0, n)), ...S.created], cur = S.current || W[0], q = S.wsQ.trim().toLowerCase();
+    const W = [...(this.urlWs ? [this.urlWs] : Component.WS.slice(0, n)), ...S.created].filter(x => x !== this.props.exclude), cur = S.current || W[0], q = S.wsQ.trim().toLowerCase();
     const multi = (this.props.agencies || 1) > 1;
     const groups = [['Signal Voice', W], ['Fieldwork Media', Component.WS2]].map(([name, list]) => ({ name, items: list.filter(n => !q || n.toLowerCase().includes(q)).map(n => ({ name:n, current: n === cur })) })).filter(g => g.items.length);
     return { wsName: cur, wsSearchable: (multi ? W.length + Component.WS2.length : W.length) > 8, multi, single: !multi, groups, curAgency: 'Signal Voice',

@@ -1550,6 +1550,27 @@ class Removed(BaseModel):
     who: str
 
 
+class WorkspaceDeletion(BaseModel):
+    workspace: AgencyRef
+    agency: AgencyRef
+    calls: int = Field(description="Calls, with their transcripts and findings")
+    agents: int = Field(description="Agents, with their specs, scenarios and test runs")
+    issues: int
+    connections: list[str] = Field(
+        description="Connected platforms whose stored keys would be removed. Nothing "
+        "is deleted on the platform itself"
+    )
+    is_last_workspace: bool = Field(
+        description="The agency's only workspace, which cannot be deleted"
+    )
+    your_person_can_delete: bool = Field(
+        description="Whether the person you act for is an admin who can approve"
+    )
+    who_can_delete: str
+    where: str = Field(description="Where the person deletes it, on the web")
+
+
+PrepareWorkspaceDeletionResult = Answer[WorkspaceDeletion]
 ListPeopleResult = Answer[People]
 InvitePeopleResult = Answer[Invited]
 UpdatePersonResult = Answer[Person]

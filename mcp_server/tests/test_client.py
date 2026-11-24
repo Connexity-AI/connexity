@@ -16,6 +16,7 @@ from connexity_mcp_server.models import (
 from connexity_mcp_server.tools import (
     invite_people,
     list_people,
+    prepare_workspace_deletion,
     remove_person,
     update_person,
     add_agents,
@@ -1751,6 +1752,41 @@ async def test_list_people_reads_the_agency_of_a_workspace() -> None:
 
     assert result.data.people[0].assistants == 2
     assert result.data.invites[0].email == "kai@example.com"
+
+
+@pytest.mark.asyncio
+async def test_prepare_workspace_deletion_reads_and_deletes_nothing() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/deletion"
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "workspace": {"id": WORKSPACE_ID, "name": "Bright Dental"},
+                    "agency": IN_AGENCY["agency"],
+                    "calls": 4120,
+                    "agents": 3,
+                    "issues": 27,
+                    "connections": ["retell"],
+                    "is_last_workspace": False,
+                    "your_person_can_delete": False,
+                    "who_can_delete": "Alex Morgan",
+                    "where": "https://app.example.com/agency?section=workspaces",
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: prepare_workspace_deletion(client, workspace_id=WORKSPACE_ID),
+    )
+
+    assert (result.data.calls, result.data.agents, result.data.issues) == (4120, 3, 27)
+    assert result.data.your_person_can_delete is False
+    assert result.data.who_can_delete == "Alex Morgan"
 
 
 @pytest.mark.asyncio
