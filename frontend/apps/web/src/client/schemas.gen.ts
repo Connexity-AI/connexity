@@ -398,6 +398,56 @@ export const AgencyUpdateSchema = {
   title: 'AgencyUpdate',
 } as const;
 
+export const AgencyUsagePublicSchema = {
+  properties: {
+    period: {
+      $ref: '#/components/schemas/UsagePeriodPublic',
+    },
+    periods: {
+      items: {
+        $ref: '#/components/schemas/UsagePeriodPublic',
+      },
+      type: 'array',
+      title: 'Periods',
+      description: 'The periods on offer',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+    parts: {
+      items: {
+        $ref: '#/components/schemas/UsagePartPublic',
+      },
+      type: 'array',
+      title: 'Parts',
+      description:
+        'What was used, by kind. A kind with nothing is left out, except the two that always exist',
+    },
+    workspaces: {
+      items: {
+        $ref: '#/components/schemas/WorkspaceUsagePublic',
+      },
+      type: 'array',
+      title: 'Workspaces',
+      description: 'Most expensive first',
+    },
+    movers: {
+      items: {
+        $ref: '#/components/schemas/UsageMoverLine',
+      },
+      type: 'array',
+      title: 'Movers',
+      description: 'Up to three things that added most',
+    },
+  },
+  type: 'object',
+  required: ['period', 'periods', 'cost_usd', 'parts', 'workspaces', 'movers'],
+  title: 'AgencyUsagePublic',
+  description:
+    "An agency's usage over one period, at list price, per workspace and agent.\nCounted by when Connexity recorded it, which is what the money is drawn by.",
+} as const;
+
 export const AgencyWorkspaceSchema = {
   properties: {
     id: {
@@ -996,6 +1046,35 @@ export const AgentToolPublicSchema = {
   required: ['name', 'call_count'],
   title: 'AgentToolPublic',
   description: "A tool seen in an agent's calls, and the workflow it is mapped to, if any.",
+} as const;
+
+export const AgentUsagePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    observed_minutes: {
+      type: 'integer',
+      title: 'Observed Minutes',
+    },
+    simulated_messages: {
+      type: 'integer',
+      title: 'Simulated Messages',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['id', 'name', 'observed_minutes', 'simulated_messages', 'cost_usd'],
+  title: 'AgentUsagePublic',
 } as const;
 
 export const AgentVersionMarkPublicSchema = {
@@ -13659,6 +13738,30 @@ export const UsageMeterSchema = {
   description: "What Connexity counts towards a workspace's usage.",
 } as const;
 
+export const UsageMoverLineSchema = {
+  properties: {
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+    quantity: {
+      type: 'integer',
+      title: 'Quantity',
+    },
+    unit: {
+      type: 'string',
+      title: 'Unit',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['label', 'quantity', 'unit', 'cost_usd'],
+  title: 'UsageMoverLine',
+} as const;
+
 export const UsageMoverPublicSchema = {
   properties: {
     kind: {
@@ -13713,6 +13816,68 @@ export const UsageMoverPublicSchema = {
   required: ['kind', 'line', 'agent_id', 'quantity', 'cost_usd'],
   title: 'UsageMoverPublic',
   description: "One of the things that added most to the period's cost.",
+} as const;
+
+export const UsagePartPublicSchema = {
+  properties: {
+    meter: {
+      type: 'string',
+      title: 'Meter',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+    quantity: {
+      type: 'integer',
+      title: 'Quantity',
+    },
+    unit: {
+      type: 'string',
+      title: 'Unit',
+      description: '`min` or `messages`',
+    },
+    unit_price_usd: {
+      type: 'number',
+      title: 'Unit Price Usd',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['meter', 'label', 'quantity', 'unit', 'unit_price_usd', 'cost_usd'],
+  title: 'UsagePartPublic',
+  description: 'One of the things that are counted, over the period.',
+} as const;
+
+export const UsagePeriodPublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+      description: '`this`, `last` or `30d`',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+    starts_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Starts At',
+    },
+    ends_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Ends At',
+      description: 'Exclusive',
+    },
+  },
+  type: 'object',
+  required: ['key', 'label', 'starts_at', 'ends_at'],
+  title: 'UsagePeriodPublic',
 } as const;
 
 export const UsagePublicSchema = {
@@ -13779,6 +13944,18 @@ export const UsagePublicSchema = {
       type: 'array',
       title: 'Movers',
       description: 'The three things that added most to the cost',
+    },
+    agency_usage: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/AgencyUsagePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "The whole agency's usage per workspace and agent, when asked for with `agency`. Counted by subscription period, as the money is drawn",
     },
     money: {
       anyOf: [
@@ -14998,6 +15175,55 @@ export const WorkspacePublicSchema = {
   type: 'object',
   required: ['id', 'name', 'is_open', 'agency_id', 'agency_name'],
   title: 'WorkspacePublic',
+} as const;
+
+export const WorkspaceUsagePublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    deleted: {
+      type: 'boolean',
+      title: 'Deleted',
+      description: 'The workspace was deleted; its usage stays',
+    },
+    observed_minutes: {
+      type: 'integer',
+      title: 'Observed Minutes',
+    },
+    simulated_messages: {
+      type: 'integer',
+      title: 'Simulated Messages',
+    },
+    cost_usd: {
+      type: 'number',
+      title: 'Cost Usd',
+    },
+    agents: {
+      items: {
+        $ref: '#/components/schemas/AgentUsagePublic',
+      },
+      type: 'array',
+      title: 'Agents',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'name',
+    'deleted',
+    'observed_minutes',
+    'simulated_messages',
+    'cost_usd',
+    'agents',
+  ],
+  title: 'WorkspaceUsagePublic',
 } as const;
 
 export const WorstFindingPublicSchema = {

@@ -8,7 +8,7 @@ every route answers 404 and the web app shows no Billing section.
 import logging
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep
@@ -16,6 +16,7 @@ from app.api.routes.agencies import _mine
 from app.core.config import settings
 from app.crud import billing as crud_billing
 from app.models import (
+    AgencyUsagePublic,
     BillingDetailsPublic,
     BillingLink,
     BillingPublic,
@@ -25,6 +26,7 @@ from app.models import (
 from app.models.agency import Agency, AgencyRole, SubscriptionState
 from app.services import stripe
 from app.services.billing_state import money_public
+from app.services.billing_usage import PeriodKey, agency_usage, as_csv
 from app.services.stripe import StripeError
 
 logger = logging.getLogger(__name__)
@@ -80,6 +82,39 @@ def read_status(
     up: nothing pauses there."""
     agency, _ = _mine(session, current_user.id, agency_id)
     return money_public(session=session, agency_id=agency.id)
+
+
+@router.get("/{agency_id}/billing/usage", response_model=AgencyUsagePublic)
+def read_usage(
+    session: SessionDep,
+    current_user: CurrentUser,
+    agency_id: uuid.UUID,
+    period: PeriodKey | None = None,
+) -> AgencyUsagePublic:
+    """What the agency used in a period, per workspace and agent, at list price. `this`
+    and `last` are the subscription's periods; without a subscription only `30d`
+    exists. Counted the way the money is drawn, so `this` is what came off the
+    included amount and the balance."""
+    agency = _as_billing_admin(session, current_user.id, agency_id)
+    return agency_usage(session=session, agency=agency, period=period)
+
+
+@router.get("/{agency_id}/billing/usage.csv", response_class=Response)
+def download_usage(
+    session: SessionDep,
+    current_user: CurrentUser,
+    agency_id: uuid.UUID,
+    period: PeriodKey | None = None,
+) -> Response:
+    """The same usage as a CSV, one row per workspace and agent, to bill each client."""
+    agency = _as_billing_admin(session, current_user.id, agency_id)
+    usage = agency_usage(session=session, agency=agency, period=period)
+    name = f"connexity-usage-{usage.period.starts_at:%Y-%m-%d}.csv"
+    return Response(
+        content=as_csv(usage),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{name}"'},
+    )
 
 
 @router.get("/{agency_id}/billing", response_model=BillingPublic)

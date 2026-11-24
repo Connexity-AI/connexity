@@ -17,7 +17,7 @@ from pydantic import Field as PydanticField
 from sqlalchemy import DateTime, Index, UniqueConstraint, text
 from sqlmodel import Field, SQLModel
 
-from app.models.billing import MoneyPublic, SubscriptionPublic
+from app.models.billing import AgencyUsagePublic, MoneyPublic, SubscriptionPublic
 from app.models.columns import enum_type
 from app.models.enums import UsageMeter
 
@@ -132,6 +132,11 @@ class UsagePublic(BaseModel):
     )
     movers: list[UsageMoverPublic] = PydanticField(
         description="The three things that added most to the cost"
+    )
+    agency_usage: AgencyUsagePublic | None = PydanticField(
+        default=None,
+        description="The whole agency's usage per workspace and agent, when asked "
+        "for with `agency`. Counted by subscription period, as the money is drawn",
     )
     money: MoneyPublic | None = PydanticField(
         default=None,

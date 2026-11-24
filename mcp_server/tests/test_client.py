@@ -1389,6 +1389,69 @@ def test_usage_carries_the_agencys_subscription_when_there_is_one() -> None:
     assert usage.money is None
 
 
+@pytest.mark.asyncio
+async def test_get_usage_asks_for_the_agency_only_when_told_to() -> None:
+    seen: list[dict[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(dict(request.url.params))
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "period": "month",
+                    "starts_at": "2026-11-01T00:00:00Z",
+                    "ends_at": "2026-12-01T00:00:00Z",
+                    "lines": [],
+                    "cost_usd": 0,
+                    "agents": [],
+                    "agency_usage": {
+                        "period": {
+                            "key": "last",
+                            "label": "Last period",
+                            "starts_at": "2026-10-24T00:00:00Z",
+                            "ends_at": "2026-11-24T00:00:00Z",
+                        },
+                        "periods": [],
+                        "cost_usd": 28.32,
+                        "parts": [],
+                        "workspaces": [
+                            {
+                                "id": WORKSPACE_ID,
+                                "name": "Bright Dental",
+                                "deleted": False,
+                                "observed_minutes": 620,
+                                "simulated_messages": 486,
+                                "cost_usd": 28.32,
+                                "agents": [],
+                            }
+                        ],
+                        "movers": [],
+                    },
+                },
+                "next_cursor": None,
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: get_usage(
+            client, workspace_id=WORKSPACE_ID, agency=True, agency_period="last"
+        ),
+    )
+    await _call(
+        handler,
+        lambda client: get_usage(
+            client, workspace_id=WORKSPACE_ID, agency_period="last"
+        ),
+    )
+
+    assert seen == [{"agency": "true", "agency_period": "last"}, {}]
+    assert result.data.agency_usage is not None
+    assert result.data.agency_usage.workspaces[0].cost_usd == 28.32
+
+
 def test_usage_carries_what_the_agency_has_left() -> None:
     from connexity_mcp_server.models import Usage
 

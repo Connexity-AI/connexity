@@ -55,6 +55,9 @@ import type {
   BillingCancelSubscriptionData,
   BillingCancelSubscriptionErrors,
   BillingCancelSubscriptionResponses,
+  BillingDownloadUsageData,
+  BillingDownloadUsageErrors,
+  BillingDownloadUsageResponses,
   BillingOpenPortalData,
   BillingOpenPortalErrors,
   BillingOpenPortalResponses,
@@ -64,6 +67,9 @@ import type {
   BillingReadStatusData,
   BillingReadStatusErrors,
   BillingReadStatusResponses,
+  BillingReadUsageData,
+  BillingReadUsageErrors,
+  BillingReadUsageResponses,
   BillingResumeSubscriptionData,
   BillingResumeSubscriptionErrors,
   BillingResumeSubscriptionResponses,
@@ -1213,6 +1219,61 @@ export class BillingService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agencies/{agency_id}/billing/status',
+      ...options,
+    });
+  }
+
+  /**
+   * Read Usage
+   *
+   * What the agency used in a period, per workspace and agent, at list price. `this`
+   * and `last` are the subscription's periods; without a subscription only `30d`
+   * exists. Counted the way the money is drawn, so `this` is what came off the
+   * included amount and the balance.
+   */
+  public static readUsage<ThrowOnError extends boolean = false>(
+    options: Options<BillingReadUsageData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      BillingReadUsageResponses,
+      BillingReadUsageErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/usage',
+      ...options,
+    });
+  }
+
+  /**
+   * Download Usage
+   *
+   * The same usage as a CSV, one row per workspace and agent, to bill each client.
+   */
+  public static downloadUsage<ThrowOnError extends boolean = false>(
+    options: Options<BillingDownloadUsageData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      BillingDownloadUsageResponses,
+      BillingDownloadUsageErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/usage.csv',
       ...options,
     });
   }

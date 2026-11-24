@@ -132,6 +132,8 @@ async def get_usage(
     month: str | None = None,
     cursor: str | None = None,
     limit: int | None = None,
+    agency: bool | None = None,
+    agency_period: str | None = None,
 ) -> GetUsageResult:
     return GetUsageResult.model_validate(
         await client.get_usage(
@@ -141,6 +143,8 @@ async def get_usage(
             month=month,
             cursor=cursor,
             limit=limit,
+            agency=agency,
+            agency_period=agency_period,
         )
     )
 

@@ -127,6 +127,32 @@ fingerprint: another agency connecting the same account gets none). `agent.scan_
 is what the scan reads and `agent.scan_window_total` what the 30 days held when the
 limit cut it. A subscribed agency's scans have no limit and are charged like any usage.
 
+## Usage on Billing
+
+Agency settings › Billing shows, for Admins, what is left (the included amount with its
+reset date, the balance, about how long it lasts) and what was used in a period: the
+total, the split by kind, each workspace with its agents, the three things that added
+most, the prices, and a CSV to bill each client from
+(`app/services/billing_usage.py`, `components/agency/billing-usage.tsx`).
+
+- **Periods** are the subscription's: "This period", "Last period" (the month before
+  the current one's start) and "Last 30 days". Without a subscription only the last 30
+  days exist (Decided by Dmytro, 2026-11-24).
+- **Same basis as the money:** usage is counted by when Connexity recorded it, in every
+  workspace of the agency, deleted ones too (shown as "Deleted"). "This period" is
+  exactly what came off the included amount and the balance; a test checks it.
+- **Only what was charged.** Usage recorded before the agency's first subscription
+  began (`agency.first_subscribed_at`), which is the included first scan, is left out of
+  every figure, the CSV and the assistant's `agency_usage`. An agency that never
+  subscribed sees "No usage yet". Where paying is not set up nothing is charged and
+  everything is shown.
+- **List price only.** Neither route reads Connexity's own cost, tokens or model names.
+- **The CSV** has one row per workspace and agent and a total row. A name that starts
+  like a formula is written so a spreadsheet does not run it.
+
+The assistant's per-workspace usage (`get_usage` without `agency`) still counts by
+calendar month and by when a call happened; `docs-internal/usage.md` describes it.
+
 ## Screens
 
 - **The stripe** at the top of the app (`components/shell/billing-stripe.tsx`,
@@ -152,12 +178,16 @@ route takes an assistant's token.
 | `POST /api/v1/agencies/{id}/billing/resume` | Undo a cancellation |
 | `POST /api/v1/webhooks/stripe` | Stripe's messages |
 | `GET /api/v1/agencies/{id}/billing/status` | Anyone in the agency: what is left and the state, for the stripe and the sidebar |
+| `GET /api/v1/agencies/{id}/billing/usage?period=` | Admins: the period's usage per workspace and agent, at list price |
+| `GET /api/v1/agencies/{id}/billing/usage.csv?period=` | Admins: the same as a CSV |
 
 ## The assistant
 
 `get_usage` answers `subscription` (state, price, included amount, period end, whether
 it ends then) where paying is set up. It also answers `money`: what is left of the
-included amount and the balance, the state, and about how many days it lasts. The assistant never starts, pays, cancels or
+included amount and the balance, the state, and about how many days it lasts. With
+`agency` set, an Admin's assistant also gets `agency_usage`, the same figures as the
+Billing page, to bill each client from. The assistant never starts, pays, cancels or
 changes a subscription and never handles card details.
 
 ## Settings

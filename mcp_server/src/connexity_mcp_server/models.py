@@ -473,6 +473,58 @@ class Subscription(BaseModel):
     )
 
 
+class UsagePeriodRef(BaseModel):
+    key: str = Field(description="this, last or 30d")
+    label: str
+    starts_at: str
+    ends_at: str = Field(description="Exclusive")
+
+
+class UsagePart(BaseModel):
+    meter: str
+    label: str
+    quantity: int
+    unit: str
+    unit_price_usd: float
+    cost_usd: float
+
+
+class AgentUsage(BaseModel):
+    id: str
+    name: str
+    observed_minutes: int
+    simulated_messages: int
+    cost_usd: float
+
+
+class WorkspaceUsage(BaseModel):
+    id: str
+    name: str
+    deleted: bool = Field(default=False, description="Deleted; its usage stays")
+    observed_minutes: int
+    simulated_messages: int
+    cost_usd: float
+    agents: list[AgentUsage] = Field(default_factory=list)
+
+
+class UsageMoverLine(BaseModel):
+    label: str
+    quantity: int
+    unit: str
+    cost_usd: float
+
+
+class AgencyUsage(BaseModel):
+    period: UsagePeriodRef
+    periods: list[UsagePeriodRef] = Field(description="The periods on offer")
+    cost_usd: float
+    parts: list[UsagePart] = Field(default_factory=list)
+    workspaces: list[WorkspaceUsage] = Field(
+        default_factory=list, description="Most expensive first"
+    )
+    movers: list[UsageMoverLine] = Field(default_factory=list)
+
+
 class FirstScan(BaseModel):
     checked: int = Field(description="Calls the included first scan read")
     of: int = Field(
@@ -524,6 +576,11 @@ class Usage(BaseModel):
     movers: list[UsageMover] = Field(
         default_factory=list,
         description="The three things that added most to the cost",
+    )
+    agency_usage: AgencyUsage | None = Field(
+        default=None,
+        description="The whole agency's usage per workspace and agent, when asked "
+        "for with `agency`. Counted by subscription period, as the money is drawn",
     )
     money: Money | None = Field(
         default=None,

@@ -22,12 +22,15 @@ const SECTIONS = [
   { key: 'workspaces', label: 'Workspaces', href: UrlGenerator.agency('workspaces') },
 ] as const;
 
+const PERIODS = ['this', 'last', '30d'] as const;
+
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** The agency of the workspace the person has open. */
-const AgencySettings: FC<{ section: Section; justPaid: boolean }> = async ({
+const AgencySettings: FC<{ section: Section; justPaid: boolean; period?: string }> = async ({
   section,
   justPaid,
+  period,
 }) => {
   const open = (await listWorkspaces()).find((w) => w.is_open);
   if (!open) notFound();
@@ -39,6 +42,16 @@ const AgencySettings: FC<{ section: Section; justPaid: boolean }> = async ({
       : Promise.resolve({ data: undefined }),
     section === 'billing' ? BillingService.readBilling({ path }) : Promise.resolve(undefined),
   ]);
+  // What is left and what was used: read only for an Admin, whom Billing answered.
+  const [money, usage] = billing?.data
+    ? await Promise.all([
+        BillingService.readStatus({ path }),
+        BillingService.readUsage({
+          path,
+          query: { period: PERIODS.find((p) => p === period) },
+        }),
+      ])
+    : [undefined, undefined];
   if (!agency) throw new Error('The agency could not be loaded.');
   if (section === 'workspaces' && !table) throw new Error('The workspaces could not be loaded.');
 
@@ -71,7 +84,13 @@ const AgencySettings: FC<{ section: Section; justPaid: boolean }> = async ({
         {table ? (
           <WorkspacesView agencyId={agency.id} table={table} />
         ) : billing?.data ? (
-          <BillingView agencyId={agency.id} billing={billing.data} justPaid={justPaid} />
+          <BillingView
+            agencyId={agency.id}
+            billing={billing.data}
+            justPaid={justPaid}
+            money={money?.data ?? null}
+            usage={usage?.data ?? null}
+          />
         ) : billing ? (
           // Members are refused with the sentence that names the Admins.
           <span className="text-ink-secondary">{getApiErrorMessage(billing.error)}</span>
@@ -84,7 +103,7 @@ const AgencySettings: FC<{ section: Section; justPaid: boolean }> = async ({
 };
 
 interface PageProps {
-  searchParams: Promise<{ section?: string; checkout?: string }>;
+  searchParams: Promise<{ section?: string; checkout?: string; period?: string }>;
 }
 
 /**
@@ -99,7 +118,11 @@ const AgencyPage: FC<PageProps> = async ({ searchParams }) => {
     params.section === 'workspaces' || params.section === 'billing' ? params.section : 'members';
   return (
     <ErrorBoundarySuspense fallback={null}>
-      <AgencySettings section={section} justPaid={params.checkout === 'done'} />
+      <AgencySettings
+        section={section}
+        justPaid={params.checkout === 'done'}
+        period={params.period}
+      />
     </ErrorBoundarySuspense>
   );
 };

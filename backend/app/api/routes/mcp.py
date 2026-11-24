@@ -164,6 +164,7 @@ from app.services.billing_state import (
     money_public,
     records_calls,
 )
+from app.services.billing_usage import PeriodKey, agency_usage
 from app.services.call_list import workspace_calls
 from app.services.call_screen import call_screen
 from app.services.checks.base import Check, ModelCheck
@@ -3421,6 +3422,9 @@ def _refuse_when_paused(
 def get_workspace_usage(
     session: SessionDep,
     workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    agency: bool = False,
+    agency_period: PeriodKey | None = None,
     agent_id: uuid.UUID | None = Query(default=None),
     period: UsagePeriod = "month",
     month: str | None = Query(default=None, max_length=7),
@@ -3473,10 +3477,42 @@ def get_workspace_usage(
             "Call `get_usage` again with `cursor` set to `next_cursor` for more runs."
         )
     rules = list(_USAGE_RULES)
-    agency = session.get(Agency, workspace.agency_id)
-    if settings.billing_enabled and agency is not None:
-        page.subscription = crud_billing.subscription_public(agency)
-        page.money = money_public(session=session, agency_id=agency.id)
+    its_agency = session.get(Agency, workspace.agency_id)
+    if agency and its_agency is not None:
+        membership = crud.get_membership(
+            session=session, user_id=current_user.id, agency_id=its_agency.id
+        )
+        if membership is None or membership.role != AgencyRole.admin:
+            asking = crud.admin_names(session=session, agency_id=its_agency.id)
+            raise HTTPException(
+                status_code=403,
+                detail=McpErrorDetail(
+                    error=f"Only Admins of {its_agency.name} can see its billing.",
+                    next_steps=[
+                        f"Tell the person to ask {asking}. You can still call "
+                        "`get_usage` without `agency` for this workspace."
+                    ],
+                    guide=GUIDE_USAGE,
+                ).model_dump(),
+            )
+        page.agency_usage = agency_usage(
+            session=session, agency=its_agency, period=agency_period
+        )
+        rules.append(
+            "`agency_usage` is the whole agency, per workspace and agent, so the "
+            "person can bill each client. It counts by the subscription's period "
+            "(`this`, `last`) or the last 30 days (`30d`), and by when Connexity "
+            "recorded the usage: this is what came off the included amount and the "
+            "balance. The rest of this answer counts one workspace by calendar "
+            "month and by when calls happened, so the two can differ."
+        )
+        steps.append(
+            "For billing clients, give the person `agency_usage.workspaces`: each "
+            "workspace with its minutes, messages and cost, for `agency_usage.period`."
+        )
+    if settings.billing_enabled and its_agency is not None:
+        page.subscription = crud_billing.subscription_public(its_agency)
+        page.money = money_public(session=session, agency_id=its_agency.id)
         rules.append(
             "`subscription` is the agency's one subscription: $299 a month, which "
             "includes $299 of usage. You never start, pay, cancel or change it, and "
