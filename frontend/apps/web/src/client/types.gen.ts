@@ -42,6 +42,12 @@ export type AgencyDetail = {
    * Invites still waiting; shown to Admins only
    */
   invites: Array<AgencyInvitePublic>;
+  /**
+   * Billing
+   *
+   * Whether paying is set up on this deployment; without it there is no Billing section
+   */
+  billing?: boolean;
 };
 
 /**
@@ -728,6 +734,53 @@ export const AuthProvider = { EMAIL: 'email', GOOGLE: 'google' } as const;
  * AuthProvider
  */
 export type AuthProvider = (typeof AuthProvider)[keyof typeof AuthProvider];
+
+/**
+ * BillingDetailsPublic
+ */
+export type BillingDetailsPublic = {
+  /**
+   * Name
+   */
+  name: string | null;
+  /**
+   * Address
+   *
+   * The address, one line per item
+   */
+  address: Array<string>;
+  /**
+   * Tax Ids
+   */
+  tax_ids: Array<string>;
+};
+
+/**
+ * BillingLink
+ */
+export type BillingLink = {
+  /**
+   * Url
+   *
+   * A page on Stripe to send the person to
+   */
+  url: string;
+};
+
+/**
+ * BillingPublic
+ */
+export type BillingPublic = {
+  subscription: SubscriptionPublic;
+  card: CardPublic | null;
+  details: BillingDetailsPublic | null;
+  /**
+   * Read From Stripe
+   *
+   * False when Stripe could not be reached: the subscription is the last known one and the card and details are missing
+   */
+  read_from_stripe: boolean;
+};
 
 /**
  * Body_login-login_access_token
@@ -1524,6 +1577,28 @@ export type CallsPublic = {
    * Count
    */
   count: number;
+};
+
+/**
+ * CardPublic
+ */
+export type CardPublic = {
+  /**
+   * Brand
+   */
+  brand: string;
+  /**
+   * Last4
+   */
+  last4: string;
+  /**
+   * Exp Month
+   */
+  exp_month: number;
+  /**
+   * Exp Year
+   */
+  exp_year: number;
 };
 
 /**
@@ -8201,6 +8276,60 @@ export type StoppedCallsPublic = {
 };
 
 /**
+ * SubscriptionPublic
+ */
+export type SubscriptionPublic = {
+  /**
+   * none, active, past_due (a renewal failed and is being retried; Connexity keeps working), unpaid or ended
+   */
+  state: SubscriptionState;
+  /**
+   * Price Usd
+   *
+   * Dollars a month
+   */
+  price_usd: number;
+  /**
+   * Included Usd
+   *
+   * Dollars of usage included each month
+   */
+  included_usd: number;
+  /**
+   * Period End
+   *
+   * When it renews, or ends if `ends_at_period_end`
+   */
+  period_end: string | null;
+  /**
+   * Ends At Period End
+   *
+   * Cancelled: it runs to `period_end` and is not renewed
+   */
+  ends_at_period_end: boolean;
+};
+
+/**
+ * SubscriptionState
+ *
+ * The agency's subscription as Connexity knows it (`docs-internal/billing.md`).
+ */
+export const SubscriptionState = {
+  NONE: 'none',
+  ACTIVE: 'active',
+  PAST_DUE: 'past_due',
+  UNPAID: 'unpaid',
+  ENDED: 'ended',
+} as const;
+
+/**
+ * SubscriptionState
+ *
+ * The agency's subscription as Connexity knows it (`docs-internal/billing.md`).
+ */
+export type SubscriptionState = (typeof SubscriptionState)[keyof typeof SubscriptionState];
+
+/**
  * TaskKind
  *
  * The kinds of work Connexity hands an assistant (`docs-internal/work.md`), named
@@ -9255,6 +9384,10 @@ export type UsagePublic = {
    * The three things that added most to the cost
    */
   movers: Array<UsageMoverPublic>;
+  /**
+   * The agency's subscription. Only in an assistant's answer, and only where paying is set up
+   */
+  subscription?: SubscriptionPublic | null;
 };
 
 /**
@@ -11378,6 +11511,284 @@ export type InvitesSignInAndJoinResponses = {
 
 export type InvitesSignInAndJoinResponse =
   InvitesSignInAndJoinResponses[keyof InvitesSignInAndJoinResponses];
+
+export type BillingReadBillingData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing';
+};
+
+export type BillingReadBillingErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingReadBillingError = BillingReadBillingErrors[keyof BillingReadBillingErrors];
+
+export type BillingReadBillingResponses = {
+  /**
+   * Successful Response
+   */
+  200: BillingPublic;
+};
+
+export type BillingReadBillingResponse =
+  BillingReadBillingResponses[keyof BillingReadBillingResponses];
+
+export type BillingStartSubscriptionData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/checkout';
+};
+
+export type BillingStartSubscriptionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingStartSubscriptionError =
+  BillingStartSubscriptionErrors[keyof BillingStartSubscriptionErrors];
+
+export type BillingStartSubscriptionResponses = {
+  /**
+   * Successful Response
+   */
+  200: BillingLink;
+};
+
+export type BillingStartSubscriptionResponse =
+  BillingStartSubscriptionResponses[keyof BillingStartSubscriptionResponses];
+
+export type BillingOpenPortalData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/portal';
+};
+
+export type BillingOpenPortalErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingOpenPortalError = BillingOpenPortalErrors[keyof BillingOpenPortalErrors];
+
+export type BillingOpenPortalResponses = {
+  /**
+   * Successful Response
+   */
+  200: BillingLink;
+};
+
+export type BillingOpenPortalResponse =
+  BillingOpenPortalResponses[keyof BillingOpenPortalResponses];
+
+export type BillingCancelSubscriptionData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/cancel';
+};
+
+export type BillingCancelSubscriptionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingCancelSubscriptionError =
+  BillingCancelSubscriptionErrors[keyof BillingCancelSubscriptionErrors];
+
+export type BillingCancelSubscriptionResponses = {
+  /**
+   * Successful Response
+   */
+  200: BillingPublic;
+};
+
+export type BillingCancelSubscriptionResponse =
+  BillingCancelSubscriptionResponses[keyof BillingCancelSubscriptionResponses];
+
+export type BillingResumeSubscriptionData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/resume';
+};
+
+export type BillingResumeSubscriptionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingResumeSubscriptionError =
+  BillingResumeSubscriptionErrors[keyof BillingResumeSubscriptionErrors];
+
+export type BillingResumeSubscriptionResponses = {
+  /**
+   * Successful Response
+   */
+  200: BillingPublic;
+};
+
+export type BillingResumeSubscriptionResponse =
+  BillingResumeSubscriptionResponses[keyof BillingResumeSubscriptionResponses];
 
 export type AgenciesReadWorkspacesData = {
   body?: never;
@@ -16593,6 +17004,57 @@ export type WebhooksRetellWebhookResponses = {
 
 export type WebhooksRetellWebhookResponse =
   WebhooksRetellWebhookResponses[keyof WebhooksRetellWebhookResponses];
+
+export type WebhooksStripeWebhookData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/webhooks/stripe';
+};
+
+export type WebhooksStripeWebhookErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type WebhooksStripeWebhookError =
+  WebhooksStripeWebhookErrors[keyof WebhooksStripeWebhookErrors];
+
+export type WebhooksStripeWebhookResponses = {
+  /**
+   * Successful Response
+   */
+  200: WebhookResult;
+};
+
+export type WebhooksStripeWebhookResponse =
+  WebhooksStripeWebhookResponses[keyof WebhooksStripeWebhookResponses];
 
 export type ToolBackendsListAgentToolsData = {
   body?: never;

@@ -6,31 +6,38 @@ import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { listWorkspaces } from '@/actions/workspaces';
+import { BillingView } from '@/components/agency/billing-view';
 import { MembersView } from '@/components/agency/members-view';
 import { WorkspacesView } from '@/components/agency/workspaces-view';
 import ErrorBoundarySuspense from '@/components/common/error-boundary-suspense';
-import { AgenciesService } from '@/client/sdk.gen';
+import { AgenciesService, BillingService } from '@/client/sdk.gen';
+import { getApiErrorMessage } from '@/utils/error';
 
 import type { FC } from 'react';
 
-type Section = 'members' | 'workspaces';
+type Section = 'members' | 'billing' | 'workspaces';
 const SECTIONS = [
   { key: 'members', label: 'Members', href: UrlGenerator.agency() },
+  { key: 'billing', label: 'Billing', href: UrlGenerator.agency('billing') },
   { key: 'workspaces', label: 'Workspaces', href: UrlGenerator.agency('workspaces') },
 ] as const;
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 /** The agency of the workspace the person has open. */
-const AgencySettings: FC<{ section: Section }> = async ({ section }) => {
+const AgencySettings: FC<{ section: Section; justPaid: boolean }> = async ({
+  section,
+  justPaid,
+}) => {
   const open = (await listWorkspaces()).find((w) => w.is_open);
   if (!open) notFound();
   const path = { agency_id: open.agency_id };
-  const [{ data: agency }, { data: table }] = await Promise.all([
+  const [{ data: agency }, { data: table }, billing] = await Promise.all([
     AgenciesService.readAgency({ path }),
     section === 'workspaces'
       ? AgenciesService.readWorkspaces({ path })
       : Promise.resolve({ data: undefined }),
+    section === 'billing' ? BillingService.readBilling({ path }) : Promise.resolve(undefined),
   ]);
   if (!agency) throw new Error('The agency could not be loaded.');
   if (section === 'workspaces' && !table) throw new Error('The workspaces could not be loaded.');
@@ -45,22 +52,29 @@ const AgencySettings: FC<{ section: Section }> = async ({ section }) => {
       </div>
       <div className="grid grid-cols-1 items-start gap-8 md:grid-cols-[176px_minmax(0,1fr)]">
         <nav aria-label="Agency sections" className="flex flex-col gap-0.5">
-          {SECTIONS.map(({ key, label, href }) => (
-            <Link
-              key={key}
-              href={href}
-              aria-current={key === section ? 'page' : undefined}
-              className={cn(
-                'flex h-9 items-center rounded-md px-3 no-underline',
-                key === section ? 'bg-wash text-ink' : 'text-ink-secondary hover:bg-wash'
-              )}
-            >
-              {label}
-            </Link>
-          ))}
+          {SECTIONS.filter(({ key }) => key !== 'billing' || agency.billing).map(
+            ({ key, label, href }) => (
+              <Link
+                key={key}
+                href={href}
+                aria-current={key === section ? 'page' : undefined}
+                className={cn(
+                  'flex h-9 items-center rounded-md px-3 no-underline',
+                  key === section ? 'bg-wash text-ink' : 'text-ink-secondary hover:bg-wash'
+                )}
+              >
+                {label}
+              </Link>
+            )
+          )}
         </nav>
         {table ? (
           <WorkspacesView agencyId={agency.id} table={table} />
+        ) : billing?.data ? (
+          <BillingView agencyId={agency.id} billing={billing.data} justPaid={justPaid} />
+        ) : billing ? (
+          // Members are refused with the sentence that names the Admins.
+          <span className="text-ink-secondary">{getApiErrorMessage(billing.error)}</span>
         ) : (
           <MembersView agency={agency} />
         )}
@@ -70,18 +84,22 @@ const AgencySettings: FC<{ section: Section }> = async ({ section }) => {
 };
 
 interface PageProps {
-  searchParams: Promise<{ section?: string }>;
+  searchParams: Promise<{ section?: string; checkout?: string }>;
 }
 
 /**
- * Agency settings (designs/screens/Connexity Agency.dc.html). Members and Workspaces
- * are built; Billing comes with the billing features (CLAUDE.md rule 14).
+ * Agency settings (designs/screens/Connexity Agency.dc.html): Members, Billing where
+ * paying is set up, and Workspaces. Billing shows the subscription, card and billing
+ * details; its balance, usage and invoices come with their own features (CLAUDE.md
+ * rule 14).
  */
 const AgencyPage: FC<PageProps> = async ({ searchParams }) => {
-  const section: Section = (await searchParams).section === 'workspaces' ? 'workspaces' : 'members';
+  const params = await searchParams;
+  const section: Section =
+    params.section === 'workspaces' || params.section === 'billing' ? params.section : 'members';
   return (
     <ErrorBoundarySuspense fallback={null}>
-      <AgencySettings section={section} />
+      <AgencySettings section={section} justPaid={params.checkout === 'done'} />
     </ErrorBoundarySuspense>
   );
 };

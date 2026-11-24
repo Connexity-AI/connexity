@@ -37,6 +37,7 @@ screen looks, the exported page wins over the prompts that produced it.
 | `Connexity Password Reset.dc.html` | Every password reset screen and state on one canvas, with both emails | Password reset |
 | `Connexity Email.dc.html` | The emails Connexity sends. Built: reset, the Google-only note and the agency invite. Billing emails are not built yet | Password reset, invites, then billing |
 | `Connexity Agency Members.dc.html` | Agency settings › Members in every state, the invite email, accepting an invite, the profile menu with two agencies and Settings › Team, on one canvas (`18-agency-members.md`) | Invites and Members screen |
+| `Connexity Billing.dc.html` | Agency settings › Billing: balance, usage, subscription, top-ups, card, invoices and the failed-payment states. Built so far: the subscription card, the payment method and the billing details | Subscription and card; the balance and top-up rows |
 | `Connexity Workspaces.dc.html` | Agency settings › Workspaces in every state: the table, the delete dialog, deleting, done, failed, the last workspace and the email, on one canvas (`19-delete-workspace.md`) | Delete workspace data |
 | `Connexity Workspace Deleting.dc.html` | The full page for a person whose open workspace was deleted | Delete workspace data |
 | `Connexity Settings.dc.html` | Workspace settings | Milestones 7, 8 and 10 |

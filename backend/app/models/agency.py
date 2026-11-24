@@ -29,6 +29,20 @@ class AgencyRole(str, enum.Enum):
     member = "member"
 
 
+class SubscriptionState(str, enum.Enum):
+    """The agency's subscription as Connexity knows it (`docs-internal/billing.md`)."""
+
+    # Never started, or a first payment that was not completed.
+    none = "none"
+    active = "active"
+    # A renewal failed and Stripe is still retrying. Connexity keeps working.
+    past_due = "past_due"
+    # Stripe stopped retrying.
+    unpaid = "unpaid"
+    # It ended: cancelled and past the end of its paid period.
+    ended = "ended"
+
+
 class Agency(SQLModel, table=True):
     __tablename__ = "agency"
 
@@ -38,6 +52,28 @@ class Agency(SQLModel, table=True):
         default_factory=lambda: datetime.now(UTC),
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
+    )
+    # Stripe's customer for this agency, made the first time an Admin starts paying.
+    stripe_customer_id: str | None = Field(default=None, max_length=64, unique=True)
+    stripe_subscription_id: str | None = Field(default=None, max_length=64)
+    # A copy of what Stripe says, refreshed on every message from Stripe and whenever
+    # Billing is opened. Stripe stays the source of truth.
+    subscription_state: SubscriptionState = Field(
+        default=SubscriptionState.none,
+        sa_type=enum_type(SubscriptionState),
+        sa_column_kwargs={"server_default": text("'none'")},
+    )
+    subscription_period_start: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    subscription_period_end: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    # Cancelled: it runs to the end of the paid period and is not renewed.
+    subscription_ends_at_period_end: bool = Field(
+        default=False, sa_column_kwargs={"server_default": text("false")}
     )
 
 
@@ -177,6 +213,11 @@ class AgencyDetail(AgencyPublic):
     members: list[AgencyMemberPublic]
     invites: list[AgencyInvitePublic] = Field(
         description="Invites still waiting; shown to Admins only"
+    )
+    billing: bool = Field(
+        default=False,
+        description="Whether paying is set up on this deployment; without it there "
+        "is no Billing section",
     )
 
 

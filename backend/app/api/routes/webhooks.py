@@ -17,9 +17,12 @@ from pydantic import BaseModel
 
 from app import crud
 from app.api.deps import SessionDep
+from app.core.config import settings
 from app.core.encryption import decrypt
+from app.crud import billing as crud_billing
 from app.models import Integration
 from app.models.enums import IntegrationProvider
+from app.services import stripe
 from app.services.checks.engine import check_call_safely
 from app.services.component_versions import add_retell_components
 from app.services.executions import sync_call_executions_in_background
@@ -142,3 +145,64 @@ async def retell_webhook(
         background_tasks.add_task(sync_call_executions_in_background, stored.call.id)
         call_ids.append(stored.call.id)
     return WebhookResult(status="stored", call_id=call_ids[0], call_ids=call_ids)
+
+
+@router.post("/stripe", response_model=WebhookResult)
+async def stripe_webhook(session: SessionDep, request: Request) -> WebhookResult:
+    """Receive a message from Stripe about a customer's subscription.
+
+    The signature is checked with the endpoint's secret. A message is handled once, by
+    its id. What it says is not trusted for the state: the subscription is read again
+    from Stripe, so repeats and messages arriving out of order cannot move it back.
+    When Stripe cannot be read the answer is an error, and Stripe sends it again.
+    """
+    secret = (settings.STRIPE_WEBHOOK_SECRET or "").strip()
+    if not settings.billing_enabled or not secret:
+        raise HTTPException(status_code=404, detail="Billing is not set up")
+    raw_body = await request.body()
+    if not stripe.signature_is_valid(
+        raw_body=raw_body,
+        header=request.headers.get("stripe-signature"),
+        secret=secret,
+    ):
+        raise _REFUSED
+    try:
+        body = json.loads(raw_body)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Body is not JSON") from exc
+    event_id = body.get("id") if isinstance(body, dict) else None
+    kind = body.get("type") if isinstance(body, dict) else None
+    data = body.get("data") if isinstance(body, dict) else None
+    subject = data.get("object") if isinstance(data, dict) else None
+    if not isinstance(event_id, str) or not isinstance(kind, str):
+        raise HTTPException(status_code=422, detail="Not a Stripe event")
+    if crud_billing.event_was_handled(session=session, event_id=event_id):
+        return WebhookResult(status="ignored", reason="already handled")
+
+    customer_id = None
+    if isinstance(subject, dict):
+        customer = subject.get("customer")
+        if isinstance(customer, str):
+            customer_id = customer
+        elif subject.get("object") == "customer" and isinstance(subject.get("id"), str):
+            customer_id = subject["id"]
+    agency = (
+        crud_billing.agency_of_customer(session=session, customer_id=customer_id)
+        if customer_id
+        else None
+    )
+    if agency is None:
+        crud_billing.mark_event_handled(session=session, event_id=event_id, kind=kind)
+        return WebhookResult(status="ignored", reason="not about a known customer")
+    try:
+        subscription = await stripe.current_subscription(customer_id=customer_id or "")
+    except stripe.StripeError as exc:
+        logger.warning("A Stripe message could not be acted on: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="Stripe could not be read; send it again"
+        ) from exc
+    crud_billing.store_subscription(
+        session=session, agency=agency, subscription=subscription
+    )
+    crud_billing.mark_event_handled(session=session, event_id=event_id, kind=kind)
+    return WebhookResult(status="stored")

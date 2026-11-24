@@ -52,6 +52,21 @@ import type {
   AuthGoogleStatusResponses,
   AuthStartData,
   AuthStartErrors,
+  BillingCancelSubscriptionData,
+  BillingCancelSubscriptionErrors,
+  BillingCancelSubscriptionResponses,
+  BillingOpenPortalData,
+  BillingOpenPortalErrors,
+  BillingOpenPortalResponses,
+  BillingReadBillingData,
+  BillingReadBillingErrors,
+  BillingReadBillingResponses,
+  BillingResumeSubscriptionData,
+  BillingResumeSubscriptionErrors,
+  BillingResumeSubscriptionResponses,
+  BillingStartSubscriptionData,
+  BillingStartSubscriptionErrors,
+  BillingStartSubscriptionResponses,
   CallsGetCallDetailData,
   CallsGetCallDetailErrors,
   CallsGetCallDetailResponses,
@@ -384,6 +399,9 @@ import type {
   WebhooksRetellWebhookData,
   WebhooksRetellWebhookErrors,
   WebhooksRetellWebhookResponses,
+  WebhooksStripeWebhookData,
+  WebhooksStripeWebhookErrors,
+  WebhooksStripeWebhookResponses,
   WorkMoveWorkTaskData,
   WorkMoveWorkTaskErrors,
   WorkMoveWorkTaskResponses,
@@ -1163,6 +1181,141 @@ export class InvitesService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+}
+
+export class BillingService {
+  /**
+   * Read Billing
+   *
+   * The subscription, read again from Stripe, with the card and billing details.
+   * When Stripe cannot be reached, the last known subscription without them.
+   */
+  public static readBilling<ThrowOnError extends boolean = false>(
+    options: Options<BillingReadBillingData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      BillingReadBillingResponses,
+      BillingReadBillingErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing',
+      ...options,
+    });
+  }
+
+  /**
+   * Start Subscription
+   *
+   * Stripe's page that starts the subscription. Refused when one is running. Any
+   * earlier page that was opened and not paid stops working.
+   */
+  public static startSubscription<ThrowOnError extends boolean = false>(
+    options: Options<BillingStartSubscriptionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      BillingStartSubscriptionResponses,
+      BillingStartSubscriptionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/checkout',
+      ...options,
+    });
+  }
+
+  /**
+   * Open Portal
+   *
+   * Stripe's page for the card and billing details.
+   */
+  public static openPortal<ThrowOnError extends boolean = false>(
+    options: Options<BillingOpenPortalData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      BillingOpenPortalResponses,
+      BillingOpenPortalErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/portal',
+      ...options,
+    });
+  }
+
+  /**
+   * Cancel Subscription
+   *
+   * Cancel: the subscription runs to the end of the paid period and is not
+   * renewed. Nothing is refunded. The answer leaves out the card and details.
+   */
+  public static cancelSubscription<ThrowOnError extends boolean = false>(
+    options: Options<BillingCancelSubscriptionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      BillingCancelSubscriptionResponses,
+      BillingCancelSubscriptionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/cancel',
+      ...options,
+    });
+  }
+
+  /**
+   * Resume Subscription
+   *
+   * Undo a cancellation before the paid period ends.
+   */
+  public static resumeSubscription<ThrowOnError extends boolean = false>(
+    options: Options<BillingResumeSubscriptionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      BillingResumeSubscriptionResponses,
+      BillingResumeSubscriptionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agencies/{agency_id}/billing/resume',
+      ...options,
     });
   }
 }
@@ -3086,6 +3239,26 @@ export class WebhooksService {
       WebhooksRetellWebhookErrors,
       ThrowOnError
     >({ url: '/api/v1/webhooks/retell/{integration_id}', ...options });
+  }
+
+  /**
+   * Stripe Webhook
+   *
+   * Receive a message from Stripe about a customer's subscription.
+   *
+   * The signature is checked with the endpoint's secret. A message is handled once, by
+   * its id. What it says is not trusted for the state: the subscription is read again
+   * from Stripe, so repeats and messages arriving out of order cannot move it back.
+   * When Stripe cannot be read the answer is an error, and Stripe sends it again.
+   */
+  public static stripeWebhook<ThrowOnError extends boolean = false>(
+    options?: Options<WebhooksStripeWebhookData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).post<
+      WebhooksStripeWebhookResponses,
+      WebhooksStripeWebhookErrors,
+      ThrowOnError
+    >({ url: '/api/v1/webhooks/stripe', ...options });
   }
 }
 

@@ -40,6 +40,14 @@ from app.models.agent_contract import (  # noqa: F401
     TokenUsage,
 )
 from app.models.assistant_task import AssistantTask  # noqa: F401
+from app.models.billing import (  # noqa: F401
+    BillingDetailsPublic,
+    BillingLink,
+    BillingPublic,
+    CardPublic,
+    StripeEvent,
+    SubscriptionPublic,
+)
 
 # ── Call (Observer) ────────────────────────────────────────────────
 from app.models.call import (  # noqa: F401

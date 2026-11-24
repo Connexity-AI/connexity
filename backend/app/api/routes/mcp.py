@@ -24,6 +24,7 @@ from app.api.deps import (
 from app.api.routes import agencies as agencies_routes
 from app.core.config import settings
 from app.core.encryption import decrypt
+from app.crud import billing as crud_billing
 from app.crud import clarification as crud_clarification
 from app.crud import scenario as crud_scenario
 from app.crud import test_run as crud_test_run
@@ -58,6 +59,7 @@ from app.models.agency import (
     AgencyMemberPublic,
     AgencyMemberUpdate,
     AgencyRole,
+    SubscriptionState,
 )
 from app.models.check import Issue
 from app.models.clarification import (
@@ -3436,9 +3438,30 @@ def get_workspace_usage(
         steps.append(
             "Call `get_usage` again with `cursor` set to `next_cursor` for more runs."
         )
+    rules = list(_USAGE_RULES)
+    agency = session.get(Agency, workspace.agency_id)
+    if settings.billing_enabled and agency is not None:
+        page.subscription = crud_billing.subscription_public(agency)
+        rules.append(
+            "`subscription` is the agency's one subscription: $299 a month, which "
+            "includes $299 of usage. You never start, pay, cancel or change it, and "
+            "you never ask for card details: an Admin does that in Agency settings, "
+            "Billing."
+        )
+        state = page.subscription.state
+        if state is SubscriptionState.past_due:
+            steps.append(
+                "Tell the person a renewal payment failed and is being retried; an "
+                "Admin can update the card in Agency settings, Billing."
+            )
+        elif state is not SubscriptionState.active:
+            steps.append(
+                "The agency has no running subscription. If the person asks, an Admin "
+                "starts it in Agency settings, Billing."
+            )
     return McpAnswer[UsagePublic](
         data=page,
-        rules=_USAGE_RULES,
+        rules=rules,
         next_steps=steps,
         guide=GUIDE_USAGE,
         next_cursor=_encode_cursor(offset + limit) if more else None,

@@ -278,7 +278,7 @@ TOOLS: dict[str, ToolEntry] = {
     "get_usage": ToolEntry(
         "usage",
         "Shows a period's observed minutes and simulated caller messages, with their "
-        "list-price cost per agent and per run.",
+        "list-price cost per agent and per run, and your agency's subscription.",
         "usage",
     ),
     "send_feedback": ToolEntry(

@@ -977,8 +977,10 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         every started minute whole) and simulated caller messages (each message the
         simulated caller sent in a test run). Totals per meter in units and dollars,
         the same per agent, each run with its caller messages and cost (paged), and
-        the three things that added most. Use it when the person asks what the work
-        costs, or before a large run."""
+        the three things that added most. Where paying is set up it also answers the
+        agency's subscription: its state and when it renews or ends. You never start,
+        pay, cancel or change a subscription. Use it when the person asks what the
+        work costs, about their subscription, or before a large run."""
         return await _get_usage(
             client=backend_client,
             workspace_id=workspace_id,

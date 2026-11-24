@@ -116,6 +116,8 @@ the open workspace. The grouping is `groupByAgency` in
 | `POST /api/v1/invites/{token}/signup` | Anyone with the link | New account for the invited email, joined and signed in |
 | `POST /api/v1/invites/{token}/signin` | Anyone with the link and the account's password | Signs in to the invited email's account and joins; also for a person with no workspace left, whom the ordinary sign-in refuses |
 
+The agency's subscription and Agency settings › Billing: see [`billing.md`](./billing.md).
+
 Deleting a workspace and its data has its own routes and rules: see
 [`workspace-deletion.md`](./workspace-deletion.md).
 

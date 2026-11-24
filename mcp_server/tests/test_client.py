@@ -1359,6 +1359,33 @@ async def test_get_usage_sends_the_period_and_keeps_units_with_dollars() -> None
     assert result.data.lines[0].quantity == 9
     assert result.data.runs[0].caller_messages == 9
     assert result.data.movers[0].run_id == "r1"
+    assert result.data.subscription is None
+
+
+def test_usage_carries_the_agencys_subscription_when_there_is_one() -> None:
+    from connexity_mcp_server.models import Usage
+
+    usage = Usage.model_validate(
+        {
+            "period": "month",
+            "starts_at": "2026-11-01T00:00:00Z",
+            "ends_at": "2026-12-01T00:00:00Z",
+            "lines": [],
+            "cost_usd": 0,
+            "agents": [],
+            "subscription": {
+                "state": "active",
+                "price_usd": 299,
+                "included_usd": 299,
+                "period_end": "2026-12-31T00:00:00Z",
+                "ends_at_period_end": True,
+            },
+        }
+    )
+
+    assert usage.subscription is not None
+    assert usage.subscription.state == "active"
+    assert usage.subscription.ends_at_period_end is True
 
 
 @pytest.mark.asyncio

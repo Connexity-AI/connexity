@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from app.api.routes import (
     agencies,
     agent_list,
+    billing,
     call_screen,
     calls,
     checks,
@@ -45,6 +46,7 @@ api_router = APIRouter(responses=ERROR_RESPONSES)
 api_router.include_router(login.router)
 api_router.include_router(agencies.router)
 api_router.include_router(invites.router)
+api_router.include_router(billing.router)
 api_router.include_router(workspace_deletions.router)
 api_router.include_router(google_auth.router)
 api_router.include_router(password_reset.router)
