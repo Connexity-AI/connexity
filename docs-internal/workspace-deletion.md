@@ -2,9 +2,9 @@
 
 An agency can remove a client workspace and everything Connexity holds about its calls,
 for good. Plan: [`plans/2026-11-24-delete-workspace-data.md`](../plans/2026-11-24-delete-workspace-data.md).
-The code is `app/crud/workspace_deletion.py` and `app/api/routes/workspace_deletions.py`.
-The screens (Agency settings › Workspaces) come with the second pull request of the
-roadmap row.
+and [`plans/2026-11-24-delete-workspace-screens.md`](../plans/2026-11-24-delete-workspace-screens.md).
+The code is `app/crud/workspace_deletion.py` and `app/api/routes/workspace_deletions.py`;
+the screen is `frontend/apps/web/src/components/agency/workspaces-view.tsx`.
 
 ## What is removed and what stays
 
@@ -43,7 +43,9 @@ points at one that is without saying what happens on delete.
 
 It runs inside the request that asks for it. A step that breaks leaves the record
 `failed`, with the step and the kind of error (never the error's text, which can quote a
-row). "Try again" runs the same steps again; they are safe to repeat.
+row). "Try again" runs the same steps again; they are safe to repeat. A deletion still
+marked as running after five minutes belongs to a request that died; it counts as failed
+and can be tried again the same way.
 
 ## Rules
 
@@ -52,9 +54,39 @@ row). "Try again" runs the same steps again; they are safe to repeat.
 - **The last workspace** of an agency cannot be deleted (Decided by Dmytro, 2026-11-24):
   every account needs an open workspace. The refusal says to create another first.
 - **No assistant can delete.** The routes take a web session only, and there is no MCP
-  tool that deletes.
+  tool that deletes; `prepare_workspace_deletion` only reads.
 - **Backups** of the hosted database are outside the app; nothing here promises when
   they forget a deleted workspace.
+
+## Screens
+
+Agency settings › Workspaces (`/agency?section=workspaces`,
+`designs/screens/Connexity Workspaces.dc.html`): the table, the "⋯" menu for a person
+who can delete, the dialog with the typed name, the Record list. Where the build differs
+from the design:
+
+- **The line while deleting has no percentage.** A deletion runs inside one request, so
+  there is none to show; the line pulses while the request runs.
+- **The connection line names the platforms the workspace is connected to,** and is
+  left out when it has none.
+
+## A session in a deleted workspace
+
+A web session names the workspace it was opened in and normally ends when its person
+loses that workspace. A deletion is not a change to the person's access, so the session
+goes on when they reach another workspace (`_is_member` in `app/api/deps.py`). The app
+layout sees that the session's workspace is no longer in the person's list and shows the
+full page "This workspace is being deleted." with a link that opens another workspace
+(`components/shell/workspace-deleted.tsx`). A person who reaches no other workspace is
+refused, as before. The person who deleted gets a session in their open workspace right
+away, so they stay on the Workspaces table.
+
+## The assistant
+
+`prepare_workspace_deletion(workspace_id)` answers what a deletion would remove, whether
+the assistant's person can delete it, who can, whether it is the agency's last
+workspace, and the address of the Workspaces section. It deletes nothing, and no tool
+deletes. After a deletion every tool answers "not found" for that workspace.
 
 ## Routes
 

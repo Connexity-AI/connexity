@@ -134,6 +134,7 @@ from app.models.mcp import (
     McpTestRuns,
     McpUnarchiveIssue,
     McpWorkspace,
+    McpWorkspaceDeletion,
     McpWriteScenarios,
     McpWriteScenarioSet,
     McpWriteSpec,
@@ -3758,4 +3759,71 @@ def remove_person(
         ]
     return McpAnswer[McpRemoved](
         data=removed, rules=_PEOPLE_RULES, next_steps=steps, guide=GUIDE_PEOPLE
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/deletion",
+    response_model=McpAnswer[McpWorkspaceDeletion],
+)
+def prepare_workspace_deletion(
+    session: SessionDep, workspace: McpWorkspaceDep, current_user: McpCurrentUser
+) -> McpAnswer[McpWorkspaceDeletion]:
+    """What deleting this workspace would remove, and who can do it. Deletes nothing:
+    only a person deletes, on the web."""
+    agency, _ = _agency_place(session, current_user, workspace)
+    held = crud.workspace_deletion.counts(session=session, company_id=workspace.id)
+    can = crud.workspace_deletion.can_delete(
+        session=session, user=current_user, agency_id=agency.id
+    )
+    who = crud.workspace_deletion.who_can_delete(session=session, agency_id=agency.id)
+    is_last = len(crud.agency_workspaces(session=session, agency_id=agency.id)) <= 1
+    site = settings.public_site_url
+    where = (
+        f"{site}/agency?section=workspaces"
+        if site
+        else "Agency settings, Workspaces, in the Connexity web app"
+    )
+    if is_last:
+        steps = [
+            f"Tell the person that {workspace.name} is the agency's only workspace "
+            "and cannot be deleted; another workspace has to exist first."
+        ]
+    elif can:
+        steps = [
+            "Tell the person exactly what would be removed, from `data`, and that it "
+            "cannot be undone.",
+            f"If they still want it, send them to {where}: they open the workspace's "
+            "menu, choose Delete workspace and type its name. You cannot do this step.",
+        ]
+    else:
+        steps = [
+            f"Tell the person that deleting needs an admin who can approve: {who}.",
+            f"That person deletes it at {where}.",
+        ]
+    return McpAnswer[McpWorkspaceDeletion](
+        data=McpWorkspaceDeletion(
+            workspace=McpAgencyRef(id=workspace.id, name=workspace.name),
+            agency=McpAgencyRef(id=agency.id, name=agency.name),
+            calls=held.calls,
+            agents=held.agents,
+            issues=held.issues,
+            connections=crud.workspace_deletion.connection_names(
+                session=session, company_id=workspace.id
+            ),
+            is_last_workspace=is_last,
+            your_person_can_delete=can,
+            who_can_delete=who,
+            where=where,
+        ),
+        rules=[
+            "Deleting a workspace removes its calls, transcripts, findings, issues, "
+            "specs, scenarios and test runs for good. It cannot be undone.",
+            "Only a person deletes a workspace, on the web, by typing its name. No "
+            "tool deletes one, and you never ask for or use a way around that.",
+            "Usage totals stay for invoices, with no call content. Nothing is "
+            "deleted on the voice platform.",
+        ],
+        next_steps=steps,
+        guide=GUIDE_PEOPLE,
     )

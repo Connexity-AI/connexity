@@ -18,7 +18,7 @@ database. Nothing is called on the voice platform, n8n or a CRM.
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.exc import IntegrityError
@@ -49,6 +49,25 @@ KEPT_TABLES = frozenset(
         "workspace_deletion",  # the record of the deletion itself
     }
 )
+
+
+# A deletion runs inside one request. One still marked as running after this long
+# belongs to a request that died, and can be continued like a failed one.
+STALLED_AFTER = timedelta(minutes=5)
+
+
+def shown_state(deletion: WorkspaceDeletion) -> DeletionState:
+    """The deletion's state as people see it: a run that died midway counts as failed,
+    so it can be tried again."""
+    started = deletion.created_at
+    if started.tzinfo is None:
+        started = started.replace(tzinfo=UTC)
+    if (
+        deletion.state is DeletionState.deleting
+        and datetime.now(UTC) - started > STALLED_AFTER
+    ):
+        return DeletionState.failed
+    return deletion.state
 
 
 class LastWorkspaceError(Exception):

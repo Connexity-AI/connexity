@@ -29,6 +29,7 @@ from connexity_mcp_server.guides import (
 from connexity_mcp_server.models import (
     InvitePeopleResult,
     ListPeopleResult,
+    PrepareWorkspaceDeletionResult,
     RemovePersonResult,
     UpdatePersonResult,
     AddAgentsResult,
@@ -67,6 +68,7 @@ from connexity_mcp_server.models import (
 from connexity_mcp_server.tools import (
     invite_people as _invite_people,
     list_people as _list_people,
+    prepare_workspace_deletion as _prepare_workspace_deletion,
     remove_person as _remove_person,
     update_person as _update_person,
     add_agents as _add_agents,
@@ -280,6 +282,19 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         person for the client's name first."""
         return await _create_workspace(
             client=backend_client, name=name, agency_id=agency_id
+        )
+
+    @mcp_server.tool(annotations=READ_ONLY)
+    async def prepare_workspace_deletion(
+        workspace_id: WorkspaceId,
+    ) -> PrepareWorkspaceDeletionResult:
+        """What deleting this workspace would remove (calls, agents, issues,
+        connections), whether your person can delete it and who can, and where on the
+        web they do it. It deletes nothing, and no tool deletes a workspace: only a
+        person does, by typing its name. Call it when the person asks to delete a
+        client's workspace or its data."""
+        return await _prepare_workspace_deletion(
+            client=backend_client, workspace_id=workspace_id
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

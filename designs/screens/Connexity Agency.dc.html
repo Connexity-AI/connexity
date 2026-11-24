@@ -16,10 +16,10 @@
 <dc-import name="Connexity Readiness Bar" credits="{{ creditsState }}" payment="{{ payState }}" sub="{{ subState }}" hint-size="100%,36px"></dc-import>
 <sc-if value="{{ phone }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;height:52px;padding:0 4px 0 16px;background:var(--s1);border-bottom:1px solid var(--border)"><span role="img" aria-label="Connexity" style="display:block;flex:none;width:24px;height:24px;background:var(--brand);-webkit-mask:url(assets/connexity-logo.png) center/contain no-repeat;mask:url(assets/connexity-logo.png) center/contain no-repeat"></span><span style="font-size:15px;font-weight:500">Connexity</span><button aria-label="Menu" style="margin-left:auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M4 6h16"></path><path d="M4 18h16"></path></svg></button></div></sc-if>
 <div style="display:flex;min-height:inherit">
-<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agency" credits="{{ creditsState }}" agencies="{{ agencies }}" style="height:100%" hint-size="220px,320px"></dc-import></div></sc-if>
+<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agency" credits="{{ creditsState }}" agencies="{{ agencies }}" menu-open="{{ pickerOpen }}" exclude="{{ pickerExclude }}" style="height:100%" hint-size="220px,320px"></dc-import></div></sc-if>
 <main style="{{ mainStyle }}">
 <div style="{{ innerStyle }}">
-<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agency settings</h1><span style="font-size:13px;color:var(--ink3)">Signal Voice · 6 workspaces</span></div>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agency settings</h1><span style="font-size:13px;color:var(--ink3)">{{ agencyLine }}</span></div>
 <div style="{{ gridStyle }}">
 <nav style="{{ navStyle }}">
 <sc-for list="{{ sections }}" as="n" hint-placeholder-count="2"><button onClick="{{ n.pick }}" style="{{ n.style }}">{{ n.label }}</button></sc-for>
@@ -271,11 +271,67 @@
 </div>
 </sc-if>
 </sc-if>
+<sc-if value="{{ onWorkspaces }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:16px">
+<sc-if value="{{ hasWsNote }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:13px;line-height:18px;color:var(--ink2)">{{ wsNote }}</span></sc-if>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px">
+<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="{{ wsHeadStyle }}"><span>Workspace</span><span style="text-align:right">Agents</span><span style="text-align:right">Calls stored</span><span>Created</span><sc-if value="{{ wsCanDelete }}" hint-placeholder-val="{{ true }}"><span></span></sc-if></div></sc-if>
+<sc-for list="{{ wsRows }}" as="w" hint-placeholder-count="6">
+<div aria-busy="{{ w.deleting }}" style="{{ w.rowStyle }}">
+<span style="display:flex;flex-direction:column;gap:2px;min-width:0">
+<span style="{{ w.nameStyle }}">{{ w.name }}</span>
+<sc-if value="{{ w.phone }}"><span style="{{ w.subStyle }}">{{ w.sub }}</span></sc-if>
+<sc-if value="{{ w.deleting }}"><span role="status" style="display:flex;align-items:center;gap:10px;font-size:13px;line-height:18px;color:var(--ink2)">Deleting…<span aria-hidden="true" style="display:block;flex:none;width:120px;height:2px;border-radius:1px;background:var(--unch-bg);overflow:hidden"><span style="{{ w.barStyle }}"></span></span></span></sc-if>
+<sc-if value="{{ w.failed }}"><span role="alert" style="display:flex;align-items:flex-start;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg><span>Couldn’t finish deleting. <a href="#" onClick="{{ w.retry }}" style="color:var(--crit);font-weight:500;text-decoration:underline">Try again</a></span></span></sc-if>
+</span>
+<sc-if value="{{ w.wide }}"><span style="{{ w.numStyle }}">{{ w.agents }}</span><span style="{{ w.numStyle }}">{{ w.calls }}</span><span style="{{ w.dateStyle }}">{{ w.created }}</span></sc-if>
+<sc-if value="{{ w.hasCol }}"><div data-menu="1" style="position:relative;display:flex;justify-content:flex-end">
+<sc-if value="{{ w.hasMenu }}"><button onClick="{{ w.toggleMenu }}" aria-label="More for {{ w.name }}" aria-haspopup="menu" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ink3);cursor:pointer" style-hover="background:var(--wash);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></button>
+<sc-if value="{{ w.menuOpen }}">
+<div role="menu" style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);right:0;top:36px;width:200px;display:flex;flex-direction:column">
+<sc-if value="{{ w.delOk }}"><button onClick="{{ w.askDelete }}" role="menuitem" style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--crit);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash)">Delete workspace</button></sc-if>
+<sc-if value="{{ w.delLocked }}"><div onMouseEnter="{{ w.showTip }}" onMouseLeave="{{ w.hideTip }}" style="position:relative;display:flex;flex-direction:column"><button aria-disabled="true" aria-describedby="ws-last-tip" role="menuitem" style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink3);font-size:13px;text-align:left;cursor:default">Delete workspace</button>
+<sc-if value="{{ w.tipOn }}"><span id="ws-last-tip" role="tooltip" style="position:absolute;right:-4px;top:calc(100% + 10px);z-index:30;width:max-content;max-width:280px;padding:6px 10px;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:13px;line-height:18px;text-wrap:pretty;box-shadow:0 4px 12px rgba(0,0,0,.18)">Create another workspace first. An agency needs at least one.</span></sc-if></div></sc-if>
+</div>
+</sc-if></sc-if>
+</div></sc-if>
+</div>
+</sc-for>
+<div style="padding:12px 24px 16px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Only Admins who can approve can delete a workspace. An assistant can’t delete one: it can only send you here.</div>
+</div>
+<sc-if value="{{ hasWsRec }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+<div style="padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Record</h2></div>
+<sc-for list="{{ wsRec }}" as="r" hint-placeholder-count="1"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:2px 16px;min-height:44px;padding:10px 24px;border-top:1px solid var(--border)"><span>{{ r.what }}</span><span style="color:var(--ink2)">{{ r.when }}</span></div></sc-for>
+<div style="padding:12px 24px 16px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Who deleted which workspace, and when. The record holds no call content.</div>
+</div>
+</sc-if>
+</div>
+</sc-if>
 </div>
 </div>
 </div>
 </main>
 </div>
+<sc-if value="{{ delOpen }}" hint-placeholder-val="{{ false }}">
+<div onMouseDown="{{ onDelBackdrop }}" style="{{ delWrap }}">
+<div role="dialog" aria-modal="true" aria-labelledby="dw-title" aria-describedby="dw-text" style="width:100%;max-width:460px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:0 16px 48px rgba(0,0,0,.24)">
+<div style="display:flex;flex-direction:column;gap:4px"><h2 id="dw-title" style="margin:0;font-size:17px;line-height:24px;font-weight:500">{{ delTitle }}</h2><p id="dw-text" style="margin:0;color:var(--ink2);text-wrap:pretty">This permanently deletes the workspace and can’t be undone.</p></div>
+<ul style="margin:0;padding:12px 16px;list-style:none;border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;gap:6px;font-variant-numeric:tabular-nums">
+<sc-for list="{{ delLines }}" as="l" hint-placeholder-count="3"><li style="display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:baseline"><span style="text-align:right;font-weight:500">{{ l.n }}</span><span style="text-wrap:pretty">{{ l.text }}</span></li></sc-for>
+</ul>
+<div style="display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty"><span>Its Retell connection is removed, so no new calls arrive. Your calls in Retell are not touched.</span><span>Usage totals stay on your invoices, without any call content.</span></div>
+<label style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Type <strong style="font-weight:500;color:var(--ink)">{{ delName }}</strong> to confirm</span>
+<input value="{{ typed }}" onChange="{{ onTyped }}" onKeyDown="{{ onTypedKey }}" autoComplete="off" spellCheck="false" aria-label="Type {{ delName }} to confirm" style="height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none">
+</label>
+<div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding-top:8px">
+<button onClick="{{ cancelDel }}" style="flex:none;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Cancel</button>
+<button onClick="{{ confirmDel }}" disabled="{{ delBlocked }}" style="{{ delBtnStyle }}">Delete workspace</button>
+</div>
+</div>
+</div>
+</sc-if>
 <sc-if value="{{ removeOpen }}" hint-placeholder-val="{{ false }}">
 <div onMouseDown="{{ onBackdrop }}" style="position:absolute;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:flex-start;justify-content:center;padding:120px 24px 24px">
 <div role="dialog" aria-modal="true" aria-labelledby="rm-title" style="width:100%;max-width:400px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px rgba(0,0,0,.24)">
@@ -323,7 +379,7 @@
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;members&quot;,&quot;billing&quot;],&quot;default&quot;:&quot;members&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewer&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;member&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;'admin' | 'member'&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;phone&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop' | 'phone'&quot;},&quot;invite&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;invalid&quot;,&quot;member&quot;,&quot;invited&quot;,&quot;sent&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;remove&quot;,&quot;addFunds&quot;,&quot;cancelSub&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;,&quot;new&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expanded&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;bright&quot;,&quot;northfield&quot;,&quot;kestrel&quot;,&quot;maple&quot;,&quot;harbor&quot;,&quot;summit&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;payment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;paid&quot;,&quot;processing&quot;,&quot;failed&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;card&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;expiring&quot;,&quot;none&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;auto&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sub&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;active&quot;,&quot;none&quot;,&quot;cancelled&quot;,&quot;unpaid&quot;],&quot;default&quot;:&quot;active&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;members&quot;,&quot;billing&quot;,&quot;workspaces&quot;],&quot;default&quot;:&quot;members&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewer&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;member&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;'admin' | 'member'&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;phone&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop' | 'phone'&quot;},&quot;invite&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;invalid&quot;,&quot;member&quot;,&quot;invited&quot;,&quot;sent&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;remove&quot;,&quot;addFunds&quot;,&quot;cancelSub&quot;,&quot;deleteWs&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;,&quot;new&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expanded&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;bright&quot;,&quot;northfield&quot;,&quot;kestrel&quot;,&quot;maple&quot;,&quot;harbor&quot;,&quot;summit&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;payment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;paid&quot;,&quot;processing&quot;,&quot;failed&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;card&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;expiring&quot;,&quot;none&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;auto&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sub&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;active&quot;,&quot;none&quot;,&quot;cancelled&quot;,&quot;unpaid&quot;],&quot;default&quot;:&quot;active&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;typed&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;wsState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;deleting&quot;,&quot;failed&quot;,&quot;done&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;wsCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:6,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;wsMenu&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;picker&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -340,6 +396,7 @@ class Component extends DCLogic {
     ['harbor','Harbor Hotels',[['Restaurant reservations',260,640]]],
     ['summit','Summit Legal',[['Intake line',160,500]]]
   ];
+  static WSD = [['northfield','Northfield Group',2,6240,14,'3 Mar 2026'],['bright','Bright Dental',3,4120,27,'12 Sep 2026'],['kestrel','Kestrel Plumbing',1,2380,9,'18 Jun 2026'],['maple','Maple Vets',1,1610,6,'2 Jul 2026'],['summit','Summit Legal',1,900,4,'14 Aug 2026'],['harbor','Harbor Hotels',1,250,1,'30 Oct 2026']];
   static ROLES = [['admin','Admin','Manages people and billing'],['member','Member','Works in their workspaces']];
   static RE = /^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/;
   static check(raw, members) {
@@ -360,7 +417,13 @@ class Component extends DCLogic {
     const iv = props.invite || 'none', preset = { invalid:'riley@example', member:'sam@example.com', invited:'riley@example.com' }[iv] || '';
     let msg = preset ? C.check(preset, members) : null;
     if (iv === 'sent') { members.push({ id:'kai@example.com', name:'kai@example.com', email:'kai@example.com', role:'member', ws:'all', can:false, invited:true, expires:7 }); msg = { ok:true, text:'Invite sent to kai@example.com' }; }
-    this.state = { section: props.section || qs || 'members', autoTop:true, members, menu:null, tip:null, invite:preset, inviteRole:'member', inviteWs:'all', inviteCan:false, inviteMsg:msg,
+    const wsAll = C.WSD.map(w => ({ id:w[0], name:w[1], agents:w[2], calls:w[3], issues:w[4], created:w[5] })).sort((a, b) => a.name.localeCompare(b.name));
+    const wsBase = props.wsCount === 1 ? wsAll.filter(w => w.id === 'bright') : wsAll, wst = props.wsState;
+    this.state = { section: props.section || qs || 'members', autoTop:true, members, menu: props.wsMenu ? 'wsm:bright' : null, tip:null,
+      wsList: wst === 'done' ? wsBase.filter(w => w.id !== 'bright') : wsBase,
+      wsDel: wst === 'deleting' ? { bright:{ s:'deleting', pct:38 } } : wst === 'failed' ? { bright:{ s:'failed', pct:0 } } : {},
+      wsNote: wst === 'done' ? 'Bright Dental was deleted.' : '', wsRec: wst === 'done' ? [{ what:'Alex Morgan deleted Bright Dental', when:'23 Nov 2026, 14:32' }] : [],
+      delId: props.dialog === 'deleteWs' ? 'bright' : null, typed: props.typed || '', invite:preset, inviteRole:'member', inviteWs:'all', inviteCan:false, inviteMsg:msg,
       removing: props.dialog === 'remove' ? 'sam@example.com' : null, period:'month', openWs: props.expanded ? { [props.expanded]: true } : {},
       auto: props.credits === 'new' ? false : props.auto !== false, autoBelow:'50', autoAdd:'200', card: props.credits === 'new' ? 'none' : (props.card || 'ok'),
       addOpen: props.dialog === 'addFunds', sub: props.sub || (props.credits === 'new' ? 'none' : 'active'), cancelOpen: props.dialog === 'cancelSub', pick:'500', other:'', pay: props.payment && props.payment !== 'none' ? { state: props.payment, amount: 50000 } : null, allInv:false };
@@ -370,7 +433,20 @@ class Component extends DCLogic {
     this.onDoc = e => { if (this.state.menu != null && !(e.target.closest && e.target.closest('[data-menu]'))) this.setState({ menu:null }); };
     document.addEventListener('mousedown', this.onDoc);
   }
-  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); clearInterval(this.delT); }
+  runDelete(id) {
+    clearInterval(this.delT);
+    this.setState(s => ({ delId:null, typed:'', menu:null, wsNote:'', wsDel:{ ...s.wsDel, [id]:{ s:'deleting', pct:4 } } }));
+    this.delT = setInterval(() => {
+      const d = this.state.wsDel[id]; if (!d) return clearInterval(this.delT);
+      const pct = Math.min(100, d.pct + 6);
+      if (pct < 100) return this.setState(s => ({ wsDel:{ ...s.wsDel, [id]:{ s:'deleting', pct } } }));
+      clearInterval(this.delT);
+      const w = this.state.wsList.find(x => x.id === id);
+      this.setState(s => { const wd = { ...s.wsDel }; delete wd[id];
+        return { wsDel:wd, wsList: s.wsList.filter(x => x.id !== id), wsNote: w.name + ' was deleted.', wsRec:[{ what:'Alex Morgan deleted ' + w.name, when:'23 Nov 2026, 14:32' }, ...s.wsRec] }; });
+    }, 250);
+  }
   renderVals() {
     const C = Component, S = this.state;
     const phone = this.props.layout === 'phone', admin = this.props.viewer !== 'member';
@@ -410,8 +486,41 @@ class Component extends DCLogic {
       innerStyle: phone ? { display:'flex', flexDirection:'column', gap:20, minWidth:0 } : { maxWidth:1120, minWidth:880, display:'flex', flexDirection:'column', gap:24 },
       gridStyle: phone ? { display:'flex', flexDirection:'column', gap:16 } : { display:'grid', gridTemplateColumns:'176px minmax(0,1fr)', gap:32, alignItems:'start' },
       navStyle: phone ? { display:'flex', gap:4 } : { display:'flex', flexDirection:'column', gap:2 },
-      sections: [['members','Members'],['billing','Billing']].map(([id, label]) => ({ label, style: nav(S.section === id), pick: () => this.setState({ section:id, menu:null }) })),
-      onMembers: S.section === 'members', onBilling: S.section === 'billing',
+      agencyLine: 'Signal Voice \u00b7 ' + S.wsList.length + (S.wsList.length === 1 ? ' workspace' : ' workspaces'),
+      pickerOpen: !!this.props.picker, pickerExclude: Object.keys(S.wsDel).filter(k => S.wsDel[k].s === 'deleting').map(k => (S.wsList.find(w => w.id === k) || {}).name)[0] || '',
+      sections: [['members','Members'],['billing','Billing'],['workspaces','Workspaces']].map(([id, label]) => ({ label, style: nav(S.section === id), pick: () => this.setState({ section:id, menu:null }) })),
+      onMembers: S.section === 'members', onBilling: S.section === 'billing', onWorkspaces: S.section === 'workspaces',
+      ...(() => {
+        const canDel = admin, last = S.wsList.length === 1, num = n => n.toLocaleString('en-US');
+        const cols = phone ? (canDel ? 'minmax(0,1fr) 32px' : 'minmax(0,1fr)') : 'minmax(0,1fr) 96px 128px 128px' + (canDel ? ' 32px' : '');
+        const pad = phone ? (canDel ? '12px 12px 12px 16px' : '12px 16px') : (canDel ? '8px 16px 8px 24px' : '8px 24px');
+        const dw = S.wsList.find(w => w.id === S.delId), match = !!dw && S.typed.trim() === dw.name;
+        const confirmDel = () => { if (match) this.runDelete(dw.id); };
+        return {
+          wsCanDelete: canDel, hasWsNote: !!S.wsNote, wsNote: S.wsNote, hasWsRec: S.wsRec.length > 0, wsRec: S.wsRec,
+          wsHeadStyle: { display:'grid', gridTemplateColumns:cols, gap:16, alignItems:'center', height:40, padding: canDel ? '0 16px 0 24px' : '0 24px', fontSize:13, color:'var(--ink2)' },
+          wsRows: S.wsList.map(w => { const d = S.wsDel[w.id], deleting = !!d && d.s === 'deleting', failed = !!d && d.s === 'failed', dim = deleting ? 0.5 : 1;
+            return { name:w.name, phone, wide:!phone, deleting, failed, agents: num(w.agents), calls: num(w.calls), created: w.created,
+              sub: num(w.agents) + (w.agents === 1 ? ' agent' : ' agents') + ' \u00b7 ' + num(w.calls) + ' calls \u00b7 ' + w.created,
+              hasCol: canDel, hasMenu: canDel && !d, menuOpen: S.menu === 'wsm:' + w.id, toggleMenu: toggle('wsm:' + w.id),
+              delOk: !last, delLocked: last, tipOn: S.tip === 'ws:' + w.id || (!!this.props.tip && S.section === 'workspaces'),
+              showTip: () => this.setState({ tip:'ws:' + w.id }), hideTip: () => this.setState({ tip:null }),
+              askDelete: () => this.setState({ delId:w.id, typed:'', menu:null }),
+              retry: e => { e.preventDefault(); this.runDelete(w.id); },
+              rowStyle: { display:'grid', gridTemplateColumns:cols, gap: phone ? 8 : 16, alignItems:'center', minHeight:56, padding:pad, borderTop:'1px solid var(--border)' },
+              nameStyle: { overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', opacity:dim },
+              subStyle: { fontSize:13, lineHeight:'18px', color:'var(--ink2)', opacity:dim },
+              numStyle: { textAlign:'right', opacity:dim }, dateStyle: { color:'var(--ink2)', opacity:dim },
+              barStyle: { display:'block', width: (d ? d.pct : 0) + '%', height:'100%', background:'var(--ink2)', transition:'width 250ms linear' } }; }),
+          delOpen: !!dw, delTitle: dw ? 'Delete ' + dw.name + '?' : '', delName: dw ? dw.name : '',
+          delLines: dw ? [[num(dw.calls), 'calls with their recordings and transcripts'], [num(dw.agents), dw.agents === 1 ? 'agent with its specs, scenarios and test runs' : 'agents with their specs, scenarios and test runs'], [num(dw.issues), dw.issues === 1 ? 'issue and its history' : 'issues and their history']].map(([n, text]) => ({ n, text })) : [],
+          typed: S.typed, onTyped: e => this.setState({ typed: e.target.value }), onTypedKey: e => { if (e.key === 'Enter') confirmDel(); },
+          cancelDel: () => this.setState({ delId:null, typed:'' }), confirmDel, delBlocked: !match,
+          onDelBackdrop: e => { if (e.target === e.currentTarget) this.setState({ delId:null, typed:'' }); },
+          delWrap: { position:'absolute', inset:0, zIndex:100, background:'rgba(0,0,0,.5)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding: phone ? '72px 16px 16px' : '120px 24px 24px' },
+          delBtnStyle: { flex:'none', height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--crit)', color:'var(--s0)', fontSize:15, fontWeight:500, cursor: match ? 'pointer' : 'default', opacity: match ? 1 : 0.4 }
+        };
+      })(),
       countLine: people.length + (people.length === 1 ? ' person' : ' people') + (invited.length ? ' \u00b7 ' + invited.length + ' invited' : ''),
       members: S.members.map(m => {
         const self = m.email === selfEmail, last = !m.invited && m.role === 'admin' && admins.length === 1;

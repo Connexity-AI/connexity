@@ -246,6 +246,7 @@ the same list Readiness, Work and the assistant's onboarding instructions follow
 | `invite_people(workspace_id, emails, role?, all_workspaces?, workspace_ids?, can_approve?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/people/invites` |
 | `update_person(workspace_id, person_id, role?, all_workspaces?, workspace_ids?, can_approve?)` | `PATCH /api/v1/mcp/workspaces/{workspace_id}/people/{person_id}` |
 | `remove_person(workspace_id, person_id)` | `DELETE /api/v1/mcp/workspaces/{workspace_id}/people/{person_id}` |
+| `prepare_workspace_deletion(workspace_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/deletion` |
 | `raise_clarifications(workspace_id, agent_id, questions)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/clarifications` |
 | `list_clarifications(workspace_id, agent_id?, state?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/clarifications` |
 | `answer_clarifications(workspace_id, answers)` | `POST /api/v1/mcp/workspaces/{workspace_id}/clarifications/answers` |

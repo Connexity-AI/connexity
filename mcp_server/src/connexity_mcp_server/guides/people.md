@@ -45,3 +45,19 @@ member. Make someone else an admin first.
 `archive_issue` and `unarchive_issue` record a decision as approved by the person you
 act for. If that person cannot approve, the tool is refused and names who can. Tell
 the person, and leave the issue as it is.
+
+## Deleting a workspace
+
+You cannot delete a workspace, and there is no tool that does. When the person asks to
+delete a client's workspace or its data, call `prepare_workspace_deletion`. It answers
+what would be removed (calls with their transcripts and findings, agents with their
+specs, scenarios and test runs, issues, and the stored keys of its connections), whether
+the person you act for can delete it, and who can.
+
+Tell the person what would be removed and that it cannot be undone. If they still want
+it, send them to the address in `where`: they open the workspace's menu in Agency
+settings, choose Delete workspace and type its name. Only an admin who can approve can
+do that. An agency's only workspace cannot be deleted.
+
+Usage totals stay for invoices, with no call content. Nothing is deleted on the voice
+platform. After a deletion every tool answers that the workspace is not found.

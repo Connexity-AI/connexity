@@ -17,6 +17,7 @@ For the contributor-facing architecture and tool-extension guide, see
 
 - `list_workspaces`: the workspaces the connected person can reach. Call it first.
 - `list_people(workspace_id)`: who is in the workspace's agency and what each person reaches. `invite_people`, `update_person` and `remove_person` change that, for an Admin's assistant and only after the person says yes.
+- `prepare_workspace_deletion(workspace_id)`: what deleting the workspace would remove and who can delete it. It deletes nothing; only a person deletes a workspace, on the web.
 - `create_workspace(name)`: a new workspace for a client, with the person as its member.
 - `get_readiness(workspace_id)`: how complete the workspace's setup is, and what to do next.
 - `connect_voice_platform(workspace_id, api_key, platform)`: connect Retell (or Vapi,

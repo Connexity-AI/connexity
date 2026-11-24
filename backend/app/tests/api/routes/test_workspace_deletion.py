@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlmodel import Session, SQLModel
 
 from app import crud
@@ -37,6 +37,7 @@ from app.models.integration import Integration
 from app.models.oauth import OAuthClient, OAuthRefreshToken
 from app.models.usage import UsageRecord
 from app.models.workspace_deletion import WorkspaceDeletion
+from app.models.workspace_member import WorkspaceMember
 from app.tests.utils.eval import create_test_agent
 from app.tests.utils.utils import random_email, random_lower_string
 
@@ -347,6 +348,70 @@ def test_a_deleted_workspace_is_gone_for_people_and_assistants(
     assert _delete(client, db, admin, gone, "Bright Dental").status_code == 409
 
 
+def test_a_session_in_a_deleted_workspace_goes_on_when_the_person_has_another(
+    client: TestClient, db: Session, outbox: Outbox
+) -> None:
+    admin, only_here = _person(db), _person(db)
+    agency = _agency_of(db, admin)
+    gone = _new_workspace(client, db, admin, "Bright Dental")
+    # A person who reaches nothing but the workspace that is deleted.
+    db.execute(
+        delete(WorkspaceMember).where(WorkspaceMember.user_id == only_here.id)  # type: ignore[arg-type]
+    )
+    db.add(
+        AgencyMember(
+            agency_id=agency.id,
+            user_id=only_here.id,
+            role=AgencyRole.member,
+            all_workspaces=False,
+            can_approve=False,
+        )
+    )
+    db.add(WorkspaceMember(user_id=only_here.id, company_id=gone.id))
+    only_here.company_id = gone.id
+    db.add(only_here)
+    db.commit()
+    assert (
+        client.post(
+            f"{API}/workspaces/{gone.id}/open", cookies=_web(db, admin)
+        ).status_code
+        == 200
+    )
+    # Sessions issued while the workspace was open.
+    admins_session = _web(db, admin)
+    others_session = _web(db, only_here)
+    assert client.get(f"{API}/users/me", cookies=others_session).status_code == 200
+    stays = _new_workspace(client, db, admin, "Northfield Group")
+    removed = _person(db)
+    db.add(WorkspaceMember(user_id=removed.id, company_id=stays.id))
+    db.commit()
+    removed.company_id = stays.id
+    db.add(removed)
+    db.commit()
+    removeds_session = _web(db, removed)
+
+    assert _delete(client, db, admin, gone, None).status_code == 200
+
+    # The Admin's old session goes on, in a workspace they still reach.
+    me = client.get(f"{API}/users/me", cookies=admins_session)
+    assert me.status_code == 200, me.text
+    assert me.json()["company_id"] != str(gone.id)
+    listed = client.get(f"{API}/workspaces/", cookies=admins_session)
+    assert listed.status_code == 200
+    assert str(gone.id) not in {w["id"] for w in listed.json()}
+    # A person with no other workspace is refused, and so is sign-in for them.
+    assert client.get(f"{API}/users/me", cookies=others_session).status_code == 401
+    # Being removed from a workspace that still exists ends the session, as before.
+    db.execute(
+        delete(WorkspaceMember).where(
+            WorkspaceMember.user_id == removed.id,  # type: ignore[arg-type]
+            WorkspaceMember.company_id == stays.id,  # type: ignore[arg-type]
+        )
+    )
+    db.commit()
+    assert client.get(f"{API}/users/me", cookies=removeds_session).status_code == 401
+
+
 def test_only_an_admin_who_can_approve_deletes(
     client: TestClient, db: Session, outbox: Outbox
 ) -> None:
@@ -401,6 +466,59 @@ def test_only_an_admin_who_can_approve_deletes(
     assert table["can_delete"] is False
     assert {w["name"] for w in table["workspaces"]} >= {"Bright Dental"}
     assert outbox.sent == []
+
+
+def test_an_assistant_prepares_a_deletion_and_deletes_nothing(
+    client: TestClient, db: Session, outbox: Outbox, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "SITE_URL", "https://app.example.com")
+    admin, member = _person(db, "Alex Morgan"), _person(db)
+    agency = _agency_of(db, admin)
+    gone = _new_workspace(client, db, admin, "Bright Dental")
+    _fill(db, gone, admin)
+    db.add(
+        AgencyMember(
+            agency_id=agency.id,
+            user_id=member.id,
+            role=AgencyRole.member,
+            all_workspaces=False,
+            can_approve=False,
+        )
+    )
+    db.add(WorkspaceMember(user_id=member.id, company_id=gone.id))
+    db.commit()
+    before = _rows(db, gone.id)
+    path = f"{API}/mcp/workspaces/{gone.id}/deletion"
+
+    for_admin = client.get(path, headers=_assistant(db, admin))
+    for_member = client.get(path, headers=_assistant(db, member))
+    only = client.get(
+        f"{API}/mcp/workspaces/{member.company_id}/deletion",
+        headers=_assistant(db, member),
+    )
+
+    assert for_admin.status_code == 200, for_admin.text
+    answer = for_admin.json()
+    assert answer["data"] == {
+        "workspace": {"id": str(gone.id), "name": "Bright Dental"},
+        "agency": {"id": str(agency.id), "name": agency.name},
+        "calls": 1,
+        "agents": 1,
+        "issues": 1,
+        "connections": ["retell"],
+        "is_last_workspace": False,
+        "your_person_can_delete": True,
+        "who_can_delete": "Alex Morgan",
+        "where": "https://app.example.com/agency?section=workspaces",
+    }
+    assert "You cannot do this step." in answer["next_steps"][1]
+    told = for_member.json()
+    assert told["data"]["your_person_can_delete"] is False
+    assert "Alex Morgan" in told["next_steps"][0]
+    assert only.json()["data"]["is_last_workspace"] is True
+    # Reading it removed nothing.
+    assert _rows(db, gone.id) == before
+    assert db.get(Company, gone.id).deleted_at is None  # type: ignore[union-attr]
 
 
 def test_an_agency_keeps_its_last_workspace(
@@ -491,6 +609,64 @@ def test_a_failed_deletion_can_be_tried_again(
         cookies=_web(db, admin),
     )
     assert once_more.status_code == 409
+
+
+def test_a_deletion_whose_request_died_can_be_continued(
+    client: TestClient, db: Session, outbox: Outbox
+) -> None:
+    admin = _person(db)
+    agency = _agency_of(db, admin)
+    gone = _new_workspace(client, db, admin, "Bright Dental")
+    _fill(db, gone, admin)
+    # What a request that died midway leaves: access gone, the record still running.
+    db.add(
+        WorkspaceDeletion(
+            agency_id=agency.id,
+            company_id=gone.id,
+            workspace_name=gone.name,
+            deleted_by_user_id=admin.id,
+            deleted_by_name="Alex Morgan",
+            calls=1,
+            agents=1,
+            issues=1,
+        )
+    )
+    gone.deleted_at = datetime.now(UTC)
+    db.add(gone)
+    db.execute(delete(WorkspaceMember).where(WorkspaceMember.company_id == gone.id))  # type: ignore[arg-type]
+    db.commit()
+    retry = f"{API}/agencies/{agency.id}/workspaces/{gone.id}/deletion/retry"
+    table = f"{API}/agencies/{agency.id}/workspaces"
+
+    # While it may still be running it is left alone.
+    assert client.post(retry, cookies=_web(db, admin)).status_code == 409
+    running = client.get(table, cookies=_web(db, admin)).json()
+    assert ("Bright Dental", "deleting") in {
+        (w["name"], w["state"]) for w in running["workspaces"]
+    }
+
+    record = db.execute(
+        select(WorkspaceDeletion).where(WorkspaceDeletion.company_id == gone.id)  # type: ignore[arg-type]
+    ).scalar_one()
+    record.created_at = (
+        datetime.now(UTC) - deleting.STALLED_AFTER - timedelta(minutes=1)
+    )
+    db.add(record)
+    db.commit()
+
+    stalled = client.get(table, cookies=_web(db, admin)).json()
+    assert ("Bright Dental", "failed") in {
+        (w["name"], w["state"]) for w in stalled["workspaces"]
+    }
+    again = client.post(retry, cookies=_web(db, admin))
+    assert again.status_code == 200, again.text
+    assert again.json()["state"] == "done"
+    db.expire_all()
+    assert _rows(db, gone.id) == {
+        "usage_record": 1,
+        "agent": 1,
+        "workspace_deletion": 1,
+    }
 
 
 def test_every_table_with_workspace_data_is_part_of_a_deletion() -> None:

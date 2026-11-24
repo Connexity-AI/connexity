@@ -79,8 +79,8 @@ export class UrlGenerator {
     return '/account/' as Route;
   }
 
-  static agency() {
-    return '/agency/' as Route;
+  static agency(section?: 'workspaces') {
+    return (section ? `/agency/?section=${section}` : '/agency/') as Route;
   }
 
   // ── Auth ──

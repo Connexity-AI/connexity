@@ -43,7 +43,7 @@ def _deletion_public(deletion: WorkspaceDeletion) -> WorkspaceDeletionPublic:
         workspace_id=deletion.company_id,
         workspace_name=deletion.workspace_name,
         deleted_by=deletion.deleted_by_name,
-        state=deletion.state,
+        state=deleting.shown_state(deletion),
         calls=deletion.calls,
         agents=deletion.agents,
         issues=deletion.issues,
@@ -145,7 +145,7 @@ def read_workspaces(
             agents=d.agents,
             calls=d.calls,
             created_at=d.created_at,
-            state=d.state,
+            state=deleting.shown_state(d),
         )
         for d in unfinished.values()
     ]
@@ -229,14 +229,14 @@ def retry_deletion(
     agency_id: uuid.UUID,
     workspace_id: uuid.UUID,
 ) -> WorkspaceDeletionPublic:
-    """Continue a deletion that failed."""
+    """Continue a deletion that failed, or one whose request died midway."""
     agency = _as_deleter(session, current_user, agency_id)
     deletion = deleting.get_deletion(
         session=session, agency_id=agency.id, company_id=workspace_id
     )
     if deletion is None:
         raise HTTPException(status_code=404, detail="Workspace not found")
-    if deletion.state is not DeletionState.failed:
+    if deleting.shown_state(deletion) is not DeletionState.failed:
         raise HTTPException(
             status_code=409, detail="This deletion does not need another try."
         )

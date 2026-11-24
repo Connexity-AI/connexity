@@ -51,6 +51,11 @@ class ConnexityBackendClient:
             body["agency_id"] = agency_id
         return await self._request_json("POST", "/mcp/workspaces", json=body)
 
+    async def prepare_workspace_deletion(self, *, workspace_id: str) -> dict[str, Any]:
+        return await self._request_json(
+            "GET", f"/mcp/workspaces/{quote(workspace_id, safe='')}/deletion"
+        )
+
     def _people_path(self, workspace_id: str) -> str:
         return f"/mcp/workspaces/{quote(workspace_id, safe='')}/people"
 

@@ -60,6 +60,9 @@
       <div style="display:flex"><a href="Connexity Agency.dc.html?section=billing" style="display:inline-flex;align-items:center;height:40px;padding:0 20px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;text-decoration:none">Add funds</a></div>
     </div>
     </sc-if>
+    <sc-if value="{{ isDeleted }}" hint-placeholder-val="{{ false }}">
+    <p style="margin:0;color:var(--ink);text-wrap:pretty">Alex Morgan deleted the workspace Bright Dental and its data on 23 Nov 2026.</p>
+    </sc-if>
     <sc-if value="{{ isGoogle }}" hint-placeholder-val="{{ false }}">
     <div style="display:flex;flex-direction:column;gap:24px">
       <p style="margin:0;color:var(--ink)">This account signs in with Google, so there’s no password to reset.</p>
@@ -71,18 +74,18 @@
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:640,&quot;height&quot;:520},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;reset&quot;,&quot;google&quot;,&quot;invite&quot;,&quot;low&quot;,&quot;failed&quot;,&quot;paused&quot;],&quot;default&quot;:&quot;reset&quot;,&quot;tsType&quot;:&quot;'reset' | 'google'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:640,&quot;height&quot;:520},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;reset&quot;,&quot;google&quot;,&quot;invite&quot;,&quot;low&quot;,&quot;failed&quot;,&quot;paused&quot;,&quot;deleted&quot;],&quot;default&quot;:&quot;reset&quot;,&quot;tsType&quot;:&quot;'reset' | 'google'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light' | 'dark'&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     light: { '--bg':'#ffffff','--border':'#e3e1dd','--ink':'#17181a','--ink2':'#5e6065','--accent':'#17181a','--on-accent':'#ffffff','--brand':'#e8552a' },
     dark: { '--bg':'#121314','--border':'#2a2c2f','--ink':'#ececea','--ink2':'#a3a5a9','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40' }
   };
   renderVals() {
-    const v = this.props.variant, google = v === 'google', invite = v === 'invite', pay = ['low','failed','paused'].includes(v);
+    const v = this.props.variant, google = v === 'google', invite = v === 'invite', pay = ['low','failed','paused'].includes(v), deleted = v === 'deleted';
     return {
       rootStyle: { ...Component.THEMES[this.props.theme === 'dark' ? 'dark' : 'light'], background:'var(--bg)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', WebkitFontSmoothing:'antialiased' },
-      isReset: !google && !invite && !pay, isLow: v === 'low', isFailed: v === 'failed', isPaused: v === 'paused', isGoogle: google, isInvite: invite, to: invite ? 'sam@example.com' : 'alex@example.com',
-      subject: pay ? { low:'Your Connexity balance is low', failed:'A Connexity payment failed', paused:'Connexity is paused' }[v] : google ? 'Signing in to Connexity' : invite ? 'Alex invited you to Signal Voice on Connexity' : 'Reset your Connexity password'
+      isReset: !google && !invite && !pay && !deleted, isDeleted: deleted, isLow: v === 'low', isFailed: v === 'failed', isPaused: v === 'paused', isGoogle: google, isInvite: invite, to: invite ? 'sam@example.com' : 'alex@example.com',
+      subject: deleted ? 'Bright Dental was deleted from Connexity' : pay ? { low:'Your Connexity balance is low', failed:'A Connexity payment failed', paused:'Connexity is paused' }[v] : google ? 'Signing in to Connexity' : invite ? 'Alex invited you to Signal Voice on Connexity' : 'Reset your Connexity password'
     };
   }
 }

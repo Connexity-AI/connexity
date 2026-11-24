@@ -4,6 +4,7 @@ from connexity_mcp_server.client import ConnexityBackendClient
 from connexity_mcp_server.models import (
     InvitePeopleResult,
     ListPeopleResult,
+    PrepareWorkspaceDeletionResult,
     RemovePersonResult,
     UpdatePersonResult,
     AddAgentsResult,
@@ -601,4 +602,12 @@ async def remove_person(
 ) -> RemovePersonResult:
     return RemovePersonResult.model_validate(
         await client.remove_person(workspace_id=workspace_id, person_id=person_id)
+    )
+
+
+async def prepare_workspace_deletion(
+    client: ConnexityBackendClient, workspace_id: str
+) -> PrepareWorkspaceDeletionResult:
+    return PrepareWorkspaceDeletionResult.model_validate(
+        await client.prepare_workspace_deletion(workspace_id=workspace_id)
     )

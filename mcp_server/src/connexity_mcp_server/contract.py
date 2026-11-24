@@ -251,6 +251,12 @@ TOOLS: dict[str, ToolEntry] = {
         "they can approve, and the invites waiting.",
         "people",
     ),
+    "prepare_workspace_deletion": ToolEntry(
+        "people",
+        "Says what deleting a workspace would remove and who can delete it. It "
+        "deletes nothing: only a person deletes a workspace, on the web.",
+        "people",
+    ),
     "invite_people": ToolEntry(
         "people",
         "Invites people to your agency by email, if you are an Admin.",
