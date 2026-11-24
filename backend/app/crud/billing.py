@@ -1,6 +1,7 @@
 """The agency's subscription as stored, and Stripe's handled messages."""
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, select
@@ -53,6 +54,11 @@ def store_subscription(
         agency.subscription_period_end = None
         agency.subscription_ends_at_period_end = False
     else:
+        if agency.first_subscribed_at is None and subscription.state in (
+            SubscriptionState.active,
+            SubscriptionState.past_due,
+        ):
+            agency.first_subscribed_at = subscription.period_start or datetime.now(UTC)
         agency.stripe_subscription_id = subscription.id
         agency.subscription_state = subscription.state
         agency.subscription_period_start = subscription.period_start

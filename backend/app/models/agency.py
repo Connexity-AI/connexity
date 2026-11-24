@@ -71,6 +71,12 @@ class Agency(SQLModel, table=True):
         default=None,
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
     )
+    # When the agency's first subscription began. Usage recorded before it (the
+    # included first scan) was never charged.
+    first_subscribed_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
     # Cancelled: it runs to the end of the paid period and is not renewed.
     subscription_ends_at_period_end: bool = Field(
         default=False, sa_column_kwargs={"server_default": text("false")}

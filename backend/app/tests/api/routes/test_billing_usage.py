@@ -91,6 +91,10 @@ def _second_workspace(
 def _an_agency_with_usage(client: TestClient, db: Session):
     admin = _person(db)
     agency = _subscribe(db, _agency(db, admin), started_days_ago=10)
+    # A subscription in its third period: it began two months before this one.
+    agency.first_subscribed_at = datetime.now(UTC) - timedelta(days=70)
+    db.add(agency)
+    db.commit()
     first = db.get(Company, admin.company_id)
     assert first is not None
     first.name = "Northfield Group"
@@ -194,6 +198,45 @@ def test_the_other_periods_and_an_agency_without_a_subscription(
     assert alone["period"]["key"] == "30d"
     assert (alone["cost_usd"], alone["workspaces"], alone["movers"]) == (0.0, [], [])
     assert [p["quantity"] for p in alone["parts"]] == [0, 0]
+
+
+def test_the_included_first_scan_is_never_shown_as_money_spent(
+    client: TestClient, db: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    admin = _person(db)
+    agency = _agency(db, admin)
+    agent = _agent(db, admin.company_id, "Front desk")
+    # The first scan: recorded before there was a subscription, never charged.
+    _record(db, agent, UsageMeter.OBSERVED_MINUTES, 1000, days_ago=3)
+    base = f"{API}/agencies/{agency.id}/billing/usage"
+
+    before = client.get(base, cookies=_cookies(db, admin)).json()
+    agency = _subscribe(db, agency, started_days_ago=1)
+    _record(db, agent, UsageMeter.OBSERVED_MINUTES, 100, days_ago=0.5)
+    thirty = client.get(
+        base, params={"period": "30d"}, cookies=_cookies(db, admin)
+    ).json()
+    last = client.get(
+        base, params={"period": "last"}, cookies=_cookies(db, admin)
+    ).json()
+    sheet = client.get(
+        f"{base}.csv", params={"period": "30d"}, cookies=_cookies(db, admin)
+    ).text
+
+    # Never subscribed: nothing was charged, so nothing is shown as used.
+    assert (before["cost_usd"], before["workspaces"]) == (0.0, [])
+    # After subscribing, only what was recorded since then counts, in every period.
+    assert thirty["cost_usd"] == 3.0
+    assert last["cost_usd"] == 0.0
+    assert sheet.splitlines()[-1] == "Total,,100,0,3.00"
+    # Where paying is not set up nothing is charged, and all of it is shown.
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", None)
+    shown = client.get(
+        f"{API}/mcp/workspaces/{admin.company_id}/usage",
+        params={"agency": True, "agency_period": "30d"},
+        headers=_headers(admin),
+    ).json()
+    assert shown["data"]["agency_usage"]["cost_usd"] == 33.0
 
 
 def test_a_deleted_workspaces_usage_stays_under_its_name(

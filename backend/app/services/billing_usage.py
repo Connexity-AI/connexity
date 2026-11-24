@@ -19,6 +19,7 @@ from typing import Literal
 from sqlalchemy import func, select
 from sqlmodel import Session, col
 
+from app.core.config import settings
 from app.models.agency import Agency, SubscriptionState
 from app.models.agent import Agent
 from app.models.billing import (
@@ -105,6 +106,17 @@ def periods(agency: Agency, now: datetime) -> list[UsagePeriodPublic]:
     return found
 
 
+def charged_from(agency: Agency, now: datetime) -> datetime:
+    """The moment from which the agency's usage is charged. Where paying is set up,
+    usage recorded before the first subscription began (the included first scan) was
+    never charged and is left out of every figure here; an agency that never
+    subscribed has been charged nothing. Where paying is not set up nothing is
+    charged at all, and everything is shown at list price."""
+    if not settings.billing_enabled:
+        return datetime.min.replace(tzinfo=UTC)
+    return _aware(agency.first_subscribed_at) if agency.first_subscribed_at else now
+
+
 def _dollars(quantities: dict[UsageMeter, int]) -> Decimal:
     return sum((PRICES[m] * q for m, q in quantities.items()), Decimal("0"))
 
@@ -133,7 +145,7 @@ def agency_usage(
     }
     in_period = (
         col(UsageRecord.company_id).in_(list(workspaces)),
-        col(UsageRecord.created_at) >= chosen.starts_at,
+        col(UsageRecord.created_at) >= max(chosen.starts_at, charged_from(agency, now)),
         col(UsageRecord.created_at) < chosen.ends_at,
     )
     rows = (

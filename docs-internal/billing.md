@@ -141,6 +141,11 @@ most, the prices, and a CSV to bill each client from
 - **Same basis as the money:** usage is counted by when Connexity recorded it, in every
   workspace of the agency, deleted ones too (shown as "Deleted"). "This period" is
   exactly what came off the included amount and the balance; a test checks it.
+- **Only what was charged.** Usage recorded before the agency's first subscription
+  began (`agency.first_subscribed_at`), which is the included first scan, is left out of
+  every figure, the CSV and the assistant's `agency_usage`. An agency that never
+  subscribed sees "No usage yet". Where paying is not set up nothing is charged and
+  everything is shown.
 - **List price only.** Neither route reads Connexity's own cost, tokens or model names.
 - **The CSV** has one row per workspace and agent and a total row. A name that starts
   like a formula is written so a spreadsheet does not run it.

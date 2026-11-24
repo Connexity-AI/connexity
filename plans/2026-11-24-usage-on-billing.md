@@ -134,6 +134,9 @@ Above the subscription card, for Admins:
 - **`get_usage` took a second input, `agency_period`,** beside `agency`.
 - **An Admin's assistant gets `agency_usage` also where paying is not set up** (then
   for the last 30 days): the usage exists there too.
+- **A new column and migration** (`agency.first_subscribed_at`, `0053`), added with the
+  first-scan fix. For an agency that already has a subscription it is filled with its
+  current period's start, the earliest start that is known.
 
 ### Check results
 
@@ -142,10 +145,10 @@ play-through server):
 
 | What | Result |
 |---|---|
-| `test_billing_usage.py` (5 tests): this period's total equals the sum of its parts, of its workspaces and of each workspace's agents, sorted by cost, and is exactly what came off the included amount; the last period and the last 30 days count what belongs to them, and an agency without a subscription is offered only the last 30 days; a deleted workspace's usage stays under its name; the CSV has one row per workspace and agent, the same total, and a name that starts like a formula made safe; a Member, an outsider and an assistant are refused on the web routes; an Admin's assistant gets the agency's usage, a Member's is refused and still reads its own workspace; no answer contains Connexity's own cost or a model name | passed |
+| `test_billing_usage.py` (6 tests): this period's total equals the sum of its parts, of its workspaces and of each workspace's agents, sorted by cost, and is exactly what came off the included amount; the last period and the last 30 days count what belongs to them, and an agency without a subscription is offered only the last 30 days; a deleted workspace's usage stays under its name; the CSV has one row per workspace and agent, the same total, and a name that starts like a formula made safe; a Member, an outsider and an assistant are refused on the web routes; an Admin's assistant gets the agency's usage, a Member's is refused and still reads its own workspace; no answer contains Connexity's own cost or a model name; the included first scan is never shown as money spent, in any period or in the CSV | passed |
 | MCP server tests (69), with the two new inputs and their descriptions | passed |
 | Backend `ruff` and `pyright`; frontend types, lint and formatting; client regenerated | passed |
-| Full `make check`, after the review fix | passed, every step |
+| Full `make check`, after the review fixes, the first-scan fix included | passed, every step |
 
 For Dmytro to check on screen, with the sandbox key in `.env` (dark, light and phone
 width, against "Balance and usage" in `designs/screens/Connexity Billing.dc.html`):
@@ -166,12 +169,13 @@ Two findings:
 
 - **Fixed:** two lines under "What moved it most" could share a label and a key (two
   test runs on one agent on one day). They are now keyed by position.
-- **Not fixed, for Dmytro to decide:** the included first scan shows up as money
-  spent. "Last period" and "Last 30 days", and the CSV for them, count every usage row
-  recorded in their dates at list price, including the first scan, which was recorded
-  before the subscription and never charged. "This period" is not affected. Telling
-  them apart needs the date the first subscription started to be kept, and a decision
-  on how uncharged usage should read on the page.
+- **Fixed after Dmytro's decision ("Yes, fix it", 2026-11-24):** the included first
+  scan showed up as money spent in "Last period", "Last 30 days" and their CSV, though
+  it was never charged. The date an agency's first subscription began is now kept
+  (`agency.first_subscribed_at`, migration `0053`), and usage recorded before it is
+  left out of every figure on the page, in the CSV and in the assistant's
+  `agency_usage`. An agency that never subscribed sees "No usage yet". Where paying is
+  not set up nothing is charged, and everything is shown at list price. Tested.
 
 ### Not done
 
