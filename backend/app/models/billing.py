@@ -211,3 +211,63 @@ class BillingPublic(SQLModel):
 
 class BillingLink(SQLModel):
     url: str = Field(description="A page on Stripe to send the person to")
+
+
+class UsagePeriodPublic(SQLModel):
+    key: str = Field(description="`this`, `last` or `30d`")
+    label: str
+    starts_at: datetime
+    ends_at: datetime = Field(description="Exclusive")
+
+
+class UsagePartPublic(SQLModel):
+    """One of the things that are counted, over the period."""
+
+    meter: str
+    label: str
+    quantity: int
+    unit: str = Field(description="`min` or `messages`")
+    unit_price_usd: float
+    cost_usd: float
+
+
+class AgentUsagePublic(SQLModel):
+    id: uuid.UUID
+    name: str
+    observed_minutes: int
+    simulated_messages: int
+    cost_usd: float
+
+
+class WorkspaceUsagePublic(SQLModel):
+    id: uuid.UUID
+    name: str
+    deleted: bool = Field(description="The workspace was deleted; its usage stays")
+    observed_minutes: int
+    simulated_messages: int
+    cost_usd: float
+    agents: list[AgentUsagePublic]
+
+
+class UsageMoverLine(SQLModel):
+    label: str
+    quantity: int
+    unit: str
+    cost_usd: float
+
+
+class AgencyUsagePublic(SQLModel):
+    """An agency's usage over one period, at list price, per workspace and agent.
+    Counted by when Connexity recorded it, which is what the money is drawn by."""
+
+    period: UsagePeriodPublic
+    periods: list[UsagePeriodPublic] = Field(description="The periods on offer")
+    cost_usd: float
+    parts: list[UsagePartPublic] = Field(
+        description="What was used, by kind. A kind with nothing is left out, "
+        "except the two that always exist"
+    )
+    workspaces: list[WorkspaceUsagePublic] = Field(description="Most expensive first")
+    movers: list[UsageMoverLine] = Field(
+        description="Up to three things that added most"
+    )

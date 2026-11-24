@@ -241,7 +241,7 @@ the same list Readiness, Work and the assistant's onboarding instructions follow
 | `write_scenario_set(workspace_id, agent_id, name, scenario_ids, description?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/scenario-sets` |
 | `run_scenarios(workspace_id, agent_id, set? \| scenario_ids? \| all?, repeats?, version?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
 | `get_test_runs(workspace_id, agent_id, run_id?, version?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/agents/{agent_id}/test-runs` |
-| `get_usage(workspace_id, agent_id?, period?, month?, cursor?, limit?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/usage` |
+| `get_usage(workspace_id, agent_id?, period?, month?, cursor?, limit?, agency?, agency_period?)` | `GET /api/v1/mcp/workspaces/{workspace_id}/usage` |
 | `list_people(workspace_id)` | `GET /api/v1/mcp/workspaces/{workspace_id}/people` |
 | `invite_people(workspace_id, emails, role?, all_workspaces?, workspace_ids?, can_approve?)` | `POST /api/v1/mcp/workspaces/{workspace_id}/people/invites` |
 | `update_person(workspace_id, person_id, role?, all_workspaces?, workspace_ids?, can_approve?)` | `PATCH /api/v1/mcp/workspaces/{workspace_id}/people/{person_id}` |

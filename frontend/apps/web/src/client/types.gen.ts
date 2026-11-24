@@ -284,6 +284,44 @@ export type AgencyUpdate = {
 };
 
 /**
+ * AgencyUsagePublic
+ *
+ * An agency's usage over one period, at list price, per workspace and agent.
+ * Counted by when Connexity recorded it, which is what the money is drawn by.
+ */
+export type AgencyUsagePublic = {
+  period: UsagePeriodPublic;
+  /**
+   * Periods
+   *
+   * The periods on offer
+   */
+  periods: Array<UsagePeriodPublic>;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
+  /**
+   * Parts
+   *
+   * What was used, by kind. A kind with nothing is left out, except the two that always exist
+   */
+  parts: Array<UsagePartPublic>;
+  /**
+   * Workspaces
+   *
+   * Most expensive first
+   */
+  workspaces: Array<WorkspaceUsagePublic>;
+  /**
+   * Movers
+   *
+   * Up to three things that added most
+   */
+  movers: Array<UsageMoverLine>;
+};
+
+/**
  * AgencyWorkspace
  */
 export type AgencyWorkspace = {
@@ -670,6 +708,32 @@ export type AgentToolPublic = {
    */
   call_count: number;
   backend?: ToolBackendPublic | null;
+};
+
+/**
+ * AgentUsagePublic
+ */
+export type AgentUsagePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Observed Minutes
+   */
+  observed_minutes: number;
+  /**
+   * Simulated Messages
+   */
+  simulated_messages: number;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
 };
 
 /**
@@ -9379,6 +9443,28 @@ export const UsageMeter = {
 export type UsageMeter = (typeof UsageMeter)[keyof typeof UsageMeter];
 
 /**
+ * UsageMoverLine
+ */
+export type UsageMoverLine = {
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Quantity
+   */
+  quantity: number;
+  /**
+   * Unit
+   */
+  unit: string;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
+};
+
+/**
  * UsageMoverPublic
  *
  * One of the things that added most to the period's cost.
@@ -9418,6 +9504,66 @@ export type UsageMoverPublic = {
    * Cost Usd
    */
   cost_usd: number;
+};
+
+/**
+ * UsagePartPublic
+ *
+ * One of the things that are counted, over the period.
+ */
+export type UsagePartPublic = {
+  /**
+   * Meter
+   */
+  meter: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Quantity
+   */
+  quantity: number;
+  /**
+   * Unit
+   *
+   * `min` or `messages`
+   */
+  unit: string;
+  /**
+   * Unit Price Usd
+   */
+  unit_price_usd: number;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
+};
+
+/**
+ * UsagePeriodPublic
+ */
+export type UsagePeriodPublic = {
+  /**
+   * Key
+   *
+   * `this`, `last` or `30d`
+   */
+  key: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Starts At
+   */
+  starts_at: string;
+  /**
+   * Ends At
+   *
+   * Exclusive
+   */
+  ends_at: string;
 };
 
 /**
@@ -9472,6 +9618,10 @@ export type UsagePublic = {
    * The three things that added most to the cost
    */
   movers: Array<UsageMoverPublic>;
+  /**
+   * The whole agency's usage per workspace and agent, when asked for with `agency`. Counted by subscription period, as the money is drawn
+   */
+  agency_usage?: AgencyUsagePublic | null;
   /**
    * What the agency has left and whether it is paused. Only in an assistant's answer, and only where paying is set up
    */
@@ -10292,6 +10442,42 @@ export type WorkspacePublic = {
    * Agency Name
    */
   agency_name: string;
+};
+
+/**
+ * WorkspaceUsagePublic
+ */
+export type WorkspaceUsagePublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Deleted
+   *
+   * The workspace was deleted; its usage stays
+   */
+  deleted: boolean;
+  /**
+   * Observed Minutes
+   */
+  observed_minutes: number;
+  /**
+   * Simulated Messages
+   */
+  simulated_messages: number;
+  /**
+   * Cost Usd
+   */
+  cost_usd: number;
+  /**
+   * Agents
+   */
+  agents: Array<AgentUsagePublic>;
 };
 
 /**
@@ -11660,6 +11846,123 @@ export type BillingReadStatusResponses = {
 
 export type BillingReadStatusResponse =
   BillingReadStatusResponses[keyof BillingReadStatusResponses];
+
+export type BillingReadUsageData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: {
+    /**
+     * Period
+     */
+    period?: 'this' | 'last' | '30d' | null;
+  };
+  url: '/api/v1/agencies/{agency_id}/billing/usage';
+};
+
+export type BillingReadUsageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingReadUsageError = BillingReadUsageErrors[keyof BillingReadUsageErrors];
+
+export type BillingReadUsageResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgencyUsagePublic;
+};
+
+export type BillingReadUsageResponse = BillingReadUsageResponses[keyof BillingReadUsageResponses];
+
+export type BillingDownloadUsageData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: {
+    /**
+     * Period
+     */
+    period?: 'this' | 'last' | '30d' | null;
+  };
+  url: '/api/v1/agencies/{agency_id}/billing/usage.csv';
+};
+
+export type BillingDownloadUsageErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingDownloadUsageError =
+  BillingDownloadUsageErrors[keyof BillingDownloadUsageErrors];
+
+export type BillingDownloadUsageResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
 
 export type BillingReadBillingData = {
   body?: never;
@@ -15162,6 +15465,14 @@ export type McpGetWorkspaceUsageData = {
     workspace_id: string;
   };
   query?: {
+    /**
+     * Agency
+     */
+    agency?: boolean;
+    /**
+     * Agency Period
+     */
+    agency_period?: 'this' | 'last' | '30d' | null;
     /**
      * Agent Id
      */

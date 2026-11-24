@@ -18,9 +18,10 @@ import {
   resumeSubscriptionAction,
   startSubscriptionAction,
 } from '@/actions/billing';
+import { BillingUsage } from '@/components/agency/billing-usage';
 
 import type { BillingChangeResult, BillingLinkResult } from '@/actions/billing';
-import type { BillingPublic } from '@/client/types.gen';
+import type { AgencyUsagePublic, BillingPublic, MoneyPublic } from '@/client/types.gen';
 import type { FC, ReactNode } from 'react';
 
 const CARD = 'rounded-xl border border-hairline bg-surface-1';
@@ -37,15 +38,19 @@ interface Props {
   billing: BillingPublic;
   /** The person has just come back from Stripe's payment page. */
   justPaid: boolean;
+  /** What the agency has left; absent when it could not be read. */
+  money: MoneyPublic | null;
+  /** The picked period's usage; absent when it could not be read. */
+  usage: AgencyUsagePublic | null;
 }
 
 /**
  * Agency settings › Billing (designs/screens/Connexity Billing.dc.html): the
- * subscription, the card and the billing details. Paying and every card field are on
- * Stripe's pages; this screen links to them. The balance, usage, top-ups and invoices
- * of the design are not built yet and are not shown.
+ * subscription, what is left and what was used, the card and the billing details.
+ * Paying and every card field are on Stripe's pages; this screen links to them. The
+ * top-ups and invoices of the design are not built yet and are not shown.
  */
-export const BillingView: FC<Props> = ({ agencyId, billing, justPaid }) => {
+export const BillingView: FC<Props> = ({ agencyId, billing, justPaid, money, usage }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [failure, setFailure] = useState<string | null>(null);
@@ -156,6 +161,7 @@ export const BillingView: FC<Props> = ({ agencyId, billing, justPaid }) => {
         </span>
       )}
       {subscriptionCard}
+      {usage && <BillingUsage agencyId={agencyId} money={money} usage={usage} />}
 
       {hasCustomer && (
         <div className={CARD}>

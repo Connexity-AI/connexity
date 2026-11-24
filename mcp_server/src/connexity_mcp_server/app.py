@@ -971,6 +971,22 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         ] = None,
         cursor: Cursor = None,
         limit: Limit = None,
+        agency: Annotated[
+            bool | None,
+            Field(
+                description="True to also get the whole agency's usage per workspace "
+                "and agent (`agency_usage`), for billing each client. Only when the "
+                "person you act for is an admin."
+            ),
+        ] = None,
+        agency_period: Annotated[
+            str | None,
+            Field(
+                description="With agency: this (the subscription's current period), "
+                "last (the one before) or 30d. Leave empty for this, or 30d when "
+                "there is no subscription."
+            ),
+        ] = None,
     ) -> GetUsageResult:
         """What the workspace used in a period and what that comes to at Connexity's
         list price; nothing is billed. Two meters: observed minutes (each real call,
@@ -982,8 +998,11 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         what is left of the period's included $299 and of the prepaid balance, and
         whether Connexity is paused for the agency. While it is paused, `add_agents`,
         `scan_calls` and `run_scenarios` are refused. You never start, pay, cancel or
-        change a subscription, and never add funds. Use it when the person asks what the
-        work costs, about their subscription, or before a large run."""
+        change a subscription, and never add funds. With `agency` an admin's assistant
+        also gets the whole agency's usage per workspace and agent, counted by the
+        subscription's period, to bill each client. Use it when the person asks what
+        the work costs, what to bill a client, about their subscription, or before a
+        large run."""
         return await _get_usage(
             client=backend_client,
             workspace_id=workspace_id,
@@ -992,6 +1011,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
             month=month,
             cursor=cursor,
             limit=limit,
+            agency=agency,
+            agency_period=agency_period,
         )
 
     @mcp_server.tool(annotations=READ_ONLY)

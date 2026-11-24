@@ -81,3 +81,21 @@ tools keep working.
 Tell the person plainly that Connexity is paused and why. You cannot resume it: an
 Admin starts the subscription or updates the card in Agency settings, Billing, and it
 resumes by itself.
+
+## Billing each client
+
+When the person you act for is an admin, call `get_usage` with `agency` set to true.
+The answer adds `agency_usage`: every workspace of the agency with its observed
+minutes, simulated messages and cost, each split by agent, for one period
+(`agency_period`: `this`, `last` or `30d`).
+
+It counts differently from the rest of the answer, on purpose:
+
+| | The workspace part | `agency_usage` |
+|---|---|---|
+| Period | A calendar month, or 7 or 30 days | The subscription's period, or 30 days |
+| A call counts in | The period it happened in | The period Connexity recorded it in |
+
+`agency_usage` is what came off the included amount and the balance, so use it for what
+to bill a client and for "where did the money go". A deleted workspace keeps its line.
+A member's assistant is refused: only admins see billing.

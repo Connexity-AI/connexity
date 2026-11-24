@@ -538,8 +538,14 @@ class ConnexityBackendClient:
         month: str | None = None,
         cursor: str | None = None,
         limit: int | None = None,
+        agency: bool | None = None,
+        agency_period: str | None = None,
     ) -> dict[str, Any]:
         params: dict[str, str] = {}
+        if agency:
+            params["agency"] = "true"
+            if agency_period:
+                params["agency_period"] = agency_period
         if agent_id:
             params["agent_id"] = agent_id
         if period:
