@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { Ellipsis, TriangleAlert } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
@@ -34,7 +35,6 @@ import type {
 } from '@/client/types.gen';
 import type { FC } from 'react';
 
-const LAST_WORKSPACE = 'Create another workspace first. An agency needs at least one.';
 const GRID = 'md:grid md:items-center md:gap-4';
 const COLS_ADMIN = 'md:grid-cols-[minmax(0,1fr)_88px_120px_120px_32px]';
 const COLS_READ = 'md:grid-cols-[minmax(0,1fr)_88px_120px_120px]';
@@ -86,8 +86,15 @@ export const WorkspacesView: FC<Props> = ({ agencyId, table }) => {
   };
 
   const finish = (name: string, state: string) => {
-    if (state === 'done') setNote(`${name} was deleted.`);
     setDeletingId(null);
+    // After the agency's last workspace there is nothing left to list: the app
+    // shows "No workspaces yet".
+    if (state === 'done' && isLast) {
+      router.push(UrlGenerator.home());
+      router.refresh();
+      return;
+    }
+    if (state === 'done') setNote(`${name} was deleted.`);
     router.refresh();
   };
 
@@ -251,39 +258,13 @@ export const WorkspacesView: FC<Props> = ({ agencyId, table }) => {
                           sideOffset={4}
                           className="z-20 flex w-[200px] flex-col overflow-visible rounded-md border-hairline bg-surface-2 p-1 text-ink shadow-menu"
                         >
-                          {isLast ? (
-                            <div className="group relative">
-                              <DropdownMenuItem
-                                aria-disabled
-                                aria-describedby="last-workspace-tip"
-                                onSelect={(event) => event.preventDefault()}
-                                className={cn(
-                                  MENU_ITEM,
-                                  'peer cursor-default text-ink-muted focus:bg-transparent'
-                                )}
-                              >
-                                Delete workspace
-                              </DropdownMenuItem>
-                              <span
-                                id="last-workspace-tip"
-                                role="tooltip"
-                                className="absolute top-full -right-1 z-30 mt-2.5 hidden w-max max-w-[280px] rounded-md bg-ink px-2.5 py-1.5 text-label text-pretty text-surface-0 shadow-menu group-hover:block peer-data-[highlighted]:block"
-                              >
-                                {LAST_WORKSPACE}
-                              </span>
-                            </div>
-                          ) : (
-                            <DropdownMenuItem
-                              disabled={isPending}
-                              onSelect={() => openDialog(workspace)}
-                              className={cn(
-                                MENU_ITEM,
-                                'cursor-pointer text-critical focus:bg-wash'
-                              )}
-                            >
-                              Delete workspace
-                            </DropdownMenuItem>
-                          )}
+                          <DropdownMenuItem
+                            disabled={isPending}
+                            onSelect={() => openDialog(workspace)}
+                            className={cn(MENU_ITEM, 'cursor-pointer text-critical focus:bg-wash')}
+                          >
+                            Delete workspace
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
@@ -293,6 +274,11 @@ export const WorkspacesView: FC<Props> = ({ agencyId, table }) => {
             );
           })}
 
+          {table.workspaces.length === 0 && (
+            <div className="border-t border-hairline px-6 py-4 text-ink-secondary">
+              No workspaces yet
+            </div>
+          )}
           <div className="border-t border-hairline px-6 pt-3 pb-4 text-label text-pretty text-ink-muted">
             Only Admins who can approve can delete a workspace. An assistant can’t delete one: it
             can only send you here.
@@ -382,6 +368,12 @@ const DeleteDialog: FC<DeleteDialogProps> = ({ preview, typed, onType, onClose, 
             </span>
           )}
           <span>Usage totals stay on your invoices, without any call content.</span>
+          {preview?.is_last && (
+            <span>
+              This is your agency’s last workspace. Your subscription keeps running until you cancel
+              it.
+            </span>
+          )}
         </div>
         <label className="flex flex-col gap-1.5 text-label text-ink-secondary">
           <span>

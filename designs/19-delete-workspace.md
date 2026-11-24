@@ -6,7 +6,9 @@ section and delete dialog of `screens/Connexity Agency.dc.html`,
 `screens/Connexity Workspace Deleting.dc.html`, the `deleted` variant of
 `screens/Connexity Email.dc.html` and the picker in `screens/Connexity Sidebar.dc.html`.
 How it works: [`docs-internal/workspace-deletion.md`](../docs-internal/workspace-deletion.md).
-Built: all six sections. Where the build differs from the design is listed in that
+Built: all six sections. Section 5 (the last workspace cannot be deleted) was
+replaced on 2026-11-24 by [`22-no-workspaces.md`](./22-no-workspaces.md): the last
+workspace is deleted like any other. Where the build differs from the design is listed in that
 document under "Screens".
 
 ```txt

@@ -13,11 +13,18 @@
 <style>body{margin:0}*{box-sizing:border-box}button,input{font:inherit}a{color:inherit;text-decoration:underline}a:hover{color:inherit;opacity:.8}input::placeholder{color:var(--ink3)}</style>
 </helmet>
 <div style="{{ rootStyle }}">
-<dc-import name="Connexity Readiness Bar" credits="{{ creditsState }}" payment="{{ payState }}" sub="{{ subState }}" hint-size="100%,36px"></dc-import>
+<dc-import name="Connexity Readiness Bar" state="{{ rbState }}" credits="{{ creditsState }}" payment="{{ payState }}" sub="{{ subState }}" hint-size="100%,36px"></dc-import>
 <sc-if value="{{ phone }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;height:52px;padding:0 4px 0 16px;background:var(--s1);border-bottom:1px solid var(--border)"><span role="img" aria-label="Connexity" style="display:block;flex:none;width:24px;height:24px;background:var(--brand);-webkit-mask:url(assets/connexity-logo.png) center/contain no-repeat;mask:url(assets/connexity-logo.png) center/contain no-repeat"></span><span style="font-size:15px;font-weight:500">Connexity</span><button aria-label="Menu" style="margin-left:auto;width:44px;height:44px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ink2);cursor:pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16"></path><path d="M4 6h16"></path><path d="M4 18h16"></path></svg></button></div></sc-if>
 <div style="display:flex;min-height:inherit">
-<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agency" credits="{{ creditsState }}" agencies="{{ agencies }}" menu-open="{{ pickerOpen }}" exclude="{{ pickerExclude }}" style="height:100%" hint-size="220px,320px"></dc-import></div></sc-if>
+<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="width:220px;flex:none;background:var(--s1);border-right:1px solid var(--border)"><dc-import name="Connexity Sidebar" active="agency" empty="{{ sbEmpty }}" credits="{{ creditsState }}" agencies="{{ agencies }}" menu-open="{{ pickerOpen }}" exclude="{{ pickerExclude }}" style="height:100%" hint-size="220px,320px"></dc-import></div></sc-if>
 <main style="{{ mainStyle }}">
+<sc-if value="{{ noneScreen }}" hint-placeholder-val="{{ false }}">
+<div style="width:100%;max-width:400px;display:flex;flex-direction:column;align-items:center;gap:20px;text-align:center">
+<div style="display:flex;flex-direction:column;gap:6px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">No workspaces yet</h1><p style="margin:0;color:var(--ink2);text-wrap:pretty">Create a workspace for a client to start checking their calls.</p></div>
+<button onClick="{{ openNewWs }}" style="flex:none;height:36px;padding:0 16px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">New workspace</button>
+</div>
+</sc-if>
+<sc-if value="{{ onSettings }}" hint-placeholder-val="{{ true }}">
 <div style="{{ innerStyle }}">
 <div style="display:flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-height:40px"><h1 style="margin:0;font-size:20px;line-height:28px;font-weight:500">Agency settings</h1><span style="font-size:13px;color:var(--ink3)">{{ agencyLine }}</span></div>
 <div style="{{ gridStyle }}">
@@ -53,7 +60,7 @@
 <sc-if value="{{ u.roleLocked }}"><div onMouseEnter="{{ u.showTip }}" onMouseLeave="{{ u.hideTip }}" style="position:relative"><button aria-disabled="true" aria-describedby="last-admin" style="display:flex;align-items:center;gap:4px;height:32px;padding:0 6px 0 8px;margin-left:-8px;border-radius:8px;border:0;background:transparent;color:var(--ink3);font-size:13px;cursor:default;white-space:nowrap">{{ u.roleLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><path d="m6 9 6 6 6-6"></path></svg></button>
 <sc-if value="{{ u.tipOn }}"><span role="tooltip" style="position:absolute;left:-8px;bottom:calc(100% + 6px);z-index:30;padding:6px 10px;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:13px;line-height:18px;white-space:nowrap;box-shadow:0 4px 12px rgba(0,0,0,.18)">An agency needs at least one Admin.</span></sc-if></div></sc-if>
 <sc-if value="{{ u.read }}"><span style="font-size:13px;color:var(--ink2)">{{ u.roleLabel }}</span></sc-if>
-<sc-if value="{{ u.edit }}"><div data-menu="1" style="position:relative">
+<sc-if value="{{ u.wsEdit }}"><div data-menu="1" style="position:relative">
 <button onClick="{{ u.toggleWs }}" style="{{ u.wsStyle }}" style-hover="background:var(--wash)">{{ u.wsLabel }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ink2)"><path d="m6 9 6 6 6-6"></path></svg></button>
 <sc-if value="{{ u.wsOpen }}">
 <div style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);left:0;top:38px;width:240px">
@@ -65,7 +72,7 @@
 </div>
 </sc-if>
 </div></sc-if>
-<sc-if value="{{ u.read }}"><span style="{{ u.wsTextStyle }}">{{ u.wsLabel }}</span></sc-if>
+<sc-if value="{{ u.wsRead }}"><span style="{{ u.wsTextStyle }}">{{ u.wsLabel }}</span></sc-if>
 <sc-if value="{{ u.edit }}"><label onClick="{{ u.toggle }}" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
 <sc-if value="{{ u.can }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></span></sc-if><sc-if value="{{ u.cannot }}"><span style="flex:none;width:16px;height:16px;border-radius:4px;border:1px solid var(--bc)"></span></sc-if><span>{{ u.canText }}</span></label></sc-if>
 <sc-if value="{{ u.read }}"><span style="font-size:13px;color:var(--ink2)">{{ u.canText }}</span></sc-if>
@@ -275,7 +282,7 @@
 <div style="display:flex;flex-direction:column;gap:16px">
 <sc-if value="{{ hasWsNote }}" hint-placeholder-val="{{ false }}"><span role="status" style="font-size:13px;line-height:18px;color:var(--ink2)">{{ wsNote }}</span></sc-if>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px">
-<sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}"><div style="{{ wsHeadStyle }}"><span>Workspace</span><span style="text-align:right">Agents</span><span style="text-align:right">Calls stored</span><span>Created</span><sc-if value="{{ wsCanDelete }}" hint-placeholder-val="{{ true }}"><span></span></sc-if></div></sc-if>
+<sc-if value="{{ wsHead }}" hint-placeholder-val="{{ true }}"><div style="{{ wsHeadStyle }}"><span>Workspace</span><span style="text-align:right">Agents</span><span style="text-align:right">Calls stored</span><span>Created</span><sc-if value="{{ wsCanDelete }}" hint-placeholder-val="{{ true }}"><span></span></sc-if></div></sc-if>
 <sc-for list="{{ wsRows }}" as="w" hint-placeholder-count="6">
 <div aria-busy="{{ w.deleting }}" style="{{ w.rowStyle }}">
 <span style="display:flex;flex-direction:column;gap:2px;min-width:0">
@@ -290,14 +297,13 @@
 <sc-if value="{{ w.menuOpen }}">
 <div role="menu" style="position:absolute;z-index:20;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:4px;box-shadow:0 8px 24px rgba(0,0,0,.18);right:0;top:36px;width:200px;display:flex;flex-direction:column">
 <sc-if value="{{ w.delOk }}"><button onClick="{{ w.askDelete }}" role="menuitem" style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--crit);font-size:13px;text-align:left;cursor:pointer" style-hover="background:var(--wash)">Delete workspace</button></sc-if>
-<sc-if value="{{ w.delLocked }}"><div onMouseEnter="{{ w.showTip }}" onMouseLeave="{{ w.hideTip }}" style="position:relative;display:flex;flex-direction:column"><button aria-disabled="true" aria-describedby="ws-last-tip" role="menuitem" style="display:flex;align-items:center;height:34px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--ink3);font-size:13px;text-align:left;cursor:default">Delete workspace</button>
-<sc-if value="{{ w.tipOn }}"><span id="ws-last-tip" role="tooltip" style="position:absolute;right:-4px;top:calc(100% + 10px);z-index:30;width:max-content;max-width:280px;padding:6px 10px;border-radius:6px;background:var(--accent);color:var(--on-accent);font-size:13px;line-height:18px;text-wrap:pretty;box-shadow:0 4px 12px rgba(0,0,0,.18)">Create another workspace first. An agency needs at least one.</span></sc-if></div></sc-if>
 </div>
 </sc-if></sc-if>
 </div></sc-if>
 </div>
 </sc-for>
-<div style="padding:12px 24px 16px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Only Admins who can approve can delete a workspace. An assistant can’t delete one: it can only send you here.</div>
+<sc-if value="{{ wsEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:20px 24px;color:var(--ink2)">No workspaces yet</div></sc-if>
+<sc-if value="{{ hasWsRows }}" hint-placeholder-val="{{ true }}"><div style="padding:12px 24px 16px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Only Admins who can approve can delete a workspace. An assistant can’t delete one: it can only send you here.</div></sc-if>
 </div>
 <sc-if value="{{ hasWsRec }}" hint-placeholder-val="{{ false }}">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
@@ -311,6 +317,7 @@
 </div>
 </div>
 </div>
+</sc-if>
 </main>
 </div>
 <sc-if value="{{ delOpen }}" hint-placeholder-val="{{ false }}">
@@ -320,7 +327,7 @@
 <ul style="margin:0;padding:12px 16px;list-style:none;border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;gap:6px;font-variant-numeric:tabular-nums">
 <sc-for list="{{ delLines }}" as="l" hint-placeholder-count="3"><li style="display:grid;grid-template-columns:44px minmax(0,1fr);gap:10px;align-items:baseline"><span style="text-align:right;font-weight:500">{{ l.n }}</span><span style="text-wrap:pretty">{{ l.text }}</span></li></sc-for>
 </ul>
-<div style="display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty"><span>Its Retell connection is removed, so no new calls arrive. Your calls in Retell are not touched.</span><span>Usage totals stay on your invoices, without any call content.</span></div>
+<div style="display:flex;flex-direction:column;gap:6px;font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty"><span>Its Retell connection is removed, so no new calls arrive. Your calls in Retell are not touched.</span><span>Usage totals stay on your invoices, without any call content.</span><sc-if value="{{ delLast }}" hint-placeholder-val="{{ false }}"><span>This is your agency’s last workspace. Your subscription keeps running until you cancel it.</span></sc-if></div>
 <label style="display:flex;flex-direction:column;gap:6px">
 <span style="font-size:13px;line-height:18px;color:var(--ink2)">Type <strong style="font-weight:500;color:var(--ink)">{{ delName }}</strong> to confirm</span>
 <input value="{{ typed }}" onChange="{{ onTyped }}" onKeyDown="{{ onTypedKey }}" autoComplete="off" spellCheck="false" aria-label="Type {{ delName }} to confirm" style="height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:var(--s1);color:var(--ink);font-size:15px;outline:none">
@@ -328,6 +335,23 @@
 <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding-top:8px">
 <button onClick="{{ cancelDel }}" style="flex:none;height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Cancel</button>
 <button onClick="{{ confirmDel }}" disabled="{{ delBlocked }}" style="{{ delBtnStyle }}">Delete workspace</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ nwOpen }}" hint-placeholder-val="{{ false }}">
+<div onMouseDown="{{ onNwBackdrop }}" style="position:absolute;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:24px">
+<div role="dialog" aria-modal="true" aria-label="New workspace" style="width:100%;max-width:400px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:20px;box-shadow:0 16px 48px rgba(0,0,0,.24)">
+<h2 style="margin:0;font-size:17px;line-height:24px;font-weight:500">New workspace</h2>
+<label style="display:flex;flex-direction:column;gap:6px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">Name</span>
+<input ref="{{ nwRef }}" value="{{ nwName }}" onChange="{{ onNw }}" onKeyDown="{{ onNwKey }}" style="{{ nwInputStyle }}">
+<sc-if value="{{ nwHint }}" hint-placeholder-val="{{ true }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">Usually the client’s name</span></sc-if>
+<sc-if value="{{ nwTooLong }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;line-height:18px;color:var(--crit)">Use 255 characters or fewer.</span></sc-if>
+</label>
+<div style="display:flex;justify-content:flex-end;gap:8px">
+<button onClick="{{ nwCancel }}" style="height:36px;padding:0 14px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:15px;cursor:pointer" style-hover="background:var(--wash)">Cancel</button>
+<button onClick="{{ nwCreate }}" disabled="{{ nwBlocked }}" style="{{ nwBtnStyle }}">Create</button>
 </div>
 </div>
 </div>
@@ -379,7 +403,7 @@
 </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;members&quot;,&quot;billing&quot;,&quot;workspaces&quot;],&quot;default&quot;:&quot;members&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewer&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;member&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;'admin' | 'member'&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;phone&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop' | 'phone'&quot;},&quot;invite&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;invalid&quot;,&quot;member&quot;,&quot;invited&quot;,&quot;sent&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;remove&quot;,&quot;addFunds&quot;,&quot;cancelSub&quot;,&quot;deleteWs&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;,&quot;new&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expanded&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;bright&quot;,&quot;northfield&quot;,&quot;kestrel&quot;,&quot;maple&quot;,&quot;harbor&quot;,&quot;summit&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;payment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;paid&quot;,&quot;processing&quot;,&quot;failed&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;card&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;expiring&quot;,&quot;none&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;auto&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sub&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;active&quot;,&quot;none&quot;,&quot;cancelled&quot;,&quot;unpaid&quot;],&quot;default&quot;:&quot;active&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;typed&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;wsState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;deleting&quot;,&quot;failed&quot;,&quot;done&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;wsCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:6,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;wsMenu&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;picker&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;empty&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;screen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;settings&quot;,&quot;none&quot;],&quot;default&quot;:&quot;settings&quot;,&quot;tsType&quot;:&quot;'settings' | 'none'&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;members&quot;,&quot;billing&quot;,&quot;workspaces&quot;],&quot;default&quot;:&quot;members&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;viewer&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;member&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;'admin' | 'member'&quot;},&quot;layout&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;phone&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop' | 'phone'&quot;},&quot;invite&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;invalid&quot;,&quot;member&quot;,&quot;invited&quot;,&quot;sent&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dialog&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;remove&quot;,&quot;addFunds&quot;,&quot;cancelSub&quot;,&quot;deleteWs&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agencies&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:2,&quot;default&quot;:1,&quot;tsType&quot;:&quot;number&quot;},&quot;credits&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;low&quot;,&quot;out&quot;,&quot;new&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expanded&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;bright&quot;,&quot;northfield&quot;,&quot;kestrel&quot;,&quot;maple&quot;,&quot;harbor&quot;,&quot;summit&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;payment&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;paid&quot;,&quot;processing&quot;,&quot;failed&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;card&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;ok&quot;,&quot;expiring&quot;,&quot;none&quot;],&quot;default&quot;:&quot;ok&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;auto&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;sub&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;active&quot;,&quot;none&quot;,&quot;cancelled&quot;,&quot;unpaid&quot;],&quot;default&quot;:&quot;active&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;typed&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;wsState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;deleting&quot;,&quot;failed&quot;,&quot;done&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;wsCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:1,&quot;max&quot;:6,&quot;default&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;wsMenu&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;picker&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -411,7 +435,8 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     const C = Component;
-    let qs = null; try { qs = new URLSearchParams(window.location.search).get('section'); } catch (_) {}
+    let qs = null, qe = false; try { const p = new URLSearchParams(window.location.search); qs = p.get('section'); qe = p.get('empty') === '1'; } catch (_) {}
+    const empty = !!props.empty || qe, rec0 = [{ what:'Alex Morgan deleted Bright Dental', when:'23 Nov 2026, 14:32' }];
     const members = C.MEMBERS.map(m => ({ id:m[1], name:m[0], email:m[1], role:m[2], ws:m[3], can:m[4], assistants:m[5] }))
       .concat(C.INVITED.map(m => ({ id:m[0], name:m[0], email:m[0], role:m[1], ws:m[2], can:m[3], invited:true, expires:m[4] })));
     const iv = props.invite || 'none', preset = { invalid:'riley@example', member:'sam@example.com', invited:'riley@example.com' }[iv] || '';
@@ -420,14 +445,15 @@ class Component extends DCLogic {
     const wsAll = C.WSD.map(w => ({ id:w[0], name:w[1], agents:w[2], calls:w[3], issues:w[4], created:w[5] })).sort((a, b) => a.name.localeCompare(b.name));
     const wsBase = props.wsCount === 1 ? wsAll.filter(w => w.id === 'bright') : wsAll, wst = props.wsState;
     this.state = { section: props.section || qs || 'members', autoTop:true, members, menu: props.wsMenu ? 'wsm:bright' : null, tip:null,
-      wsList: wst === 'done' ? wsBase.filter(w => w.id !== 'bright') : wsBase,
+      wsList: empty ? [] : wst === 'done' ? wsBase.filter(w => w.id !== 'bright') : wsBase, screen: empty && props.screen === 'none' ? 'none' : 'settings', nwOpen:false, nwName:'',
       wsDel: wst === 'deleting' ? { bright:{ s:'deleting', pct:38 } } : wst === 'failed' ? { bright:{ s:'failed', pct:0 } } : {},
-      wsNote: wst === 'done' ? 'Bright Dental was deleted.' : '', wsRec: wst === 'done' ? [{ what:'Alex Morgan deleted Bright Dental', when:'23 Nov 2026, 14:32' }] : [],
+      wsNote: wst === 'done' ? 'Bright Dental was deleted.' : '', wsRec: wst === 'done' || empty ? rec0 : [],
       delId: props.dialog === 'deleteWs' ? 'bright' : null, typed: props.typed || '', invite:preset, inviteRole:'member', inviteWs:'all', inviteCan:false, inviteMsg:msg,
       removing: props.dialog === 'remove' ? 'sam@example.com' : null, period:'month', openWs: props.expanded ? { [props.expanded]: true } : {},
       auto: props.credits === 'new' ? false : props.auto !== false, autoBelow:'50', autoAdd:'200', card: props.credits === 'new' ? 'none' : (props.card || 'ok'),
       addOpen: props.dialog === 'addFunds', sub: props.sub || (props.credits === 'new' ? 'none' : 'active'), cancelOpen: props.dialog === 'cancelSub', pick:'500', other:'', pay: props.payment && props.payment !== 'none' ? { state: props.payment, amount: 50000 } : null, allInv:false };
     this.bodyRef = React.createRef();
+    this.nwRef = React.createRef();
   }
   componentDidMount() {
     this.onDoc = e => { if (this.state.menu != null && !(e.target.closest && e.target.closest('[data-menu]'))) this.setState({ menu:null }); };
@@ -443,8 +469,8 @@ class Component extends DCLogic {
       if (pct < 100) return this.setState(s => ({ wsDel:{ ...s.wsDel, [id]:{ s:'deleting', pct } } }));
       clearInterval(this.delT);
       const w = this.state.wsList.find(x => x.id === id);
-      this.setState(s => { const wd = { ...s.wsDel }; delete wd[id];
-        return { wsDel:wd, wsList: s.wsList.filter(x => x.id !== id), wsNote: w.name + ' was deleted.', wsRec:[{ what:'Alex Morgan deleted ' + w.name, when:'23 Nov 2026, 14:32' }, ...s.wsRec] }; });
+      this.setState(s => { const wd = { ...s.wsDel }; delete wd[id]; const left = s.wsList.filter(x => x.id !== id);
+        return { wsDel:wd, wsList: left, screen: left.length ? s.screen : 'none', wsNote: w.name + ' was deleted.', wsRec:[{ what:'Alex Morgan deleted ' + w.name, when:'23 Nov 2026, 14:32' }, ...s.wsRec] }; });
     }, 250);
   }
   renderVals() {
@@ -452,9 +478,10 @@ class Component extends DCLogic {
     const phone = this.props.layout === 'phone', admin = this.props.viewer !== 'member';
     const selfEmail = admin ? 'alex@example.com' : 'priya@example.com';
     const nav = on => ({ display:'flex', alignItems:'center', height:36, padding:'0 12px', borderRadius:8, border:0, textAlign:'left', background: on ? 'var(--wash)' : 'transparent', color: on ? 'var(--ink)' : 'var(--ink2)', fontSize:15, cursor:'pointer' });
+    const noWs = S.wsList.length === 0;
     const none = ws => ws !== 'all' && ws.length === 0;
-    const wsLabel = ws => ws === 'all' ? 'All workspaces' : ws.length === 0 ? 'No workspaces' : ws.length === 1 ? C.WS.find(w => w[0] === ws[0])[1] : ws.length + ' workspaces';
-    const wsStyle = ws => ({ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 8px 0 10px', borderRadius:8, border:'1px solid var(--bc)', background:'transparent', color: none(ws) ? 'var(--warn)' : 'var(--ink)', fontSize:13, cursor:'pointer', whiteSpace:'nowrap' });
+    const wsLabel = ws => noWs ? 'No workspaces' : ws === 'all' ? 'All workspaces' : ws.length === 0 ? 'No workspaces' : ws.length === 1 ? C.WS.find(w => w[0] === ws[0])[1] : ws.length + ' workspaces';
+    const wsStyle = ws => ({ display:'flex', alignItems:'center', gap:6, height:32, padding:'0 8px 0 10px', borderRadius:8, border:'1px solid var(--bc)', background:'transparent', color: noWs ? 'var(--ink3)' : none(ws) ? 'var(--warn)' : 'var(--ink)', fontSize:13, cursor:'pointer', whiteSpace:'nowrap' });
     const wsOpts = (ws, set) => [{ label:'All workspaces', on: ws === 'all', off: ws !== 'all', pick: () => set(ws === 'all' ? [] : 'all') }].concat(C.WS.map(([id, name]) => { const on = ws === 'all' || ws.includes(id);
       return { label:name, on, off:!on, pick: () => { const cur = ws === 'all' ? C.WS.map(w => w[0]) : ws; const next = cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id]; set(next.length === C.WS.length ? 'all' : next); } }; }));
     const toggle = key => () => this.setState(s => ({ menu: s.menu === key ? null : key }));
@@ -471,22 +498,34 @@ class Component extends DCLogic {
     const removeText = (() => { if (!rm) return ''; const fn = rm.name.split(' ')[0];
       const reach = rm.ws === 'all' ? 'all ' + C.WS.length + ' workspaces' : rm.ws.length === 1 ? C.WS.find(w => w[0] === rm.ws[0])[1] : rm.ws.length + ' workspaces';
       const a = rm.assistants || 0;
-      return (none(rm.ws) ? fn + ' is removed from Signal Voice right away.' : fn + ' loses access to ' + reach + ' right away.')
-        + (a && !none(rm.ws) ? ' ' + fn + '\u2019s ' + (a === 1 ? 'connected assistant stops' : a + ' connected assistants stop') + ' reaching them too.' : '')
+      return (none(rm.ws) || noWs ? fn + ' is removed from Signal Voice right away.' : fn + ' loses access to ' + reach + ' right away.')
+        + (a && !none(rm.ws) && !noWs ? ' ' + fn + '\u2019s ' + (a === 1 ? 'connected assistant stops' : a + ' connected assistants stop') + ' reaching them too.' : '')
         + ' What ' + fn + ' did stays on record.'; })();
     const sendInvite = () => { const r = C.check(S.invite, S.members); if (!r) return; if (r.bad) return this.setState({ inviteMsg:r });
       const add = r.emails.map(e => ({ id:e, name:e, email:e, role:S.inviteRole, ws:S.inviteWs, can:S.inviteCan, invited:true, expires:7 }));
       this.setState(s => ({ members:[...s.members, ...add], invite:'', inviteMsg:{ ok:true, text: (r.emails.length === 1 ? 'Invite sent to ' : 'Invites sent to ') + r.emails.join(', ') } })); };
     const msg = S.inviteMsg, hasText = !!S.invite.trim();
+    const nw = S.nwName, nwLong = nw.length > 255, nwOk = !!nw.trim() && !nwLong;
+    const nwClose = () => this.setState({ nwOpen:false, nwName:'' });
+    const nwCreate = () => { if (!nwOk) return; try { window.location.href = 'Connexity Home.dc.html?ws=' + encodeURIComponent(nw.trim()); } catch (_) {} };
+    const none2 = S.screen === 'none';
     return {
-      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], position:'relative', background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
+      noneScreen: none2, onSettings: !none2, sbEmpty: noWs, rbState: noWs ? 'complete' : 'setup',
+      openNewWs: () => { this.setState({ nwOpen:true, nwName:'' }); setTimeout(() => this.nwRef.current && this.nwRef.current.focus(), 0); },
+      nwOpen: S.nwOpen, nwRef: this.nwRef, nwName: nw, onNw: e => this.setState({ nwName: e.target.value }),
+      onNwKey: e => { if (e.key === 'Enter') nwCreate(); if (e.key === 'Escape') nwClose(); },
+      nwCancel: nwClose, nwCreate, nwBlocked: !nwOk, nwHint: !nwLong, nwTooLong: nwLong,
+      onNwBackdrop: e => { if (e.target === e.currentTarget) nwClose(); },
+      nwInputStyle: { height:36, padding:'0 12px', borderRadius:8, border:'1px solid ' + (nwLong ? 'var(--crit)' : 'var(--bc)'), background:'var(--s0)', color:'var(--ink)', fontSize:15, outline:'none' },
+      nwBtnStyle: { height:36, padding:'0 16px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: nwOk ? 'pointer' : 'default', opacity: nwOk ? 1 : 0.4 },
+      rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], position:'relative', background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight: none2 ? (phone ? 'max(100vh, 844px)' : 'max(100vh, 900px)') : '100vh', WebkitFontSmoothing:'antialiased' },
       creditsState: this.props.credits || 'ok', payState: S.pay ? S.pay.state : 'none', subState: S.sub, bodyRef: this.bodyRef, agencies: this.props.agencies || 1,
       phone, wide: !phone,
-      mainStyle: phone ? { flex:1, minWidth:0, padding:'20px 16px 40px' } : { flex:1, minWidth:944, padding:'24px 32px 48px' },
+      mainStyle: none2 ? { flex:1, minWidth:0, display:'flex', justifyContent:'center', alignItems:'flex-start', padding: phone ? '120px 24px 40px' : '240px 32px 48px' } : phone ? { flex:1, minWidth:0, padding:'20px 16px 40px' } : { flex:1, minWidth:944, padding:'24px 32px 48px' },
       innerStyle: phone ? { display:'flex', flexDirection:'column', gap:20, minWidth:0 } : { maxWidth:1120, minWidth:880, display:'flex', flexDirection:'column', gap:24 },
       gridStyle: phone ? { display:'flex', flexDirection:'column', gap:16 } : { display:'grid', gridTemplateColumns:'176px minmax(0,1fr)', gap:32, alignItems:'start' },
       navStyle: phone ? { display:'flex', gap:4 } : { display:'flex', flexDirection:'column', gap:2 },
-      agencyLine: 'Signal Voice \u00b7 ' + S.wsList.length + (S.wsList.length === 1 ? ' workspace' : ' workspaces'),
+      agencyLine: noWs ? 'Signal Voice \u00b7 No workspaces' : 'Signal Voice \u00b7 ' + S.wsList.length + (S.wsList.length === 1 ? ' workspace' : ' workspaces'),
       pickerOpen: !!this.props.picker, pickerExclude: Object.keys(S.wsDel).filter(k => S.wsDel[k].s === 'deleting').map(k => (S.wsList.find(w => w.id === k) || {}).name)[0] || '',
       sections: [['members','Members'],['billing','Billing'],['workspaces','Workspaces']].map(([id, label]) => ({ label, style: nav(S.section === id), pick: () => this.setState({ section:id, menu:null }) })),
       onMembers: S.section === 'members', onBilling: S.section === 'billing', onWorkspaces: S.section === 'workspaces',
@@ -497,14 +536,13 @@ class Component extends DCLogic {
         const dw = S.wsList.find(w => w.id === S.delId), match = !!dw && S.typed.trim() === dw.name;
         const confirmDel = () => { if (match) this.runDelete(dw.id); };
         return {
-          wsCanDelete: canDel, hasWsNote: !!S.wsNote, wsNote: S.wsNote, hasWsRec: S.wsRec.length > 0, wsRec: S.wsRec,
+          wsCanDelete: canDel, wsHead: !phone && !noWs, wsEmpty: noWs, hasWsRows: !noWs, delLast: !!dw && last, hasWsNote: !!S.wsNote && !noWs, wsNote: S.wsNote, hasWsRec: S.wsRec.length > 0, wsRec: S.wsRec,
           wsHeadStyle: { display:'grid', gridTemplateColumns:cols, gap:16, alignItems:'center', height:40, padding: canDel ? '0 16px 0 24px' : '0 24px', fontSize:13, color:'var(--ink2)' },
           wsRows: S.wsList.map(w => { const d = S.wsDel[w.id], deleting = !!d && d.s === 'deleting', failed = !!d && d.s === 'failed', dim = deleting ? 0.5 : 1;
             return { name:w.name, phone, wide:!phone, deleting, failed, agents: num(w.agents), calls: num(w.calls), created: w.created,
               sub: num(w.agents) + (w.agents === 1 ? ' agent' : ' agents') + ' \u00b7 ' + num(w.calls) + ' calls \u00b7 ' + w.created,
               hasCol: canDel, hasMenu: canDel && !d, menuOpen: S.menu === 'wsm:' + w.id, toggleMenu: toggle('wsm:' + w.id),
-              delOk: !last, delLocked: last, tipOn: S.tip === 'ws:' + w.id || (!!this.props.tip && S.section === 'workspaces'),
-              showTip: () => this.setState({ tip:'ws:' + w.id }), hideTip: () => this.setState({ tip:null }),
+              delOk: true,
               askDelete: () => this.setState({ delId:w.id, typed:'', menu:null }),
               retry: e => { e.preventDefault(); this.runDelete(w.id); },
               rowStyle: { display:'grid', gridTemplateColumns:cols, gap: phone ? 8 : 16, alignItems:'center', minHeight:56, padding:pad, borderTop:'1px solid var(--border)' },
@@ -528,7 +566,7 @@ class Component extends DCLogic {
           edit: admin, read: !admin, roleLabel: roleName(m.role),
           roleFree: admin && !last, roleLocked: admin && last, roleOpen: S.menu === 'role:' + m.id, toggleRole: toggle('role:' + m.id), roleOpts: roleOpts(m.role, v => upd(m.id, { role:v })),
           tipOn: S.tip === m.id || !!this.props.tip, showTip: () => this.setState({ tip:m.id }), hideTip: () => this.setState({ tip:null }),
-          wsLabel: wsLabel(m.ws), wsStyle: wsStyle(m.ws), wsTextStyle: { fontSize:13, color: none(m.ws) ? 'var(--warn)' : 'var(--ink2)' },
+          wsLabel: wsLabel(m.ws), wsStyle: wsStyle(m.ws), wsTextStyle: { fontSize:13, color: noWs ? 'var(--ink3)' : none(m.ws) ? 'var(--warn)' : 'var(--ink2)' }, wsEdit: admin && !noWs, wsRead: !admin || noWs,
           wsOpen: S.menu === 'ws:' + m.id, toggleWs: toggle('ws:' + m.id), wsOpts: wsOpts(m.ws, v => upd(m.id, { ws:v })),
           can:m.can, cannot:!m.can, canText: m.can ? 'Can approve' : 'View only',
           toggle: e => { e.preventDefault(); upd(m.id, { can: !m.can }); },
@@ -541,7 +579,7 @@ class Component extends DCLogic {
       }),
       canInvite: admin,
       inv: { roleLabel: roleName(S.inviteRole), roleOpen: S.menu === 'role:inv', toggleRole: toggle('role:inv'), roleOpts: roleOpts(S.inviteRole, v => this.setState({ inviteRole:v })),
-        wsLabel: wsLabel(S.inviteWs), wsStyle: wsStyle(S.inviteWs), wsOpen: S.menu === 'ws:inv', toggleWs: toggle('ws:inv'), wsOpts: wsOpts(S.inviteWs, v => this.setState({ inviteWs:v })) },
+        wsLabel: wsLabel(S.inviteWs), wsStyle: wsStyle(S.inviteWs), wsOpen: !noWs && S.menu === 'ws:inv', toggleWs: noWs ? () => {} : toggle('ws:inv'), wsOpts: wsOpts(S.inviteWs, v => this.setState({ inviteWs:v })) },
       invite: S.invite, onInvite: e => this.setState({ invite: e.target.value, inviteMsg:null }), onInviteKey: e => { if (e.key === 'Enter') sendInvite(); },
       inviteErr: !!(msg && msg.bad), inviteOk: !!(msg && msg.ok), inviteMsg: msg ? msg.text : '',
       inviteInput: { flex:'1 1 220px', minWidth:0, height:36, padding:'0 12px', borderRadius:8, border:'1px solid ' + (msg && msg.bad ? 'var(--crit)' : 'var(--bc)'), background:'var(--s0)', color:'var(--ink)', fontSize:15, outline:'none' },

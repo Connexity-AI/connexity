@@ -126,7 +126,9 @@ async def callback(
     elif not user.is_active:
         logger.info("Google sign-in refused for an inactive account")
         return _back_to_sign_in()
-    elif not crud.has_a_workspace(session=session, user=user):
+    elif not crud.has_a_workspace(
+        session=session, user=user
+    ) and not crud.may_be_without_a_workspace(session=session, user=user):
         logger.info("Google sign-in refused for an account with no workspace")
         return _back_to_sign_in()
 

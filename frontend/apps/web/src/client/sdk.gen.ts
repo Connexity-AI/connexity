@@ -1794,7 +1794,8 @@ export class WorkspacesService {
    * Create Workspace
    *
    * A workspace for a new client, in the agency of the workspace the person has
-   * open unless another is named. Only an Admin of that agency may create one.
+   * open unless another is named; with no workspace open, in the agency they are an
+   * Admin of. Only an Admin of that agency may create one.
    */
   public static createWorkspace<ThrowOnError extends boolean = false>(
     options: Options<WorkspacesCreateWorkspaceData, ThrowOnError>

@@ -96,13 +96,31 @@ def _is_member(*, session: Session, user: User, cid: str | None) -> bool:
         # goes on in the workspace they have open now, when they reach one. The web
         # app tells them (`components/shell/workspace-deleted.tsx`).
         needed = {user.company_id}
-    return crud.is_member_of_all(session=session, user=user, workspace_ids=needed)
+    if crud.is_member_of_all(session=session, user=user, workspace_ids=needed):
+        return True
+    # A person who reaches no workspace at all has none to open. An Admin of an
+    # agency is let in all the same, to create its next workspace and reach its
+    # settings; routes that need a workspace answer 409 (`get_current_company_id`).
+    return not crud.list_accessible_workspaces(
+        session=session, user=user
+    ) and crud.may_be_without_a_workspace(session=session, user=user)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-def get_current_company_id(current_user: CurrentUser) -> uuid.UUID:
+NO_WORKSPACE_OPEN = "No workspace is open. Create a workspace first."
+
+
+def get_current_company_id(session: SessionDep, current_user: CurrentUser) -> uuid.UUID:
+    """The workspace the person has open, which every workspace route is scoped to.
+    An Admin whose agency has no workspace has none open: those routes answer 409."""
+    from app import crud
+
+    if not crud.is_member_of_all(
+        session=session, user=current_user, workspace_ids={current_user.company_id}
+    ):
+        raise HTTPException(status_code=409, detail=NO_WORKSPACE_OPEN)
     return current_user.company_id
 
 

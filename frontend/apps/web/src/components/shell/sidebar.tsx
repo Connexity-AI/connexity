@@ -37,7 +37,7 @@ export const Sidebar: FC<Props> = ({
       <Brand />
     </Link>
 
-    {NAV_ITEMS.length > 0 && (
+    {NAV_ITEMS.length > 0 && workspaces.length > 0 && (
       <nav aria-label="Pages" className="flex flex-col gap-0.5">
         {NAV_ITEMS.map(({ title, url, icon: Icon, counted }) =>
           counted === 'work' ? (

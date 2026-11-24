@@ -41,7 +41,9 @@ def login_access_token(
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
-    if not crud.has_a_workspace(session=session, user=user):
+    if not crud.has_a_workspace(
+        session=session, user=user
+    ) and not crud.may_be_without_a_workspace(session=session, user=user):
         raise HTTPException(status_code=403, detail=NO_WORKSPACE)
 
     access_token, expires = security.create_session_token(

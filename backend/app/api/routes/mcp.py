@@ -358,6 +358,12 @@ def list_workspaces(
         next_steps=[
             "Pass a workspace's `id` as `workspace_id` to every other Connexity tool.",
             "Call `list_agents` with that `workspace_id` to see its agents.",
+        ]
+        if data
+        else [
+            "The person reaches no workspace. If they are an Admin of an agency, ask "
+            "for the client's name and call `create_workspace`; otherwise tell them "
+            "to ask an Admin of their agency for access."
         ],
         guide=GUIDE_WORKSPACES,
     )
@@ -3998,15 +4004,17 @@ def prepare_workspace_deletion(
         if site
         else "Agency settings, Workspaces, in the Connexity web app"
     )
-    if is_last:
-        steps = [
-            f"Tell the person that {workspace.name} is the agency's only workspace "
-            "and cannot be deleted; another workspace has to exist first."
-        ]
-    elif can:
+    if can:
         steps = [
             "Tell the person exactly what would be removed, from `data`, and that it "
-            "cannot be undone.",
+            "cannot be undone."
+            + (
+                f" Say that {workspace.name} is the agency's last workspace: after "
+                "it the agency has none, and its subscription keeps running until an "
+                "Admin cancels it in Agency settings, Billing."
+                if is_last
+                else ""
+            ),
             f"If they still want it, send them to {where}: they open the workspace's "
             "menu, choose Delete workspace and type its name. You cannot do this step.",
         ]

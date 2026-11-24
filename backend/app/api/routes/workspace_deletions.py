@@ -34,8 +34,6 @@ from app.utils import generate_workspace_deleted_email, send_email
 
 router = APIRouter(prefix="/agencies", tags=["agencies"])
 
-LAST_WORKSPACE = "Create another workspace first. An agency needs at least one."
-
 
 def _deletion_public(deletion: WorkspaceDeletion) -> WorkspaceDeletionPublic:
     return WorkspaceDeletionPublic(
@@ -211,8 +209,6 @@ def delete_workspace(
         deletion = deleting.start_deletion(
             session=session, agency=agency, workspace=workspace, deleted_by=current_user
         )
-    except deleting.LastWorkspaceError:
-        raise HTTPException(status_code=409, detail=LAST_WORKSPACE)
     except deleting.DeletionRunningError:
         raise HTTPException(status_code=409, detail="This workspace was deleted.")
     return _finished(session, background_tasks, agency, deletion)

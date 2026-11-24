@@ -83,7 +83,8 @@ class WorkspaceDeletionPreview(SQLModel):
         description="The connected platforms whose stored keys are removed"
     )
     is_last: bool = Field(
-        description="The agency's only workspace, which cannot be deleted"
+        description="The agency's only workspace. It can be deleted; the agency then "
+        "has none, and its subscription keeps running until it is cancelled"
     )
 
 
