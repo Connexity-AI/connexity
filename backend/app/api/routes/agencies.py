@@ -167,6 +167,7 @@ def read_agency(
         ]
         if membership.role == AgencyRole.admin
         else [],
+        billing=settings.billing_enabled,
     )
 
 

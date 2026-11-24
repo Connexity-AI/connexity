@@ -83,6 +83,14 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str | None = None
     # Defaults to <backend public origin>/api/v1/auth/google/callback.
     GOOGLE_REDIRECT_URI: str | None = None
+    # Stripe: the agency's subscription. Without the key and the price there is no
+    # Billing section. The webhook secret is the endpoint's signing secret (whsec_...).
+    STRIPE_SECRET_KEY: str | None = None
+    STRIPE_PRICE_ID: str | None = None
+    STRIPE_WEBHOOK_SECRET: str | None = None
+    # Checkout adds tax through Stripe Tax. It needs the head office address and tax
+    # registrations entered in Stripe; without them Stripe refuses to start Checkout.
+    STRIPE_AUTOMATIC_TAX: bool = True
     OAUTH_ALLOWED_REDIRECT_URIS: str = (
         "https://claude.ai/api/mcp/auth_callback,"
         "https://claude.com/api/mcp/auth_callback"
@@ -263,6 +271,17 @@ class Settings(BaseSettings):
     def password_reset_enabled(self) -> bool:
         """A reset needs an email sent and a link back to the web app."""
         return bool(self.emails_enabled and self.public_site_url)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def billing_enabled(self) -> bool:
+        """Paying needs Stripe's key and the subscription's price."""
+        return bool(
+            self.STRIPE_SECRET_KEY
+            and self.STRIPE_SECRET_KEY.strip()
+            and self.STRIPE_PRICE_ID
+            and self.STRIPE_PRICE_ID.strip()
+        )
 
     @computed_field  # type: ignore[prop-decorator]
     @property

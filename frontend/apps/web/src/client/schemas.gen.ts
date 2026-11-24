@@ -45,6 +45,13 @@ export const AgencyDetailSchema = {
       title: 'Invites',
       description: 'Invites still waiting; shown to Admins only',
     },
+    billing: {
+      type: 'boolean',
+      title: 'Billing',
+      description:
+        'Whether paying is set up on this deployment; without it there is no Billing section',
+      default: false,
+    },
   },
   type: 'object',
   required: [
@@ -1060,6 +1067,90 @@ export const AuthProviderSchema = {
   type: 'string',
   enum: ['email', 'google'],
   title: 'AuthProvider',
+} as const;
+
+export const BillingDetailsPublicSchema = {
+  properties: {
+    name: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Name',
+    },
+    address: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Address',
+      description: 'The address, one line per item',
+    },
+    tax_ids: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Tax Ids',
+    },
+  },
+  type: 'object',
+  required: ['name', 'address', 'tax_ids'],
+  title: 'BillingDetailsPublic',
+} as const;
+
+export const BillingLinkSchema = {
+  properties: {
+    url: {
+      type: 'string',
+      title: 'Url',
+      description: 'A page on Stripe to send the person to',
+    },
+  },
+  type: 'object',
+  required: ['url'],
+  title: 'BillingLink',
+} as const;
+
+export const BillingPublicSchema = {
+  properties: {
+    subscription: {
+      $ref: '#/components/schemas/SubscriptionPublic',
+    },
+    card: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/CardPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    details: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/BillingDetailsPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    read_from_stripe: {
+      type: 'boolean',
+      title: 'Read From Stripe',
+      description:
+        'False when Stripe could not be reached: the subscription is the last known one and the card and details are missing',
+    },
+  },
+  type: 'object',
+  required: ['subscription', 'card', 'details', 'read_from_stripe'],
+  title: 'BillingPublic',
 } as const;
 
 export const Body_login_login_access_tokenSchema = {
@@ -2334,6 +2425,30 @@ export const CallsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'CallsPublic',
+} as const;
+
+export const CardPublicSchema = {
+  properties: {
+    brand: {
+      type: 'string',
+      title: 'Brand',
+    },
+    last4: {
+      type: 'string',
+      title: 'Last4',
+    },
+    exp_month: {
+      type: 'integer',
+      title: 'Exp Month',
+    },
+    exp_year: {
+      type: 'integer',
+      title: 'Exp Year',
+    },
+  },
+  type: 'object',
+  required: ['brand', 'last4', 'exp_month', 'exp_year'],
+  title: 'CardPublic',
 } as const;
 
 export const CategoryKindSchema = {
@@ -11773,6 +11888,54 @@ export const StoppedCallsPublicSchema = {
   title: 'StoppedCallsPublic',
 } as const;
 
+export const SubscriptionPublicSchema = {
+  properties: {
+    state: {
+      $ref: '#/components/schemas/SubscriptionState',
+      description:
+        'none, active, past_due (a renewal failed and is being retried; Connexity keeps working), unpaid or ended',
+    },
+    price_usd: {
+      type: 'integer',
+      title: 'Price Usd',
+      description: 'Dollars a month',
+    },
+    included_usd: {
+      type: 'integer',
+      title: 'Included Usd',
+      description: 'Dollars of usage included each month',
+    },
+    period_end: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Period End',
+      description: 'When it renews, or ends if `ends_at_period_end`',
+    },
+    ends_at_period_end: {
+      type: 'boolean',
+      title: 'Ends At Period End',
+      description: 'Cancelled: it runs to `period_end` and is not renewed',
+    },
+  },
+  type: 'object',
+  required: ['state', 'price_usd', 'included_usd', 'period_end', 'ends_at_period_end'],
+  title: 'SubscriptionPublic',
+} as const;
+
+export const SubscriptionStateSchema = {
+  type: 'string',
+  enum: ['none', 'active', 'past_due', 'unpaid', 'ended'],
+  title: 'SubscriptionState',
+  description: "The agency's subscription as Connexity knows it (`docs-internal/billing.md`).",
+} as const;
+
 export const TaskKindSchema = {
   type: 'string',
   enum: [
@@ -13512,6 +13675,18 @@ export const UsagePublicSchema = {
       type: 'array',
       title: 'Movers',
       description: 'The three things that added most to the cost',
+    },
+    subscription: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SubscriptionPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "The agency's subscription. Only in an assistant's answer, and only where paying is set up",
     },
   },
   type: 'object',

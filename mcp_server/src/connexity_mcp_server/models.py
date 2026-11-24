@@ -458,6 +458,21 @@ class UsageMover(BaseModel):
     cost_usd: float
 
 
+class Subscription(BaseModel):
+    state: str = Field(
+        description="none, active, past_due (a renewal failed and is being retried; "
+        "Connexity keeps working), unpaid or ended"
+    )
+    price_usd: int = Field(description="Dollars a month")
+    included_usd: int = Field(description="Dollars of usage included each month")
+    period_end: str | None = Field(
+        default=None, description="When it renews, or ends if `ends_at_period_end`"
+    )
+    ends_at_period_end: bool = Field(
+        default=False, description="Cancelled: it runs to `period_end`, not renewed"
+    )
+
+
 class Usage(BaseModel):
     """A workspace's usage over a period, at list price. Nothing is billed."""
 
@@ -475,6 +490,11 @@ class Usage(BaseModel):
     movers: list[UsageMover] = Field(
         default_factory=list,
         description="The three things that added most to the cost",
+    )
+    subscription: Subscription | None = Field(
+        default=None,
+        description="The agency's subscription, where paying is set up. You never "
+        "start, pay, cancel or change it",
     )
 
 
