@@ -125,6 +125,7 @@ from app.models.mcp import (
     McpPeople,
     McpPerson,
     McpRaiseClarifications,
+    McpReadCalls,
     McpRefusedAgent,
     McpRemoved,
     McpRunCost,
@@ -169,6 +170,8 @@ from app.services.billing_state import (
 )
 from app.services.billing_usage import PeriodKey, agency_usage
 from app.services.call_list import workspace_calls
+from app.services.call_read import MAX_CALLS as MAX_READ_CALLS
+from app.services.call_read import read_calls
 from app.services.call_screen import call_screen
 from app.services.checks.base import Check, ModelCheck
 from app.services.checks.engine import current_mode
@@ -572,6 +575,79 @@ def list_calls(
         next_steps=next_steps,
         guide=GUIDE_CALLS,
         next_cursor=_encode_cursor(offset + limit) if page.has_more else None,
+    )
+
+
+@router.get(
+    "/workspaces/{workspace_id}/calls/read",
+    response_model=McpAnswer[McpReadCalls],
+)
+def read_workspace_calls(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    query: str | None = Query(default=None, max_length=255),
+    agent_id: uuid.UUID | None = Query(default=None),
+    result: CallCheckStatus | None = Query(default=None),
+    category: str | None = Query(default=None, max_length=64),
+    period: Literal["7d", "30d", "90d"] = "30d",
+    issue_id: uuid.UUID | None = Query(default=None),
+    version: str | None = Query(default=None, max_length=64),
+    cursor: str | None = Query(default=None, max_length=255),
+    limit: int = Query(default=MAX_READ_CALLS, ge=1, le=MAX_READ_CALLS),
+) -> McpAnswer[McpReadCalls]:
+    """Many calls in full, with `list_calls`' filters. Declared before the single-call
+    route, whose id would otherwise swallow the word "read"."""
+    offset = _decode_cursor(cursor)
+    page, next_offset = read_calls(
+        session=session,
+        company_id=workspace.id,
+        filters=CallFilters(
+            period=period,
+            agent_id=agent_id,
+            result=result,
+            category=category,
+            query=query,
+            issue_id=issue_id,
+            version=version,
+        ),
+        offset=offset,
+        limit=limit,
+    )
+    next_steps = []
+    if next_offset is not None:
+        next_steps.append(
+            "This page stopped at its size limit or its count. Call `read_calls` "
+            "again with the same filters and `cursor` set to `next_cursor`, until "
+            "there is no `next_cursor`."
+        )
+    if not page.calls and offset == 0:
+        next_steps.append("No call matches. Try a longer period or fewer filters.")
+    else:
+        next_steps.append(
+            "Do your own analysis on what you read. For one call's timings and the "
+            "events each finding points at, call `get_call` with its `id`."
+        )
+    return McpAnswer[McpReadCalls](
+        data=page,
+        rules=[
+            "Calls come newest first, with the same filters as `list_calls`. "
+            "`matching` counts every call the filters match in the period.",
+            "Each call is its conversation in order: a turn has `speaker` and `text`; "
+            "a tool call has `tool`, `status`, `arguments` and `result`. A call with "
+            "no transcript yet has an empty conversation.",
+            "A page holds as many calls as fit in one answer, at most "
+            f"{MAX_READ_CALLS}. It can be fewer than `limit`; `next_cursor` is the "
+            "only sign that more remain.",
+            "Callers are shown as their last four digits only, and secrets in tool "
+            "arguments and results are masked; never ask Connexity for either.",
+            "Connexity filters only on what it owns: issues, findings, versions, "
+            "results, categories and the period. Searching what was said or a tool's "
+            "arguments is your own analysis over these calls. A pattern worth "
+            "watching on every call belongs in a check: tell the person.",
+        ],
+        next_steps=next_steps,
+        guide=GUIDE_CALLS,
+        next_cursor=_encode_cursor(next_offset) if next_offset is not None else None,
     )
 
 

@@ -138,6 +138,12 @@ TOOLS: dict[str, ToolEntry] = {
         "Lists calls, newest first, with their result and what the checks found.",
         "calls",
     ),
+    "read_calls": ToolEntry(
+        "calls_and_issues",
+        "Many calls in full at once, to analyse a period's calls: what was said and "
+        "every tool call with its arguments and result.",
+        "calls",
+    ),
     "get_call": ToolEntry(
         "calls_and_issues",
         "One call in full: every turn and tool call in order, and what was found.",

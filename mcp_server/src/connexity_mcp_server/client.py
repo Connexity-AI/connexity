@@ -130,6 +130,41 @@ class ConnexityBackendClient:
             f"{quote(call_id, safe='')}",
         )
 
+    async def read_calls(
+        self,
+        *,
+        workspace_id: str,
+        query: str | None = None,
+        agent_id: str | None = None,
+        result: str | None = None,
+        category: str | None = None,
+        period: str | None = None,
+        issue_id: str | None = None,
+        version: str | None = None,
+        cursor: str | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
+        params = {
+            key: value
+            for key, value in {
+                "query": query,
+                "agent_id": agent_id,
+                "result": result,
+                "category": category,
+                "period": period,
+                "issue_id": issue_id,
+                "version": version,
+                "cursor": cursor,
+                "limit": limit,
+            }.items()
+            if value not in (None, "")
+        }
+        return await self._request_json(
+            "GET",
+            f"/mcp/workspaces/{quote(workspace_id, safe='')}/calls/read",
+            params=params,
+        )
+
     async def list_calls(
         self,
         *,

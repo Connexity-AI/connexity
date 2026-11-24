@@ -6798,6 +6798,51 @@ export const McpAnswer_McpPerson_Schema = {
   title: 'McpAnswer[McpPerson]',
 } as const;
 
+export const McpAnswer_McpReadCalls_Schema = {
+  properties: {
+    data: {
+      $ref: '#/components/schemas/McpReadCalls',
+      description: 'The facts: the result of the call',
+    },
+    rules: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Rules',
+      description: 'The rules that apply to what was returned, one sentence each',
+    },
+    next_steps: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Next Steps',
+      description: 'Steps the assistant can take next, in order, naming the tool',
+    },
+    guide: {
+      type: 'string',
+      title: 'Guide',
+      description: 'The guide for this part of Connexity',
+    },
+    next_cursor: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Cursor',
+      description: 'On lists: pass as `cursor` for the next page; empty on the last',
+    },
+  },
+  type: 'object',
+  required: ['data', 'guide'],
+  title: 'McpAnswer[McpReadCalls]',
+} as const;
+
 export const McpAnswer_McpRemoved_Schema = {
   properties: {
     data: {
@@ -8824,6 +8869,116 @@ export const McpRaiseClarificationsSchema = {
   type: 'object',
   required: ['questions'],
   title: 'McpRaiseClarifications',
+} as const;
+
+export const McpReadCallSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Pass to `get_call` for timings and findings',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_name: {
+      type: 'string',
+      title: 'Agent Name',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Seconds',
+    },
+    caller_last_four: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Last Four',
+      description: "The caller's last four digits; never the number",
+    },
+    result: {
+      $ref: '#/components/schemas/CallCheckStatus',
+    },
+    version: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Version',
+      description: 'The agent version it ran on',
+    },
+    findings: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Findings',
+      description: 'What the checks found, worst first',
+    },
+    conversation: {
+      items: {
+        $ref: '#/components/schemas/McpReadTurn',
+      },
+      type: 'array',
+      title: 'Conversation',
+      description: 'In order. Empty when the call has no transcript yet',
+    },
+  },
+  type: 'object',
+  required: ['id', 'agent_id', 'agent_name', 'started_at', 'result', 'conversation'],
+  title: 'McpReadCall',
+} as const;
+
+export const McpReadCallsSchema = {
+  properties: {
+    calls: {
+      items: {
+        $ref: '#/components/schemas/McpReadCall',
+      },
+      type: 'array',
+      title: 'Calls',
+      description:
+        'Newest first. A page stops at a size limit, not at a round number: go on with `next_cursor`',
+    },
+    matching: {
+      type: 'integer',
+      title: 'Matching',
+      description: 'Calls matching the filters in the period',
+    },
+  },
+  type: 'object',
+  required: ['calls', 'matching'],
+  title: 'McpReadCalls',
+} as const;
+
+export const McpReadTurnSchema = {
+  type: 'object',
+  title: 'McpReadTurn',
+  description: "One step of a call's conversation: something said, or a tool call.",
 } as const;
 
 export const McpRefusedAgentSchema = {

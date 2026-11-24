@@ -22,6 +22,7 @@ from connexity_mcp_server.tools import (
     add_agents,
     get_call,
     list_calls,
+    read_calls,
     list_categories,
     archive_issue,
     answer_clarifications,
@@ -681,6 +682,73 @@ async def test_list_calls_sends_the_search_and_filters() -> None:
 
     assert result.data.calls[0].caller_last_four == "4821"
     assert result.data.calls[0].worst_finding.found_by == "code_based"
+
+
+@pytest.mark.asyncio
+async def test_read_calls_sends_the_filters_and_reads_conversations() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "GET"
+        assert request.url.path == f"/api/v1/mcp/workspaces/{WORKSPACE_ID}/calls/read"
+        assert dict(request.url.params) == {
+            "agent_id": "a1",
+            "result": "failed",
+            "period": "7d",
+            "version": "88",
+            "cursor": "c1",
+            "limit": "20",
+        }
+        return httpx.Response(
+            200,
+            json={
+                "data": {
+                    "calls": [
+                        {
+                            "id": "c1",
+                            "agent_id": "a1",
+                            "agent_name": "Front desk",
+                            "started_at": "2026-11-20T10:00:00Z",
+                            "duration_seconds": 73,
+                            "caller_last_four": "4821",
+                            "result": "failed",
+                            "version": "88",
+                            "findings": ["Empty argument: postalCode"],
+                            "conversation": [
+                                {"speaker": "caller", "text": "I need a repair"},
+                                {
+                                    "tool": "schedule_appointment",
+                                    "status": "ok",
+                                    "arguments": {"postalCode": ""},
+                                    "result": {"status": "booked"},
+                                },
+                            ],
+                        }
+                    ],
+                    "matching": 41,
+                },
+                "next_cursor": "c2",
+                **ANSWER,
+            },
+        )
+
+    result = await _call(
+        handler,
+        lambda client: read_calls(
+            client,
+            workspace_id=WORKSPACE_ID,
+            agent_id="a1",
+            result="failed",
+            period="7d",
+            version="88",
+            cursor="c1",
+            limit=20,
+        ),
+    )
+
+    assert result.next_cursor == "c2"
+    assert result.data.matching == 41
+    turn, tool = result.data.calls[0].conversation
+    assert (turn.speaker, turn.text, turn.tool) == ("caller", "I need a repair", None)
+    assert (tool.tool, tool.arguments) == ("schedule_appointment", {"postalCode": ""})
 
 
 @pytest.mark.asyncio
