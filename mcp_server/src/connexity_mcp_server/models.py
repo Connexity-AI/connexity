@@ -473,6 +473,40 @@ class Subscription(BaseModel):
     )
 
 
+class FirstScan(BaseModel):
+    checked: int = Field(description="Calls the included first scan read")
+    of: int = Field(
+        description="Calls the last 30 days held; more than `checked` when the "
+        "limit was reached"
+    )
+
+
+class Money(BaseModel):
+    state: str = Field(
+        description="first_scan, needs_subscription, active, low, out or unpaid. "
+        "Paused in needs_subscription, out and unpaid: new calls are not recorded "
+        "or checked and tests cannot run"
+    )
+    included_usd: float = Field(description="Included in the current period")
+    included_left_usd: float
+    balance_usd: float = Field(
+        description="Prepaid balance, used after the included amount; never negative"
+    )
+    period_end: str | None = Field(
+        default=None, description="When the included amount is restored"
+    )
+    days_left: int | None = Field(
+        default=None,
+        description="About how many days what is left lasts; absent with too little "
+        "usage to tell",
+    )
+    subscription_ended: bool = False
+    first_scan: FirstScan | None = Field(
+        default=None,
+        description="The included first scan, for an agency with no subscription",
+    )
+
+
 class Usage(BaseModel):
     """A workspace's usage over a period, at list price. Nothing is billed."""
 
@@ -490,6 +524,11 @@ class Usage(BaseModel):
     movers: list[UsageMover] = Field(
         default_factory=list,
         description="The three things that added most to the cost",
+    )
+    money: Money | None = Field(
+        default=None,
+        description="What the agency has left and whether it is paused, where paying "
+        "is set up. You never add funds or pay",
     )
     subscription: Subscription | None = Field(
         default=None,

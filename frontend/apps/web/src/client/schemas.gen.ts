@@ -376,6 +376,14 @@ export const AgencyRoleSchema = {
   title: 'AgencyRole',
 } as const;
 
+export const AgencyStateSchema = {
+  type: 'string',
+  enum: ['first_scan', 'needs_subscription', 'active', 'low', 'out', 'unpaid'],
+  title: 'AgencyState',
+  description:
+    'What an agency may do, from its subscription and what it has left\n(`docs-internal/billing.md`).',
+} as const;
+
 export const AgencyUpdateSchema = {
   properties: {
     name: {
@@ -3853,6 +3861,24 @@ export const FindingPublicSchema = {
     'created_at',
   ],
   title: 'FindingPublic',
+} as const;
+
+export const FirstScanPublicSchema = {
+  properties: {
+    checked: {
+      type: 'integer',
+      title: 'Checked',
+      description: 'Calls the included first scan read',
+    },
+    of: {
+      type: 'integer',
+      title: 'Of',
+      description: 'Calls the last 30 days held; more than `checked` when the limit was reached',
+    },
+  },
+  type: 'object',
+  required: ['checked', 'of'],
+  title: 'FirstScanPublic',
 } as const;
 
 export const FirstTurnSchema = {
@@ -9561,6 +9587,84 @@ export const MessageSchema = {
   title: 'Message',
 } as const;
 
+export const MoneyPublicSchema = {
+  properties: {
+    state: {
+      $ref: '#/components/schemas/AgencyState',
+    },
+    included_usd: {
+      type: 'number',
+      title: 'Included Usd',
+      description: 'Included in the current period',
+    },
+    included_left_usd: {
+      type: 'number',
+      title: 'Included Left Usd',
+    },
+    balance_usd: {
+      type: 'number',
+      title: 'Balance Usd',
+      description: 'Prepaid balance, used after the included amount. Never negative',
+    },
+    period_end: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Period End',
+      description: 'When the included amount is restored',
+    },
+    days_left: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Days Left',
+      description:
+        'About how many days what is left lasts at the rate of the last 7 days; absent with too little usage to tell',
+    },
+    subscription_ended: {
+      type: 'boolean',
+      title: 'Subscription Ended',
+      description:
+        'In `needs_subscription`: a subscription existed and ended, rather than never having started',
+      default: false,
+    },
+    first_scan: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FirstScanPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'The included first scan, for an agency with no subscription',
+    },
+  },
+  type: 'object',
+  required: [
+    'state',
+    'included_usd',
+    'included_left_usd',
+    'balance_usd',
+    'period_end',
+    'days_left',
+    'first_scan',
+  ],
+  title: 'MoneyPublic',
+  description: 'What an agency has left, in dollars.',
+} as const;
+
 export const OAuthClientRegistrationRequestSchema = {
   properties: {
     redirect_uris: {
@@ -13675,6 +13779,18 @@ export const UsagePublicSchema = {
       type: 'array',
       title: 'Movers',
       description: 'The three things that added most to the cost',
+    },
+    money: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/MoneyPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        "What the agency has left and whether it is paused. Only in an assistant's answer, and only where paying is set up",
     },
     subscription: {
       anyOf: [

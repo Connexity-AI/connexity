@@ -1386,6 +1386,37 @@ def test_usage_carries_the_agencys_subscription_when_there_is_one() -> None:
     assert usage.subscription is not None
     assert usage.subscription.state == "active"
     assert usage.subscription.ends_at_period_end is True
+    assert usage.money is None
+
+
+def test_usage_carries_what_the_agency_has_left() -> None:
+    from connexity_mcp_server.models import Usage
+
+    usage = Usage.model_validate(
+        {
+            "period": "month",
+            "starts_at": "2026-11-01T00:00:00Z",
+            "ends_at": "2026-12-01T00:00:00Z",
+            "lines": [],
+            "cost_usd": 0,
+            "agents": [],
+            "money": {
+                "state": "needs_subscription",
+                "included_usd": 0,
+                "included_left_usd": 0,
+                "balance_usd": 0,
+                "period_end": None,
+                "days_left": None,
+                "subscription_ended": False,
+                "first_scan": {"checked": 500, "of": 3410},
+            },
+        }
+    )
+
+    assert usage.money is not None
+    assert usage.money.state == "needs_subscription"
+    assert usage.money.first_scan is not None
+    assert (usage.money.first_scan.checked, usage.money.first_scan.of) == (500, 3410)
 
 
 @pytest.mark.asyncio

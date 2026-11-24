@@ -105,6 +105,7 @@ from app.models.test_run import (
 from app.models.trace import ToolCallEvent, Trace, TraceEvent, UtteranceEvent
 from app.models.user import User
 from app.services.agent_tool_definitions import snapshot_marks_tool_terminating
+from app.services.billing_state import PAUSED_NEXT_STEP, records_calls
 from app.services.checks.engine import current_mode, run_checks
 from app.services.checks.registry import CHECKS, FACT_SOURCES, get_check
 from app.services.component_versions import RetellVersionRead, read_retell_version
@@ -286,6 +287,9 @@ def start_run(
                 "set; there is nothing for you to fix."
             ],
         )
+    if not records_calls(session=session, company_id=agent.company_id):
+        msg = "Connexity is paused for this agency, so tests cannot run."
+        raise RunRefused(msg, [PAUSED_NEXT_STEP])
     spec = latest_spec(session=session, agent_id=agent.id)
     if spec is None:
         msg = "The agent has no spec, so there are no rules to judge."

@@ -23,6 +23,7 @@ from app.crud import billing as crud_billing
 from app.models import Integration
 from app.models.enums import IntegrationProvider
 from app.services import stripe
+from app.services.billing_state import records_calls
 from app.services.checks.engine import check_call_safely
 from app.services.component_versions import add_retell_components
 from app.services.executions import sync_call_executions_in_background
@@ -114,6 +115,15 @@ async def retell_webhook(
     )
     if not agents:
         return WebhookResult(status="ignored", reason="agent not connected")
+    # A paused agency's calls are not recorded. Retell still gets a success, so it
+    # does not send the call again.
+    agents = [
+        agent
+        for agent in agents
+        if records_calls(session=session, company_id=agent.company_id)
+    ]
+    if not agents:
+        return WebhookResult(status="ignored", reason="paused")
 
     try:
         retell_call_to_trace(payload)

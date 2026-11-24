@@ -95,6 +95,15 @@ def _no_provider_version_reads(
 
 
 @pytest.fixture(autouse=True)
+def _paying_is_not_set_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A developer's `.env` may hold Stripe settings. Tests run as CI does, with none:
+    nothing is charged and nothing pauses. The billing tests set their own."""
+    monkeypatch.setattr(settings, "STRIPE_SECRET_KEY", None)
+    monkeypatch.setattr(settings, "STRIPE_PRICE_ID", None)
+    monkeypatch.setattr(settings, "STRIPE_WEBHOOK_SECRET", None)
+
+
+@pytest.fixture(autouse=True)
 def _no_playground_pacing() -> Generator[None, None, None]:
     """Requests to Retell's playground are paced to its limit of 8 per 2 seconds.
 

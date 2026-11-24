@@ -251,6 +251,29 @@ export const AgencyRole = { ADMIN: 'admin', MEMBER: 'member' } as const;
 export type AgencyRole = (typeof AgencyRole)[keyof typeof AgencyRole];
 
 /**
+ * AgencyState
+ *
+ * What an agency may do, from its subscription and what it has left
+ * (`docs-internal/billing.md`).
+ */
+export const AgencyState = {
+  FIRST_SCAN: 'first_scan',
+  NEEDS_SUBSCRIPTION: 'needs_subscription',
+  ACTIVE: 'active',
+  LOW: 'low',
+  OUT: 'out',
+  UNPAID: 'unpaid',
+} as const;
+
+/**
+ * AgencyState
+ *
+ * What an agency may do, from its subscription and what it has left
+ * (`docs-internal/billing.md`).
+ */
+export type AgencyState = (typeof AgencyState)[keyof typeof AgencyState];
+
+/**
  * AgencyUpdate
  */
 export type AgencyUpdate = {
@@ -2647,6 +2670,24 @@ export type FindingPublic = {
    * Created At
    */
   created_at: string;
+};
+
+/**
+ * FirstScanPublic
+ */
+export type FirstScanPublic = {
+  /**
+   * Checked
+   *
+   * Calls the included first scan read
+   */
+  checked: number;
+  /**
+   * Of
+   *
+   * Calls the last 30 days held; more than `checked` when the limit was reached
+   */
+  of: number;
 };
 
 /**
@@ -6559,6 +6600,53 @@ export type Message = {
 };
 
 /**
+ * MoneyPublic
+ *
+ * What an agency has left, in dollars.
+ */
+export type MoneyPublic = {
+  state: AgencyState;
+  /**
+   * Included Usd
+   *
+   * Included in the current period
+   */
+  included_usd: number;
+  /**
+   * Included Left Usd
+   */
+  included_left_usd: number;
+  /**
+   * Balance Usd
+   *
+   * Prepaid balance, used after the included amount. Never negative
+   */
+  balance_usd: number;
+  /**
+   * Period End
+   *
+   * When the included amount is restored
+   */
+  period_end: string | null;
+  /**
+   * Days Left
+   *
+   * About how many days what is left lasts at the rate of the last 7 days; absent with too little usage to tell
+   */
+  days_left: number | null;
+  /**
+   * Subscription Ended
+   *
+   * In `needs_subscription`: a subscription existed and ended, rather than never having started
+   */
+  subscription_ended?: boolean;
+  /**
+   * The included first scan, for an agency with no subscription
+   */
+  first_scan: FirstScanPublic | null;
+};
+
+/**
  * OAuthClientRegistrationRequest
  */
 export type OAuthClientRegistrationRequest = {
@@ -9385,6 +9473,10 @@ export type UsagePublic = {
    */
   movers: Array<UsageMoverPublic>;
   /**
+   * What the agency has left and whether it is paused. Only in an assistant's answer, and only where paying is set up
+   */
+  money?: MoneyPublic | null;
+  /**
    * The agency's subscription. Only in an assistant's answer, and only where paying is set up
    */
   subscription?: SubscriptionPublic | null;
@@ -11511,6 +11603,63 @@ export type InvitesSignInAndJoinResponses = {
 
 export type InvitesSignInAndJoinResponse =
   InvitesSignInAndJoinResponses[keyof InvitesSignInAndJoinResponses];
+
+export type BillingReadStatusData = {
+  body?: never;
+  path: {
+    /**
+     * Agency Id
+     */
+    agency_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agencies/{agency_id}/billing/status';
+};
+
+export type BillingReadStatusErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type BillingReadStatusError = BillingReadStatusErrors[keyof BillingReadStatusErrors];
+
+export type BillingReadStatusResponses = {
+  /**
+   * Response Billing-Read Status
+   *
+   * Successful Response
+   */
+  200: MoneyPublic | null;
+};
+
+export type BillingReadStatusResponse =
+  BillingReadStatusResponses[keyof BillingReadStatusResponses];
 
 export type BillingReadBillingData = {
   body?: never;

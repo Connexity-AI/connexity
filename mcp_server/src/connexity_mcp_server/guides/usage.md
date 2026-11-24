@@ -49,3 +49,35 @@ You only read it. You never start, pay, cancel, resume or change a subscription,
 you never ask for or handle card details. An Admin does all of that in Agency settings,
 Billing, on the payment provider's own pages. When the person asks for any of it, tell
 them where.
+
+## What is left, and the pause
+
+Where paying is set up, the answer has `money`, in dollars:
+
+- Each period of the subscription includes $299 of usage (`included_usd`,
+  `included_left_usd`; restored at `period_end`).
+- Usage beyond it draws from the prepaid `balance_usd`, which never goes below zero.
+- Usage is charged in the period Connexity recorded it. An agency's first scan, made
+  before it has a subscription, is never charged (`first_scan`: how many calls it read,
+  of how many the last 30 days held).
+- `days_left`: about how long what is left lasts at the rate of the last 7 days.
+
+`state` says what the agency may do:
+
+| `state` | Meaning |
+|---|---|
+| `first_scan` | No subscription yet; the included first scan may run |
+| `needs_subscription` | No subscription and the first scan is done: paused |
+| `active` | Everything runs |
+| `low` | Running, with less than about a week left |
+| `out` | The included amount and the balance are used up: paused |
+| `unpaid` | The subscription is unpaid: paused |
+
+While paused, new calls are not recorded or checked and tests cannot run. `add_agents`,
+`scan_calls` and `run_scenarios` are refused and say so. Calls made during a pause are
+never brought in afterwards. Everything already recorded stays readable, so reading
+tools keep working.
+
+Tell the person plainly that Connexity is paused and why. You cannot resume it: an
+Admin starts the subscription or updates the card in Agency settings, Billing, and it
+resumes by itself.

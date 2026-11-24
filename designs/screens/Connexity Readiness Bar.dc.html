@@ -7,11 +7,23 @@
 </head>
 <body>
 <x-dc>
+<sc-if value="{{ subUnpaid }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 16px;background:var(--wash);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg><p style="flex:1;min-width:0;margin:0"><span style="font-weight:500">Your subscription is unpaid.</span><span style="color:var(--ink2)"> Connexity is paused.</span> <a href="Connexity Agency.dc.html?section=billing" style="color:var(--ink);font-weight:500;text-decoration:underline">Update card</a></p></div>
+</sc-if>
+<sc-if value="{{ firstScan }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 16px;background:var(--wash);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="12" cy="12" r="10"></circle><path d="m9 12 2 2 4-4"></path></svg><p style="flex:1;min-width:0;margin:0"><span style="color:var(--ink2)">Your first scan is done. Start your subscription to keep checking new calls and run tests.</span> <a href="Connexity Agency.dc.html?section=billing" style="color:var(--ink);font-weight:500;text-decoration:underline">Start subscription</a></p></div>
+</sc-if>
 <sc-if value="{{ outOfCredits }}" hint-placeholder-val="{{ false }}">
-<a href="Connexity Agency.dc.html?section=billing" style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 16px;background:var(--wash);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--ink);text-decoration:none" style-hover="opacity:1;background:var(--s1)">
+<div role="status" style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 16px;background:var(--wash);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--ink)">
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;color:var(--ink2)"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>
-<span><span style="font-weight:500">Out of credits:</span><span style="color:var(--ink2)"> tests are paused. Top up or turn on auto top-up</span></span>
-</a>
+<p style="flex:1;min-width:0;margin:0"><span style="font-weight:500">You’ve used this month’s usage.</span><span style="color:var(--ink2)"> Connexity is paused: new calls are not being checked and tests can’t run.</span> <a href="Connexity Agency.dc.html?section=billing" style="color:var(--ink);font-weight:500;text-decoration:underline">Add funds</a></p>
+</div>
+</sc-if>
+<sc-if value="{{ payFailed }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 16px;background:var(--warn-bg);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--warn)">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+<p style="flex:1;min-width:0;margin:0"><span style="font-weight:500">A payment failed.</span> Update your card before your balance runs out. <a href="Connexity Agency.dc.html?section=billing" style="color:var(--warn);font-weight:500;text-decoration:underline">Update card</a></p>
+</div>
 </sc-if>
 <sc-if value="{{ show }}" hint-placeholder-val="{{ true }}">
 <div style="display:flex;align-items:center;gap:10px;min-height:36px;padding:0 12px 0 16px;background:var(--wash);border-bottom:1px solid var(--border);font-family:'Figtree',system-ui,sans-serif;font-size:13px;line-height:18px;color:var(--ink)">
@@ -38,7 +50,8 @@ class Component extends DCLogic {
     const r = Component.STATES[this.props.state] || Component.STATES.setup;
     const c = 2 * Math.PI * 6;
     return {
-      outOfCredits: this.props.credits === 'out',
+      subUnpaid: this.props.sub === 'unpaid', firstScan: this.props.sub === 'none' && this.props.credits === 'new',
+      outOfCredits: this.props.credits === 'out' && this.props.sub !== 'unpaid', payFailed: this.props.payment === 'failed' && this.props.credits !== 'out' && this.props.sub !== 'unpaid',
       show: r.pct < 100 && !this.state.hidden, pct: r.pct, msg: r.msg,
       dash: `${(r.pct / 100 * c).toFixed(2)} ${c.toFixed(2)}`,
       hide: () => { try { localStorage.setItem(Component.KEY, new Date().toDateString()); } catch (_) {} this.setState({ hidden:true }); }
