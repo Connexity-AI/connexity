@@ -3,9 +3,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from passlib.context import CryptContext
 from sqlalchemy import text
 from sqlmodel import Session
 
+from app.core import security
 from app.core.config import settings
 from app.core.db import engine
 from app.main import app
@@ -29,6 +31,24 @@ def _ensure_categories(session: Session) -> None:
         if key not in existing:
             session.add(Category(key=key, name=name, position=position, kind=kind))
     session.commit()
+
+
+# bcrypt's minimum cost. At the app's default cost a hash takes about 0.25 s, and the
+# tests make hundreds of invented users: that was most of the suite's time
+# (`plans/2026-11-26-fast-test-hashing.md`).
+TEST_BCRYPT_ROUNDS = 4
+
+
+@pytest.fixture(scope="session", autouse=True)
+def production_pwd_context() -> Generator[CryptContext, None, None]:
+    """Tests hash passwords cheaply; the app's own context is kept and put back.
+    `test_security.py` checks that context still has its full cost."""
+    production = security.pwd_context
+    security.pwd_context = CryptContext(
+        schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=TEST_BCRYPT_ROUNDS
+    )
+    yield production
+    security.pwd_context = production
 
 
 @pytest.fixture(scope="session", autouse=True)
