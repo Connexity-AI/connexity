@@ -14,7 +14,7 @@ from typing import Any
 MASK = "•••"
 
 # Field names whose string value is a credential.
-_SECRET_NAME = re.compile(
+SECRET_NAME = re.compile(
     r"api[_-]?key|access[_-]?key|private[_-]?key|token|secret|password|passwd"
     r"|passphrase|authorization|bearer|cookie|signature",
     re.IGNORECASE,
@@ -36,12 +36,12 @@ def mask_secrets(value: Any, *, _in_headers: bool = False) -> Any:
         return value
     masked: dict[str, Any] = {}
     pair_name = value.get("name")
-    named_secret = isinstance(pair_name, str) and bool(_SECRET_NAME.search(pair_name))
+    named_secret = isinstance(pair_name, str) and bool(SECRET_NAME.search(pair_name))
     for key, item in value.items():
         name = str(key)
         inside = _in_headers or "header" in name.lower()
         if isinstance(item, str) and (
-            _SECRET_NAME.search(name)
+            SECRET_NAME.search(name)
             or (inside and name != "name")
             or (named_secret and name == "value")
         ):

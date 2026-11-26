@@ -3909,6 +3909,34 @@ export type KeyValue = {
 };
 
 /**
+ * KnownInputPublic
+ */
+export type KnownInputPublic = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Long
+   *
+   * Its longest value is over 200 characters: only the LLM step gets it
+   */
+  long: boolean;
+  /**
+   * Calls
+   *
+   * How many of the agent's recent calls carry it
+   */
+  calls: number;
+  /**
+   * Allowed
+   *
+   * False for contact details, ids and secrets: never a rule's input
+   */
+  allowed: boolean;
+};
+
+/**
  * LiveVersionPublic
  */
 export type LiveVersionPublic = {
@@ -6625,6 +6653,16 @@ export type McpSpecRule = {
    */
   critical?: boolean | null;
   /**
+   * classifier (the call settles it plainly), classifier_then_llm (a condition or the kind of call matters) or llm (needs long text or the call history); left out, a kept rule keeps its own and a new one is classifier
+   */
+  check?: SpecCheckType | null;
+  /**
+   * Inputs
+   *
+   * The names of the call inputs the rule needs, from `get_spec`'s known_inputs, at most 10; [] for the call alone; left out, a kept rule keeps its own
+   */
+  inputs?: Array<string> | null;
+  /**
    * Closes
    *
    * Answered prompt gaps this rule covers now that the prompt says it; for a rule from an earlier answer, its `prompt_gap_id`
@@ -8420,6 +8458,26 @@ export type SpecChangesPublic = {
 };
 
 /**
+ * SpecCheckType
+ *
+ * How a spec rule is checked (plan `plans/2026-11-26-rule-data-and-check.md`). Code
+ * checks are Connexity's own and not a choice.
+ */
+export const SpecCheckType = {
+  CLASSIFIER: 'classifier',
+  CLASSIFIER_THEN_LLM: 'classifier_then_llm',
+  LLM: 'llm',
+} as const;
+
+/**
+ * SpecCheckType
+ *
+ * How a spec rule is checked (plan `plans/2026-11-26-rule-data-and-check.md`). Code
+ * checks are Connexity's own and not a choice.
+ */
+export type SpecCheckType = (typeof SpecCheckType)[keyof typeof SpecCheckType];
+
+/**
  * SpecComparisonPublic
  */
 export type SpecComparisonPublic = {
@@ -8479,6 +8537,12 @@ export type SpecCountsPublic = {
    * Rules marked critical
    */
   critical?: number;
+  /**
+   * Classifier On Call
+   *
+   * Rules that are classifier checks on the call alone, the default: check each one's type and inputs are right
+   */
+  classifier_on_call?: number;
 };
 
 /**
@@ -8592,6 +8656,12 @@ export type SpecPublic = {
    * With compare: how the shown version differs
    */
   comparison?: SpecComparisonPublic | null;
+  /**
+   * Known Inputs
+   *
+   * The input names the agent's calls carried in the last 30 days, never their values: the names a rule may use
+   */
+  known_inputs?: Array<KnownInputPublic>;
 };
 
 /**
@@ -8634,6 +8704,22 @@ export type SpecRulePublic = {
    * The person's clarifications in force on this rule, oldest first
    */
   clarifications?: Array<RuleClarificationPublic>;
+  /**
+   * classifier, classifier_then_llm or llm: how the rule is checked
+   */
+  check?: SpecCheckType;
+  /**
+   * Inputs
+   *
+   * The call inputs it needs; a check is given only these
+   */
+  inputs?: Array<string>;
+  /**
+   * Data
+   *
+   * call: the call alone; short_inputs: short named inputs, given to the classifier; long_text: a long input, given only to the LLM step
+   */
+  data?: 'call' | 'short_inputs' | 'long_text';
   /**
    * Answered By
    *
@@ -8809,6 +8895,12 @@ export type SpecWrittenPublic = {
    * With compare: how the shown version differs
    */
   comparison?: SpecComparisonPublic | null;
+  /**
+   * Known Inputs
+   *
+   * The input names the agent's calls carried in the last 30 days, never their values: the names a rule may use
+   */
+  known_inputs?: Array<KnownInputPublic>;
   changes: SpecChangesPublic;
 };
 

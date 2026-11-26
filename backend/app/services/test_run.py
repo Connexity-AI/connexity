@@ -559,6 +559,17 @@ def check_simulated(
     ]
 
 
+def _scenario_inputs(scenario: TestCase) -> dict[str, object]:
+    """The values the scenario gives the agent, as the simulated call is run with
+    them; one written before agent variables were split out has only its caller
+    context."""
+    return dict(
+        scenario.agent_variables
+        if scenario.agent_variables is not None
+        else scenario.user_context or {}
+    )
+
+
 @dataclass(frozen=True)
 class _RunContext:
     run_id: uuid.UUID
@@ -633,6 +644,13 @@ async def _simulate(
                         text=ctx.rules[key].text,
                         clarifications=tuple(
                             c.sentence for c in ctx.clarified[key].clarifications
+                        )
+                        if key in ctx.clarified
+                        else (),
+                        inputs=tuple(
+                            ctx.clarified[key]
+                            .given(_scenario_inputs(scenario), llm=True)
+                            .items()
                         )
                         if key in ctx.clarified
                         else (),

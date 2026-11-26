@@ -33,6 +33,48 @@ that version.
 - **No rules about how the agent sounds** (tone, warmth, wording) unless the prompt makes
   one a requirement, such as "always say the clinic's name when you answer".
 
+## Rules that can be checked
+
+Connexity judges every call against each rule, one rule at a time, and the check reads
+only the rule's own words, its clarifications and the inputs it names. Every wrong flag
+in Connexity's first review came from a rule that left one of these out:
+
+1. **Define any term a reader of the call would not know.** A check does not know the
+   prompt's vocabulary. Not "use each value beat at most once", but "say each selling
+   point (speed, price, local knowledge) at most once".
+2. **Put the rule's condition in the rule.** "On a first call, never say the form was
+   just filled out", not "never say the form was just filled out" with the first-call
+   part left in the prompt.
+3. **Say where a boundary lies when the prompt does.** "No turn longer than 50 words",
+   "a callback within 2 minutes", with the number the prompt gives.
+4. **Raise a clarification, not a guess, when the prompt leaves it open.** If you are
+   not sure the rule covers a case, ask the person (see below). Never write the
+   boundary yourself.
+5. **Choose each rule's check type** (`check`):
+   - `classifier`: the call alone settles it plainly, such as a word said or not, a turn
+     too long, or a question asked. The cheapest, and the default.
+   - `classifier_then_llm`: the rule has a condition or depends on the kind of call
+     ("unless", "only if", "on a first call", a call screener, a voicemail). A smarter
+     model confirms each flag the classifier raises.
+   - `llm`: the rule needs long text or the call history. Only the LLM step reads it.
+   - Code checks are Connexity's own; they are not a type you choose.
+   - A strange call on a `classifier` rule is not verified. That is accepted for now,
+     so when a rule's flags may be unusual, prefer `classifier_then_llm`.
+6. **Name the inputs the rule needs** (`inputs`), and only those. `get_spec` lists the
+   agent's `known_inputs`: the names its calls carry, never their values.
+   - A rule about "a first call" names the input that says which attempt it is.
+   - A rule about a number the agent quotes names the input it comes from.
+   - A check is given only the inputs its rule names; naming more makes it worse, not
+     better.
+   - An input over 200 characters on the agent's calls (the call history) is long. It
+     goes only to the LLM step, so a rule that names one is `classifier_then_llm` or
+     `llm`.
+   - Contact details, ids and secrets are never inputs: Connexity never sends them to a
+     model.
+
+Both are kept by key like `critical`: a kept rule you pass without them keeps its own.
+`get_spec` counts the rules still on the default (`classifier_on_call`); look at each.
+
 ## What is not a rule: a question for the person
 
 A rule comes only from the prompt. The only way to change a rule is to change the

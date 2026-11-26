@@ -202,13 +202,13 @@ TOOLS: dict[str, ToolEntry] = {
     "get_spec": ToolEntry(
         "agents_and_spec",
         "The agent's spec: what it must do, as plain rules from its prompt, each with "
-        "your clarifications.",
+        "your clarifications, how it is checked and the call inputs it needs.",
         "spec",
     ),
     "write_spec": ToolEntry(
         "agents_and_spec",
-        "Writes the agent's spec from its prompt as a new version; earlier versions "
-        "and your clarifications are kept.",
+        "Writes the agent's spec from its prompt as a new version, with how each rule "
+        "is checked; earlier versions and your clarifications are kept.",
         "spec",
     ),
     "mark_critical_rules": ToolEntry(

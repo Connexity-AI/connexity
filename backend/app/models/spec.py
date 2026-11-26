@@ -12,10 +12,17 @@ from typing import Literal
 
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, ForeignKey, Text, UniqueConstraint, false, text
+from sqlalchemy import text as sa_text  # the rule's own `text` field hides `text`
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 from app.models.columns import enum_type
-from app.models.enums import SpecOrigin, SpecRuleSource, SpecRuleTouches
+from app.models.enums import (
+    SpecCheckType,
+    SpecOrigin,
+    SpecRuleSource,
+    SpecRuleTouches,
+)
 
 
 def _now() -> datetime:
@@ -116,9 +123,23 @@ class SpecRule(SQLModel, table=True):
     # A failed critical rule fails the version in testing; any other is a Warning
     # (`docs-internal/testing.md`, decision 6). Carried by key into later versions.
     critical: bool = Field(default=False, sa_column_kwargs={"server_default": false()})
+    # How it is checked, and the names of the call inputs it needs (none: the call
+    # alone). Carried by key into later versions, like the critical mark.
+    check: SpecCheckType = Field(
+        default=SpecCheckType.CLASSIFIER,
+        sa_type=enum_type(SpecCheckType),
+        sa_column_kwargs={"server_default": SpecCheckType.CLASSIFIER.value},
+    )
+    inputs: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(
+            "inputs", JSONB, nullable=False, server_default=sa_text("'[]'::jsonb")
+        ),
+    )
 
 
 SpecState = Literal["none", "current", "needs_review"]
+RuleData = Literal["call", "short_inputs", "long_text"]
 
 
 class RuleClarificationPublic(BaseModel):
@@ -156,6 +177,19 @@ class SpecRulePublic(BaseModel):
     clarifications: list[RuleClarificationPublic] = Field(
         default_factory=list,
         description="The person's clarifications in force on this rule, oldest first",
+    )
+    check: SpecCheckType = Field(
+        default=SpecCheckType.CLASSIFIER,
+        description="classifier, classifier_then_llm or llm: how the rule is checked",
+    )
+    inputs: list[str] = Field(
+        default_factory=list,
+        description="The call inputs it needs; a check is given only these",
+    )
+    data: RuleData = Field(
+        default="call",
+        description="call: the call alone; short_inputs: short named inputs, given "
+        "to the classifier; long_text: a long input, given only to the LLM step",
     )
     answered_by: str | None = Field(
         default=None,
@@ -217,6 +251,22 @@ class SpecCountsPublic(BaseModel):
     )
     in_conflict: int
     critical: int = Field(default=0, description="Rules marked critical")
+    classifier_on_call: int = Field(
+        default=0,
+        description="Rules that are classifier checks on the call alone, the default: "
+        "check each one's type and inputs are right",
+    )
+
+
+class KnownInputPublic(BaseModel):
+    name: str
+    long: bool = Field(
+        description="Its longest value is over 200 characters: only the LLM step gets it"
+    )
+    calls: int = Field(description="How many of the agent's recent calls carry it")
+    allowed: bool = Field(
+        description="False for contact details, ids and secrets: never a rule's input"
+    )
 
 
 class SpecComparisonPublic(BaseModel):
@@ -264,6 +314,11 @@ class SpecPublic(BaseModel):
     )
     comparison: SpecComparisonPublic | None = Field(
         default=None, description="With compare: how the shown version differs"
+    )
+    known_inputs: list[KnownInputPublic] = Field(
+        default_factory=list,
+        description="The input names the agent's calls carried in the last 30 days, "
+        "never their values: the names a rule may use",
     )
 
 

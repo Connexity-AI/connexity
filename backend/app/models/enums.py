@@ -282,6 +282,16 @@ class ClarificationState(StrEnum):
     PARKED = "parked"
 
 
+class SpecCheckType(StrEnum):
+    """How a spec rule is checked (plan `plans/2026-11-26-rule-data-and-check.md`). Code
+    checks are Connexity's own and not a choice."""
+
+    CLASSIFIER = "classifier"
+    # The classifier raises a flag; the LLM step confirms or dismisses it (105.16).
+    CLASSIFIER_THEN_LLM = "classifier_then_llm"
+    LLM = "llm"
+
+
 class SpecRuleTouches(StrEnum):
     """What a rule protects, so it stands out: money, safety or compliance."""
 

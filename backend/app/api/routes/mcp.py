@@ -1262,6 +1262,11 @@ _SPEC_RULES = [
     "did not cover: Connexity carries them until the prompt does. Never pass their "
     "keys; once the prompt covers one, name its `prompt_gap_id` in `closes` on the "
     "rule that now covers it, which takes its key and critical mark.",
+    "Each rule has a check type and the inputs it needs. A check is given only the "
+    "inputs its rule names: short ones to the classifier, long ones (over 200 "
+    "characters on the agent's calls, such as the call history) only to the LLM "
+    "step, so a rule that needs one cannot be `classifier`. Name inputs from "
+    "known_inputs; contact details, ids and secrets are never inputs.",
     "A critical rule is one whose failure must stop a release; a failure of any other "
     "rule is a Warning. Marking is yours to decide, without asking the person: mark "
     "with `critical` in `write_spec` or with `mark_critical_rules`. Marks carry into "
@@ -1302,6 +1307,20 @@ def _scenario_step(answer: SpecPublic, agent_id: uuid.UUID) -> str | None:
         f"{'rule' if len(unlisted) == 1 else 'rules'} no scenario lists{which} "
         f"(`write_scenarios` with agent_id {agent_id}), starting with {first}; follow "
         f"{GUIDE_SCENARIOS}."
+    )
+
+
+def _check_step(answer: SpecPublic, agent_id: uuid.UUID) -> str | None:
+    counts = answer.counts
+    if not counts or not counts.classifier_on_call:
+        return None
+    return (
+        f"{counts.classifier_on_call} rules are classifier checks on the call alone, "
+        "the default. For each, check that is right: a rule with a condition or that "
+        "depends on the kind of call is `classifier_then_llm`, one that needs long "
+        "text is `llm`, and one that needs a value the agent was given names it in "
+        f"`inputs`. Change them with `write_spec` (agent_id {agent_id}), following "
+        'connexity://guides/spec, "Rules that can be checked".'
     )
 
 
@@ -1411,6 +1430,8 @@ def get_spec(
             ).model_dump(),
         )
     steps = _spec_steps(answer)
+    if answer.state == "current" and (checks := _check_step(answer, agent.id)):
+        steps.append(checks)
     if answer.open_clarifications:
         steps.append(_waiting_text(answer.open_clarifications, agent.id))
     return McpAnswer[SpecPublic](
@@ -1444,6 +1465,8 @@ def write_spec(
                     key=r.key or None,
                     critical=r.critical,
                     closes=r.closes,
+                    check=r.check,
+                    inputs=r.inputs,
                 )
                 for r in body.rules
             ],
@@ -1490,6 +1513,8 @@ def write_spec(
         "`raise_clarifications`, following connexity://guides/spec."
     )
     steps.append(_critical_step(written, agent.id))
+    if (checks := _check_step(written, agent.id)) is not None:
+        steps.append(checks)
     if (scenarios := _scenario_step(written, agent.id)) is not None:
         steps.append(scenarios)
     steps.append("Tell the person the spec is written, and what you raised.")

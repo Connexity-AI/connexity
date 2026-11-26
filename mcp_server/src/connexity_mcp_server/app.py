@@ -632,10 +632,12 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         compare: Annotated[int | None, Field(description="An earlier spec version to mark each rule kept, added or dropped against.")] = None,
     ) -> SpecResult:
         """An agent's spec: what it is supposed to do, as plain rules grouped by the
-        fixed categories, each with its source (the prompt's words it rests on, or who
-        answered the clarification) and whether an open question replaces it
-        (in_conflict). state says none, current, or needs_review (the agent moved to a
-        new version). versions lists every version; compare marks each rule kept,
+        fixed categories, each with its source (the prompt's words it rests on), the
+        person's clarifications, its check type and the call inputs it needs (data:
+        the call alone, short inputs or long text), and whether an open question
+        replaces a clarification (in_conflict). known_inputs lists the input names the
+        agent's calls carry, never values. state says none, current, or needs_review
+        (the agent moved to a new version). versions lists every version; compare marks each rule kept,
         added or dropped against an earlier one. Read the agent's prompt from the
         voice platform, not from Connexity. Read connexity://guides/spec first."""
         return await _get_spec(
@@ -656,8 +658,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         Each rule: one plain sentence, a category key, the prompt's exact words it
         rests on, touches (money, safety, compliance) when it protects one, the key
         of a rule kept from the previous version, and critical when a failure of the
-        rule must stop a release, and closes for the answered prompt gaps a rule now
-        covers. Only what the prompt settles; behaviour the prompt does not settle is a
+        rule must stop a release, check (classifier, classifier_then_llm or llm) and
+        inputs (names from get_spec's known_inputs) for how it is checked, and closes
+        for the answered prompt gaps a rule now covers. Only what the prompt settles; behaviour the prompt does not settle is a
         question for the person (`raise_clarifications`). Rules from earlier answers
         are carried over by Connexity until a rule closes their gap; never pass their
         keys. The person's clarifications stay with their rule's key. Follow

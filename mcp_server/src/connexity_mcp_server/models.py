@@ -887,6 +887,9 @@ class SpecRule(BaseModel):
     critical: bool = False
     scenarios: int = 0
     clarifications: list[RuleClarification] = Field(default_factory=list)
+    check: str = "classifier"
+    inputs: list[str] = Field(default_factory=list)
+    data: str = "call"
     answered_by: str | None = None
     answered_at: str | None = None
     prompt_gap_id: str | None = None
@@ -917,6 +920,14 @@ class SpecCounts(BaseModel):
     prompt_gaps: int = 0
     in_conflict: int = 0
     critical: int = 0
+    classifier_on_call: int = 0
+
+
+class KnownInput(BaseModel):
+    name: str
+    long: bool = False
+    calls: int = 0
+    allowed: bool = True
 
 
 class SpecComparison(BaseModel):
@@ -955,6 +966,7 @@ class Spec(BaseModel):
     counts: SpecCounts | None = None
     versions: list[SpecVersion] = Field(default_factory=list)
     comparison: SpecComparison | None = None
+    known_inputs: list[KnownInput] = Field(default_factory=list)
     changes: SpecChanges | None = None
 
 
@@ -981,6 +993,18 @@ class SpecRuleToWrite(BaseModel):
         default=None,
         description="Answered prompt gaps this rule covers now that the prompt says "
         "it (their ids); for a rule from an earlier answer, its `prompt_gap_id`",
+    )
+    check: str | None = Field(
+        default=None,
+        description="classifier (the call settles it plainly), classifier_then_llm (a "
+        "condition or the kind of call matters) or llm (needs long text or the call "
+        "history); left out, a kept rule keeps its own and a new one is classifier",
+    )
+    inputs: list[str] | None = Field(
+        default=None,
+        description="Names of the call inputs the rule needs, from `get_spec`'s "
+        "known_inputs, at most 10; [] for the call alone; left out, a kept rule keeps "
+        "its own",
     )
 
 
