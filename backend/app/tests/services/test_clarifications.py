@@ -1,19 +1,23 @@
-"""Raising, answering and parking clarifications, and how answers become spec rules,
-on invented agents and calls (plan `plans/2026-11-15-clarifications.md`)."""
+"""Raising, answering and parking questions: clarifications attached to a rule, and
+prompt gaps for behaviour no rule covers, on invented agents and calls (plans
+`plans/2026-11-15-clarifications.md`, `plans/2026-11-26-clarification-on-rule.md`)."""
 
 import uuid
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlmodel import Session, col, select
+from sqlmodel import Session, select
 
 from app import crud
 from app.crud.clarification import (
+    clarifications_in_force,
     list_page,
     open_counts,
+    open_gaps,
     state_counts,
 )
-from app.crud.spec import adopt_spec_safely
+from app.crud.spec import copy_rule
 from app.models import Agent, Spec, SpecRule, User
 from app.models.check import DecisionRecord
 from app.models.clarification import Clarification
@@ -23,6 +27,7 @@ from app.models.enums import (
     SpecOrigin,
     SpecRuleSource,
     SpecRuleTouches,
+    TaskKind,
 )
 from app.services.clarification import (
     AnswerDraft,
@@ -31,9 +36,12 @@ from app.services.clarification import (
     Decision,
     QuestionDraft,
     answer_clarifications,
+    clarifications_public,
     raise_clarifications,
 )
-from app.services.spec import RuleDraft, SpecRefused, spec_state, write_agent_spec
+from app.services.rule_context import rules_with_clarifications
+from app.services.spec import RuleDraft, SpecRefused, spec_answer, write_agent_spec
+from app.services.work import work_list
 from app.tests.api.routes.test_issue_page import _call
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
     FULL,
@@ -61,6 +69,7 @@ RULES = [
         key=None,
     ),
 ]
+# Behaviour no rule covers: prompt gaps.
 CHANGE = QuestionDraft(
     question="The agent changed an existing appointment on 2 calls. Is it allowed to?",
     answers=[
@@ -71,6 +80,7 @@ CHANGE = QuestionDraft(
         ),
         AnswerDraft("Never", "Never change an existing appointment"),
     ],
+    gap_topic="changing appointments",
     category="booking",
 )
 DEPOSIT = QuestionDraft(
@@ -79,8 +89,26 @@ DEPOSIT = QuestionDraft(
         AnswerDraft("Yes", "Tell callers a deposit is needed for new patients"),
         AnswerDraft("No", "Never mention a deposit"),
     ],
+    gap_topic="deposits",
     category="pricing_and_quotes",
     touches=SpecRuleTouches.MONEY,
+)
+# Where the opening-hours rule's boundary lies: a clarification. Its rule key is set
+# per test, from the written spec.
+HOURS = QuestionDraft(
+    question="Callers asked for 8:00, the minute the clinic opens. Is that inside?",
+    answers=[
+        AnswerDraft(
+            "Yes",
+            "A slot that starts at opening time is inside opening hours; one that "
+            "starts before it is not.",
+        ),
+        AnswerDraft(
+            "No",
+            "The first slot of the day starts 15 minutes after opening; an earlier one "
+            "is outside opening hours.",
+        ),
+    ],
 )
 
 
@@ -133,32 +161,97 @@ def _rules(db: Session, spec: Spec) -> list[SpecRule]:
     return crud.spec_rules(session=db, spec_id=spec.id)
 
 
+def _latest(db: Session, agent: Agent) -> Spec:
+    spec = crud.latest_spec(session=db, agent_id=agent.id)
+    assert spec is not None
+    return spec
+
+
+def _key(db: Session, agent: Agent, text: str = RULES[0].text) -> str:
+    return next(r.key for r in _rules(db, _latest(db, agent)) if r.text == text)
+
+
 def _count(db: Session, agent: Agent) -> int:
     return len(
         db.exec(select(Clarification).where(Clarification.agent_id == agent.id)).all()
     )
 
 
-def test_raising_stores_open_questions_with_their_calls(db: Session) -> None:
+def _earlier_answer_rule(
+    db: Session, user: User, agent: Agent, gap: Clarification, *, critical: bool
+) -> SpecRule:
+    """A rule as an answer made one before 2026-11-26: a spec version of origin
+    `answered` with the answer as a rule pointing at its question."""
+    previous = _latest(db, agent)
+    spec = Spec(
+        company_id=agent.company_id,
+        agent_id=agent.id,
+        version=previous.version + 1,
+        agent_version=previous.agent_version,
+        prompt_fingerprint=previous.prompt_fingerprint,
+        origin=SpecOrigin.ANSWERED,
+        written_for=previous.written_for,
+        previous_id=previous.id,
+        created_by=user.id,
+        created_by_email=user.email,
+    )
+    db.add(spec)
+    db.flush()
+    for rule in _rules(db, previous):
+        db.add(copy_rule(rule, spec_id=spec.id))
+    rule = SpecRule(
+        company_id=agent.company_id,
+        spec_id=spec.id,
+        key=uuid.uuid4().hex[:12],
+        position=9,
+        category_id=gap.category_id,
+        text="Change an existing appointment only when the caller asks for it",
+        source=SpecRuleSource.CLARIFICATION,
+        clarification_id=gap.id,
+        critical=critical,
+    )
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+    return rule
+
+
+def test_raising_stores_both_kinds_with_their_calls(db: Session) -> None:
     user, agent, calls = _ready(db)
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
+    spec = _latest(db, agent)
+    money_key = _key(db, agent, RULES[1].text)
 
     stored = _raise(
-        db, user, agent, CHANGE._replace(call_ids=[*calls, calls[0]]), DEPOSIT
+        db,
+        user,
+        agent,
+        CHANGE._replace(call_ids=[*calls, calls[0]]),
+        DEPOSIT,
+        HOURS._replace(rule_key=money_key, category="booking"),
     )
 
-    change, deposit = stored
+    change, deposit, hours = stored
     assert change.state is ClarificationState.OPEN
-    assert spec is not None and change.spec_id == spec.id
+    assert change.spec_id == spec.id
     assert change.call_ids == [str(c) for c in calls]  # duplicates dropped
-    assert [a["label"] for a in change.answers] == [
-        "Yes, always",
-        "Only when the caller asks",
-        "Never",
+    assert (change.rule_key, change.gap_topic) == (None, "changing appointments")
+    assert [a["sentence"] for a in deposit.answers] == [
+        "Tell callers a deposit is needed for new patients",
+        "Never mention a deposit",
     ]
     assert (change.raised_by, change.raised_assistant) == (user.id, ASSISTANT)
     assert deposit.call_ids == []  # a question from a prompt change has no calls
     assert deposit.touches is SpecRuleTouches.MONEY
+    # A clarification takes its rule's category and marker, not what was given.
+    money_rule = next(r for r in _rules(db, spec) if r.key == money_key)
+    assert (hours.rule_key, hours.gap_topic) == (money_key, None)
+    assert (hours.category_id, hours.touches) == (
+        money_rule.category_id,
+        SpecRuleTouches.MONEY,
+    )
+    shown = clarifications_public(session=db, rows=stored)
+    assert [q.kind for q in shown] == ["prompt_gap", "prompt_gap", "clarification"]
+    assert shown[2].rule is not None and shown[2].rule.text == RULES[1].text
 
 
 def test_raising_needs_a_spec(db: Session) -> None:
@@ -173,35 +266,48 @@ def test_raising_needs_a_spec(db: Session) -> None:
 
 def test_raising_lists_every_problem_and_stores_nothing(db: Session) -> None:
     user, agent, _ = _ready(db)
+    key = _key(db, agent)
     other = _agent(db, user, "Other line")
     _catalogue(db, other, "3")
     elsewhere = _call(db, other, _booking(1, FULL), days_ago=1, version=3)
     bad = QuestionDraft(
         question=" ",
         answers=[AnswerDraft("Yes", "")],
-        category="no_such_category",
+        rule_key="no_such_rule",
+        gap_topic="something",
         call_ids=[elsewhere],
-        replaces_key="no_such_rule",
     )
     same_labels = CHANGE._replace(
         question="Another question",
         answers=[AnswerDraft("Yes", "A rule"), AnswerDraft("yes!", "Another rule")],
     )
+    no_topic = CHANGE._replace(
+        question="A third question", gap_topic=None, category="no_such_category"
+    )
+    gap_replacing = DEPOSIT._replace(replaces_id=uuid.uuid4())
+    not_in_force = HOURS._replace(rule_key=key, replaces_id=uuid.uuid4())
 
-    problems = _refused(lambda: _raise(db, user, agent, bad, same_labels, CHANGE))
+    problems = _refused(
+        lambda: _raise(
+            db, user, agent, bad, same_labels, no_topic, gap_replacing, not_in_force
+        )
+    )
 
     joined = " | ".join(problems)
     for expected in (
         "Question 1: the question is empty",
         "Question 1: give two to four answers, not 1",
-        "Question 1, answer a: write the rule this answer becomes",
-        "Question 1: unknown category 'no_such_category'",
+        "Question 1, answer a: write the clarification it adds to the rule",
+        "Question 1: 'no_such_rule' is not a rule of the agent's latest spec",
+        "Question 1: `gap_topic` is only for a prompt gap",
         "Question 1: 1 of its calls are not this agent's",
-        "Question 1: the rule 'no_such_rule' it replaces is not in the agent's spec",
         "Question 2, answer b: the same label as another answer",
+        "Question 3: no `rule_key`, so it is a prompt gap",
+        "Question 3: unknown category 'no_such_category'",
+        "Question 4: only a clarification replaces another",
+        "is not a clarification in force on rule",
     ):
         assert expected in joined
-    assert "Question 3" not in joined
     assert _count(db, agent) == 0
 
 
@@ -220,109 +326,150 @@ def test_the_same_question_is_not_raised_twice(db: Session) -> None:
     assert len(_raise(db, user, agent, CHANGE)) == 1
 
 
-def test_answers_for_one_agent_make_one_spec_version(db: Session) -> None:
-    user, agent, calls = _ready(db)
-    before = crud.latest_spec(session=db, agent_id=agent.id)
-    assert before is not None
-    change, deposit = _raise(db, user, agent, CHANGE._replace(call_ids=calls), DEPOSIT)
+def test_a_clarification_is_attached_to_its_rule_and_makes_no_version(
+    db: Session,
+) -> None:
+    user, agent, _ = _ready(db)
+    before = _latest(db, agent)
+    key = _key(db, agent)
+    [hours] = _raise(db, user, agent, HOURS._replace(rule_key=key))
 
-    result = _answer(db, user, (change.id, " B"), (deposit.id, "b"))
+    result = _answer(db, user, (hours.id, " A"))
 
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None
-    assert (spec.version, spec.origin) == (before.version + 1, SpecOrigin.ANSWERED)
-    assert (spec.created_by, spec.assistant_name) == (user.id, ASSISTANT)
-    assert spec.agent_version == before.agent_version
     assert isinstance(result, AnswerResult)
-    assert (result.specs, result.answered, result.parked) == ({agent.id: spec}, 2, 0)
-    rules = _rules(db, spec)
-    assert len(rules) == len(RULES) + 2
-    answered = {r.text: r for r in rules if r.source is SpecRuleSource.CLARIFICATION}
-    assert set(answered) == {
-        "Change an existing appointment only when the caller asks for it",
-        "Never mention a deposit",
-    }
-    assert answered["Never mention a deposit"].touches is SpecRuleTouches.MONEY
-    assert answered["Never mention a deposit"].clarification_id == deposit.id
-    db.refresh(change)
-    assert (change.state, change.answer, change.answer_spec_id) == (
-        ClarificationState.ANSWERED,
-        "b",
-        spec.id,
+    assert (result.answered, result.clarifications, result.prompt_gaps) == (
+        1,
+        {agent.id: 1},
+        {agent.id: 0},
     )
-    assert (change.decided_by, change.decided_assistant) == (user.id, ASSISTANT)
-    # The earlier version is untouched.
+    # No rule and no spec version: the rule changes only with the prompt.
+    assert _latest(db, agent).id == before.id
     assert len(_rules(db, before)) == len(RULES)
-    # Answering is not reviewing: the spec stays current, as it was.
-    assert spec_state(spec, "7") == "current"
+    db.refresh(hours)
+    assert (hours.state, hours.answer, hours.answer_spec_id) == (
+        ClarificationState.ANSWERED,
+        "a",
+        None,
+    )
+    in_force = clarifications_in_force(session=db, agent_id=agent.id)
+    assert [c.id for c in in_force[key]] == [hours.id]
+
+    answer = spec_answer(session=db, agent=agent)
+    assert answer is not None and answer.counts is not None
+    rule = next(r for g in answer.groups for r in g.rules if r.key == key)
+    assert [c.sentence for c in rule.clarifications] == [str(HOURS.answers[0].sentence)]
+    assert rule.clarifications[0].answer == "Yes"
+    assert (answer.counts.clarified, answer.counts.prompt_gaps) == (1, 0)
+
+
+def test_a_prompt_gap_answer_adds_no_rule_and_becomes_a_task(db: Session) -> None:
+    user, agent, _ = _ready(db)
+    before = _latest(db, agent)
+    [change] = _raise(db, user, agent, CHANGE)
+
+    result = _answer(db, user, (change.id, "b"))
+
+    assert isinstance(result, AnswerResult)
+    assert result.prompt_gaps == {agent.id: 1}
+    assert _latest(db, agent).id == before.id
+    assert [g.id for g in open_gaps(session=db, company_id=user.company_id)] == [
+        change.id
+    ]
+    tasks = [
+        t
+        for t in work_list(session=db, company_id=user.company_id)
+        if t.kind is TaskKind.PROMPT_GAP
+    ]
+    assert [(t.key, t.title, t.ref) for t in tasks] == [
+        (
+            f"prompt_gap:{change.id}",
+            "Propose the prompt change: changing appointments",
+            change.id,
+        )
+    ]
+    answer = spec_answer(session=db, agent=agent)
+    assert answer is not None and answer.counts is not None
+    assert answer.counts.prompt_gaps == 1
+    # Nothing checks it: no rule carries it.
+    assert clarifications_in_force(session=db, agent_id=agent.id) == {}
 
 
 def test_an_answer_is_final(db: Session) -> None:
     user, agent, _ = _ready(db)
     [change] = _raise(db, user, agent, CHANGE)
     _answer(db, user, (change.id, "c"))
-    versions = crud.latest_spec(session=db, agent_id=agent.id)
 
     problems = _refused(lambda: _answer(db, user, (change.id, "a")))
 
     assert "already answered (c)" in problems[0]
-    assert crud.latest_spec(session=db, agent_id=agent.id) == versions
+    assert "`replaces_id`" in problems[0]
 
 
-def test_a_replacing_answer_takes_the_old_rules_key(db: Session) -> None:
+def test_a_replacing_question_replaces_the_earlier_clarification(db: Session) -> None:
     user, agent, _ = _ready(db)
-    [change] = _raise(db, user, agent, CHANGE)
-    _answer(db, user, (change.id, "c"))
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None
-    old = next(r for r in _rules(db, spec) if r.clarification_id == change.id)
-    again = CHANGE._replace(
-        question="The new prompt lets callers move appointments. Change the answer?",
-        replaces_key=old.key,
+    key = _key(db, agent)
+    [first] = _raise(db, user, agent, HOURS._replace(rule_key=key))
+    _answer(db, user, (first.id, "a"))
+    again = HOURS._replace(
+        question="Calls show 8:00 slots overbooking the first dentist. Change it?",
+        rule_key=key,
+        replaces_id=first.id,
     )
     [replacing] = _raise(db, user, agent, again)
+    [shown] = clarifications_public(session=db, rows=[replacing])
+    assert shown.replaces_sentence == HOURS.answers[0].sentence
 
     _answer(db, user, (replacing.id, "b"))
 
-    newest = crud.latest_spec(session=db, agent_id=agent.id)
-    assert newest is not None
-    rules = {r.key: r for r in _rules(db, newest)}
-    assert len(rules) == len(RULES) + 1
-    assert rules[old.key].text == (
-        "Change an existing appointment only when the caller asks for it"
+    in_force = clarifications_in_force(session=db, agent_id=agent.id)
+    assert [c.id for c in in_force[key]] == [replacing.id]
+    # The earlier one stays in the history, and can no longer be replaced.
+    db.refresh(first)
+    assert first.state is ClarificationState.ANSWERED
+    problems = _refused(
+        lambda: _raise(
+            db,
+            user,
+            agent,
+            HOURS._replace(question="Once more?", rule_key=key, replaces_id=first.id),
+        )
     )
-    assert (rules[old.key].clarification_id, rules[old.key].position) == (
-        replacing.id,
-        old.position,
-    )
+    assert "is not a clarification in force" in problems[0]
 
 
-def test_one_rule_is_replaced_by_one_question_at_a_time(db: Session) -> None:
+def test_one_clarification_is_replaced_by_one_question_at_a_time(db: Session) -> None:
     user, agent, _ = _ready(db)
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None
-    key = _rules(db, spec)[0].key
-    _raise(db, user, agent, CHANGE._replace(replaces_key=key))
+    key = _key(db, agent)
+    [first] = _raise(db, user, agent, HOURS._replace(rule_key=key))
+    _answer(db, user, (first.id, "a"))
+    _raise(
+        db,
+        user,
+        agent,
+        HOURS._replace(question="Replace it?", rule_key=key, replaces_id=first.id),
+    )
 
     problems = _refused(
-        lambda: _raise(db, user, agent, DEPOSIT._replace(replaces_key=key))
+        lambda: _raise(
+            db,
+            user,
+            agent,
+            HOURS._replace(question="Or this?", rule_key=key, replaces_id=first.id),
+        )
     )
 
-    assert f"already replaces rule '{key}'" in problems[0]
+    assert f"already replaces clarification {first.id}" in problems[0]
 
 
-def test_parking_makes_no_version_and_a_parked_question_can_be_answered(
-    db: Session,
-) -> None:
+def test_parking_and_a_parked_question_can_be_answered(db: Session) -> None:
     user, agent, _ = _ready(db)
     [change] = _raise(db, user, agent, CHANGE)
-    before = crud.latest_spec(session=db, agent_id=agent.id)
 
     _answer(db, user, (change.id, "park"))
 
     db.refresh(change)
     assert change.state is ClarificationState.PARKED
-    assert crud.latest_spec(session=db, agent_id=agent.id) == before
+    assert open_gaps(session=db, company_id=user.company_id) == []
     assert (
         "already parked" in _refused(lambda: _answer(db, user, (change.id, "park")))[0]
     )
@@ -333,24 +480,33 @@ def test_parking_makes_no_version_and_a_parked_question_can_be_answered(
 
 def test_every_answer_and_park_is_a_decision_record(db: Session) -> None:
     user, agent, _ = _ready(db)
-    change, deposit = _raise(db, user, agent, CHANGE, DEPOSIT)
+    key = _key(db, agent)
+    change, deposit, hours = _raise(
+        db, user, agent, CHANGE, DEPOSIT, HOURS._replace(rule_key=key)
+    )
 
-    _answer(db, user, (change.id, "b"), (deposit.id, "park"))
+    _answer(db, user, (change.id, "b"), (deposit.id, "park"), (hours.id, "a"))
 
-    records = db.exec(
-        select(DecisionRecord)
-        .where(DecisionRecord.agent_id == agent.id)
-        .order_by(col(DecisionRecord.kind))
-    ).all()
-    assert [(r.kind, r.subject, r.old_value, r.new_value) for r in records] == [
-        (DecisionKind.CLARIFICATION_ANSWERED, str(change.id), "open", "b"),
-        (DecisionKind.CLARIFICATION_PARKED, str(deposit.id), "open", "parked"),
-    ]
-    answered = records[0]
-    assert answered.assistant_name == ASSISTANT
-    assert answered.detail == {
-        "rule": "Change an existing appointment only when the caller asks for it",
-        "spec_version": 2,
+    records = {
+        r.subject: r
+        for r in db.exec(
+            select(DecisionRecord).where(DecisionRecord.agent_id == agent.id)
+        ).all()
+        if r.kind
+        in (DecisionKind.CLARIFICATION_ANSWERED, DecisionKind.CLARIFICATION_PARKED)
+    }
+    assert (records[str(deposit.id)].kind, records[str(deposit.id)].new_value) == (
+        DecisionKind.CLARIFICATION_PARKED,
+        "parked",
+    )
+    assert records[str(change.id)].assistant_name == ASSISTANT
+    assert records[str(change.id)].detail == {
+        "sentence": "Change an existing appointment only when the caller asks for it",
+        "prompt_gap": True,
+    }
+    assert records[str(hours.id)].detail == {
+        "sentence": HOURS.answers[0].sentence,
+        "rule_key": key,
     }
 
 
@@ -384,58 +540,182 @@ def test_answering_lists_every_problem_and_stores_nothing(db: Session) -> None:
     )
 
 
-def test_write_spec_carries_answered_rules_and_refuses_them(db: Session) -> None:
+def test_clarifications_stay_with_their_key_and_changed_rules_list_them(
+    db: Session,
+) -> None:
+    user, agent, _ = _ready(db)
+    key = _key(db, agent)
+    money = _key(db, agent, RULES[1].text)
+    [hours] = _raise(db, user, agent, HOURS._replace(rule_key=key))
+    _answer(db, user, (hours.id, "a"))
+
+    # The prompt changed the rule's words: the clarification stays and is listed.
+    written = write_agent_spec(
+        session=db,
+        agent=agent,
+        drafts=[
+            RULES[0]._replace(key=key, text="Never book outside the clinic's hours"),
+            RULES[1]._replace(key=money),
+        ],
+        author=user,
+        assistant_name=ASSISTANT,
+    )
+    assert [
+        (c.rule_key, c.clarification_id) for c in written.changes.check_clarifications
+    ] == [(key, hours.id)]
+    rule = next(r for g in written.groups for r in g.rules if r.key == key)
+    assert [c.id for c in rule.clarifications] == [hours.id]
+
+    # Dropped from the spec: it stops applying and stays in the history.
+    write_agent_spec(
+        session=db,
+        agent=agent,
+        drafts=[RULES[1]._replace(key=money)],
+        author=user,
+        assistant_name=ASSISTANT,
+    )
+    answer = spec_answer(session=db, agent=agent)
+    assert answer is not None and answer.counts is not None
+    assert answer.counts.clarified == 0
+    rules = rules_with_clarifications(
+        session=db, agent_id=agent.id, rules=_rules(db, _latest(db, agent))
+    )
+    assert key not in rules
+
+
+def test_a_rule_written_from_the_new_prompt_closes_the_gap(db: Session) -> None:
     user, agent, _ = _ready(db)
     [change] = _raise(db, user, agent, CHANGE)
-    _answer(db, user, (change.id, "c"))
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None
-    answered = next(r for r in _rules(db, spec) if r.clarification_id == change.id)
+    _answer(db, user, (change.id, "b"))
+    covering = RuleDraft(
+        text="Change an existing appointment only when the caller asks for it",
+        category="booking",
+        quote="Only book within opening hours",
+        touches=None,
+        key=None,
+        closes=[change.id],
+    )
 
     with pytest.raises(SpecRefused) as refused:
         write_agent_spec(
             session=db,
             agent=agent,
-            drafts=[RULES[0]._replace(key=answered.key)],
+            drafts=[
+                *RULES,
+                covering._replace(closes=[uuid.uuid4()]),
+                covering._replace(text="Once more", closes=[change.id, change.id]),
+            ],
             author=user,
             assistant_name=ASSISTANT,
         )
-    assert "a rule from the person's answer" in refused.value.problems[0]
+    joined = " | ".join(refused.value.problems)
+    assert "is not an answered prompt gap of this agent" in joined
+    assert "is already closed by rule 4" in joined
 
     written = write_agent_spec(
-        session=db, agent=agent, drafts=RULES[:1], author=user, assistant_name=ASSISTANT
+        session=db,
+        agent=agent,
+        drafts=[*RULES, covering],
+        author=user,
+        assistant_name=ASSISTANT,
     )
 
-    assert (written.changes.carried, written.changes.dropped) == (1, 2)
-    newest = crud.latest_spec(session=db, agent_id=agent.id)
-    assert newest is not None
-    carried = next(r for r in _rules(db, newest) if r.key == answered.key)
-    assert (carried.text, carried.clarification_id, carried.source) == (
-        answered.text,
-        change.id,
-        SpecRuleSource.CLARIFICATION,
+    assert written.changes.gaps_closed == 1
+    db.refresh(change)
+    spec = _latest(db, agent)
+    assert change.closed_spec_id == spec.id and change.closed_at is not None
+    assert change.closed_rule_key in {r.key for r in _rules(db, spec)}
+    assert open_gaps(session=db, company_id=user.company_id) == []
+    assert not any(
+        t.kind is TaskKind.PROMPT_GAP
+        for t in work_list(session=db, company_id=user.company_id)
+    )
+    closed = db.exec(
+        select(DecisionRecord).where(
+            DecisionRecord.agent_id == agent.id,
+            DecisionRecord.kind == DecisionKind.PROMPT_GAP_CLOSED,
+        )
+    ).one()
+    assert (closed.subject, closed.new_value) == (
+        str(change.id),
+        change.closed_rule_key,
     )
 
 
-def test_an_answer_on_an_adopted_spec_still_needs_review(db: Session) -> None:
-    user, agent, _ = _ready(db, version=7)
-    _catalogue(db, agent, "8")
-    _call(db, agent, _booking(1, FULL), days_ago=0, version=8)
-    adopt_spec_safely(session=db, agent_id=agent.id)
+def test_a_rule_from_an_earlier_answer_is_carried_until_its_gap_closes(
+    db: Session,
+) -> None:
+    user, agent, _ = _ready(db)
     [change] = _raise(db, user, agent, CHANGE)
-
     _answer(db, user, (change.id, "b"))
+    old = _earlier_answer_rule(db, user, agent, change, critical=True)
+    answer = spec_answer(session=db, agent=agent)
+    assert answer is not None and answer.counts is not None
+    shown = next(r for g in answer.groups for r in g.rules if r.key == old.key)
+    assert shown.prompt_gap_id == change.id
+    assert (answer.counts.from_answers, answer.counts.prompt_gaps) == (1, 1)
 
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None
-    assert (spec.origin, spec.agent_version, spec.written_for) == (
-        SpecOrigin.ANSWERED,
-        "8",
-        "7",
+    # Not yet in the prompt: carried over unchanged, and its key is not the writer's.
+    written = write_agent_spec(
+        session=db, agent=agent, drafts=RULES, author=user, assistant_name=ASSISTANT
     )
-    assert spec_state(spec, "8") == "needs_review"
-    # The adopted rules and the answer are all there.
-    assert len(_rules(db, spec)) == len(RULES) + 1
+    assert written.changes.carried == 1
+    with pytest.raises(SpecRefused) as refused:
+        write_agent_spec(
+            session=db,
+            agent=agent,
+            drafts=[*RULES, RULES[0]._replace(text="Changing", key=old.key)],
+            author=user,
+            assistant_name=ASSISTANT,
+        )
+    assert "is a rule from an earlier answer" in refused.value.problems[0]
+
+    # The prompt now says it: the closing rule takes the old key and its critical mark.
+    closed = write_agent_spec(
+        session=db,
+        agent=agent,
+        drafts=[
+            *RULES,
+            RuleDraft(
+                text="Change an appointment only when the caller asks",
+                category="booking",
+                quote="Only book within opening hours",
+                touches=None,
+                key=None,
+                closes=[change.id],
+            ),
+        ],
+        author=user,
+        assistant_name=ASSISTANT,
+    )
+
+    assert (closed.changes.carried, closed.changes.gaps_closed) == (0, 1)
+    rules = {r.key: r for r in _rules(db, _latest(db, agent))}
+    assert rules[old.key].source is SpecRuleSource.PROMPT
+    assert rules[old.key].critical is True
+    assert rules[old.key].text == "Change an appointment only when the caller asks"
+    assert not any(r.source is SpecRuleSource.CLARIFICATION for r in rules.values())
+
+
+def test_in_force_reads_what_was_answered_by_then(db: Session) -> None:
+    user, agent, _ = _ready(db)
+    key = _key(db, agent)
+    before = datetime.now(UTC)
+    [hours] = _raise(db, user, agent, HOURS._replace(rule_key=key))
+    _answer(db, user, (hours.id, "a"))
+    rules = _rules(db, _latest(db, agent))
+
+    then = rules_with_clarifications(
+        session=db, agent_id=agent.id, rules=rules, at=before - timedelta(seconds=1)
+    )
+    now = rules_with_clarifications(session=db, agent_id=agent.id, rules=rules)
+
+    assert then[key].clarifications == ()
+    assert now[key].clarification_ids == [str(hours.id)]
+    assert now[key].fingerprint != then[key].fingerprint
+    # A rule with no clarification answers the same fingerprint at any time.
+    other = next(r.key for r in rules if r.key != key)
+    assert now[other].fingerprint == then[other].fingerprint
 
 
 def test_open_counts_stay_in_their_workspace(db: Session) -> None:
@@ -457,25 +737,6 @@ def test_open_counts_stay_in_their_workspace(db: Session) -> None:
         )[ClarificationState.OPEN]
         == 1
     )
-
-
-def test_a_replaced_rule_dropped_since_is_not_brought_back(db: Session) -> None:
-    user, agent, _ = _ready(db)
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None
-    dropped = next(r for r in _rules(db, spec) if r.text == RULES[1].text)
-    [change] = _raise(db, user, agent, CHANGE._replace(replaces_key=dropped.key))
-    write_agent_spec(
-        session=db, agent=agent, drafts=RULES[:1], author=user, assistant_name=ASSISTANT
-    )
-
-    _answer(db, user, (change.id, "c"))
-
-    newest = crud.latest_spec(session=db, agent_id=agent.id)
-    assert newest is not None
-    rules = _rules(db, newest)
-    assert dropped.key not in {r.key for r in rules}
-    assert any(r.clarification_id == change.id for r in rules)
 
 
 def test_a_parked_question_can_be_reopened_and_only_then(db: Session) -> None:
@@ -550,4 +811,7 @@ def test_an_answer_in_the_app_names_no_assistant(db: Session) -> None:
         )
     ).one()
     assert record.assistant_name is None
-    assert record.detail is not None and set(record.detail) == {"rule", "spec_version"}
+    assert record.detail is not None and set(record.detail) == {
+        "sentence",
+        "prompt_gap",
+    }

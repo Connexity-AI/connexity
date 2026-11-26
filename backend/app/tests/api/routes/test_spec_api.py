@@ -145,6 +145,8 @@ def test_writing_a_spec_stores_rules_by_category_with_who_wrote_it(
         "added": 2,
         "dropped": 0,
         "carried": 0,
+        "gaps_closed": 0,
+        "check_clarifications": [],
         "quotes_checked": True,
     }
     spec = db.exec(select(Spec).where(Spec.agent_id == agent.id)).one()

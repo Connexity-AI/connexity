@@ -121,6 +121,20 @@ class SpecRule(SQLModel, table=True):
 SpecState = Literal["none", "current", "needs_review"]
 
 
+class RuleClarificationPublic(BaseModel):
+    id: uuid.UUID
+    sentence: str = Field(
+        description="What it settles about the rule; read with the rule by every check"
+    )
+    question: str
+    answer: str = Field(description="The answer's label, or 'Something else'")
+    answered_by: str | None = None
+    assistant: str | None = Field(
+        default=None, description="The assistant that recorded it for the person"
+    )
+    answered_at: datetime | None = None
+
+
 class SpecRulePublic(BaseModel):
     key: str = Field(
         description="The same across versions; pass it back to keep a rule"
@@ -139,13 +153,24 @@ class SpecRulePublic(BaseModel):
         description="How many active scenarios list it; coverage counts the rules with "
         "at least one",
     )
+    clarifications: list[RuleClarificationPublic] = Field(
+        default_factory=list,
+        description="The person's clarifications in force on this rule, oldest first",
+    )
     answered_by: str | None = Field(
-        default=None, description="For a rule from a clarification: who answered it"
+        default=None,
+        description="For a rule from an earlier answer (source clarification): who "
+        "answered it",
     )
     answered_at: datetime | None = None
+    prompt_gap_id: uuid.UUID | None = Field(
+        default=None,
+        description="For a rule from an earlier answer: the prompt gap it waits on. "
+        "Name it in `closes` on the rule written from a prompt that covers it",
+    )
     in_conflict: bool = Field(
         default=False,
-        description="An open or parked clarification replaces this rule",
+        description="An open or parked question replaces one of its clarifications",
     )
     result: (
         Literal["passed", "failed", "flaky", "did_not_come_up", "no_scenario"] | None
@@ -179,7 +204,17 @@ class SpecVersionPublic(BaseModel):
 
 class SpecCountsPublic(BaseModel):
     from_prompt: int
-    from_clarifications: int
+    from_answers: int = Field(
+        default=0,
+        description="Rules from earlier answers, waiting for the prompt to cover them",
+    )
+    clarified: int = Field(
+        default=0, description="Rules with at least one clarification"
+    )
+    prompt_gaps: int = Field(
+        default=0,
+        description="Answered prompt gaps waiting for a prompt change",
+    )
     in_conflict: int
     critical: int = Field(default=0, description="Rules marked critical")
 
@@ -232,13 +267,26 @@ class SpecPublic(BaseModel):
     )
 
 
+class ClarificationToCheckPublic(BaseModel):
+    rule_key: str
+    clarification_id: uuid.UUID
+    sentence: str
+
+
 class SpecChangesPublic(BaseModel):
     rules: int
     kept: int
     added: int
     dropped: int
     carried: int = Field(
-        description="Rules from answered clarifications, carried over unchanged"
+        description="Rules from earlier answers, carried over unchanged until a rule "
+        "closes their prompt gap"
+    )
+    gaps_closed: int = Field(default=0, description="Prompt gaps this version closed")
+    check_clarifications: list[ClarificationToCheckPublic] = Field(
+        default_factory=list,
+        description="Clarifications on rules whose text changed: check each still "
+        "fits, and raise a replacing question where one does not",
     )
     quotes_checked: bool = Field(
         description="False when Connexity has no prompt for the version to check against"

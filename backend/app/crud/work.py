@@ -175,30 +175,46 @@ def done_tasks(
 def specs_since(
     *, session: Session, company_id: uuid.UUID, since: datetime
 ) -> list[Spec]:
-    """Spec versions written or made by answers since ``since``."""
+    """Spec versions written since ``since``."""
     return list(
         session.exec(
             select(Spec).where(
                 Spec.company_id == company_id,
-                col(Spec.origin).in_((SpecOrigin.WRITTEN, SpecOrigin.ANSWERED)),
+                Spec.origin == SpecOrigin.WRITTEN,
                 col(Spec.created_at) >= since,
             )
         ).all()
     )
 
 
-def answers_by_spec(
-    *, session: Session, spec_ids: Sequence[uuid.UUID]
-) -> dict[uuid.UUID, int]:
-    """How many answers made each spec version."""
-    if not spec_ids:
-        return {}
+def answers_since(
+    *, session: Session, company_id: uuid.UUID, since: datetime
+) -> dict[tuple[uuid.UUID, uuid.UUID | None, str | None], tuple[int, datetime]]:
+    """Questions answered since ``since``, by agent and person: how many, and when the
+    last was."""
     rows = session.exec(
-        select(Clarification.answer_spec_id, func.count())
-        .where(col(Clarification.answer_spec_id).in_(spec_ids))
-        .group_by(col(Clarification.answer_spec_id))
+        select(
+            Clarification.agent_id,
+            Clarification.decided_by,
+            Clarification.decided_by_email,
+            func.count(),
+            func.max(Clarification.decided_at),
+        )
+        .where(
+            Clarification.company_id == company_id,
+            Clarification.state == ClarificationState.ANSWERED,
+            col(Clarification.decided_at) >= since,
+        )
+        .group_by(
+            col(Clarification.agent_id),
+            col(Clarification.decided_by),
+            col(Clarification.decided_by_email),
+        )
     ).all()
-    return {spec_id: n for spec_id, n in rows if spec_id is not None}
+    return {
+        (agent_id, person, email): (count, last)
+        for agent_id, person, email, count, last in rows
+    }
 
 
 def issue_decisions_since(

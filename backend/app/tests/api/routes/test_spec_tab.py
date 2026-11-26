@@ -1,5 +1,6 @@
-"""The spec as the Spec tab reads it: versions, sources, conflicts and comparing, on
-invented agents and calls (plan `plans/2026-11-15-spec-tab.md`)."""
+"""The spec as the Spec tab reads it: versions, sources, clarifications, conflicts and
+comparing, on invented agents and calls (plans `plans/2026-11-15-spec-tab.md`,
+`plans/2026-11-26-clarification-on-rule.md`)."""
 
 from typing import Any
 
@@ -14,7 +15,7 @@ from app.services.clarification import (
     answer_clarifications,
     raise_clarifications,
 )
-from app.services.spec import write_agent_spec
+from app.services.spec import RuleDraft, write_agent_spec
 from app.tests.api.routes.test_issue_page import _call
 from app.tests.api.routes.test_issues_list import _signed_in
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
@@ -30,26 +31,46 @@ from app.tests.services.test_clarifications import (
     ASSISTANT,
     CHANGE,
     DEPOSIT,
+    HOURS,
     RULES,
+    _earlier_answer_rule,
     _ready,
 )
 
 API = settings.API_V1_STR
 
 
+ADDED = "Change an existing appointment only when the caller asks for it"
+
+
 def _answered(db: Session, user: User, agent: Agent) -> None:
-    """Version 2: the first spec plus the answer to CHANGE (b)."""
-    [change] = raise_clarifications(
+    """Version 2: the first spec's rules kept, plus one the new prompt adds."""
+    v1 = crud.latest_spec(session=db, agent_id=agent.id)
+    assert v1 is not None
+    keys = {r.text: r.key for r in crud.spec_rules(session=db, spec_id=v1.id)}
+    write_agent_spec(
         session=db,
         agent=agent,
-        drafts=[CHANGE],
-        raised_by=user,
+        drafts=[
+            *(r._replace(key=keys[r.text]) for r in RULES),
+            RuleDraft(
+                text=ADDED,
+                category="booking",
+                quote=RULES[0].quote,
+                touches=None,
+                key=None,
+            ),
+        ],
+        author=user,
         assistant_name=ASSISTANT,
     )
+
+
+def _decide(db: Session, user: User, clarification_id: object, letter: str) -> None:
     answer_clarifications(
         session=db,
         company_id=user.company_id,
-        decisions=[Decision(change.id, "b")],
+        decisions=[Decision(clarification_id, letter)],  # type: ignore[arg-type]
         decided_by=user,
         assistant_name=ASSISTANT,
     )
@@ -59,25 +80,38 @@ def _rules(body: dict[str, Any]) -> list[dict[str, Any]]:
     return [r for g in body["groups"] for r in g["rules"]]
 
 
-def test_the_spec_has_versions_sources_and_conflicts(
+def test_the_spec_has_versions_sources_clarifications_and_conflicts(
     client: TestClient, db: Session
 ) -> None:
     user, agent, _ = _ready(db)
-    _answered(db, user, agent)
+    [gap] = raise_clarifications(
+        session=db, agent=agent, drafts=[CHANGE], raised_by=user, assistant_name=None
+    )
+    _decide(db, user, gap.id, "b")
+    earlier = _earlier_answer_rule(db, user, agent, gap, critical=False)
     spec = crud.latest_spec(session=db, agent_id=agent.id)
     assert spec is not None
-    answered_key = next(
+    hours_key = next(
         r.key
         for r in crud.spec_rules(session=db, spec_id=spec.id)
-        if r.clarification_id is not None
+        if r.text == RULES[0].text
     )
+    [hours] = raise_clarifications(
+        session=db,
+        agent=agent,
+        drafts=[HOURS._replace(rule_key=hours_key)],
+        raised_by=user,
+        assistant_name=ASSISTANT,
+    )
+    _decide(db, user, hours.id, "a")
     raise_clarifications(
         session=db,
         agent=agent,
         drafts=[
-            CHANGE._replace(
-                question="The new prompt lets callers move appointments. Change it?",
-                replaces_key=answered_key,
+            HOURS._replace(
+                question="Calls show the first slot overbooked. Change it?",
+                rule_key=hours_key,
+                replaces_id=hours.id,
             ),
             DEPOSIT,
         ],
@@ -93,16 +127,22 @@ def test_the_spec_has_versions_sources_and_conflicts(
     assert [v["origin"] for v in body["versions"]] == ["answered", "written"]
     assert body["counts"] == {
         "from_prompt": len(RULES),
-        "from_clarifications": 1,
+        "from_answers": 1,
+        "clarified": 1,
+        "prompt_gaps": 1,
         "in_conflict": 1,
         "critical": 0,
     }
     assert body["open_clarifications"] == 2
-    answered = next(r for r in _rules(body) if r["source"] == "clarification")
-    assert answered["answered_by"] and answered["answered_at"]
-    assert answered["in_conflict"] is True
+    old = next(r for r in _rules(body) if r["source"] == "clarification")
+    assert (old["key"], old["prompt_gap_id"]) == (earlier.key, str(gap.id))
+    assert old["answered_by"] and old["answered_at"]
+    clarified = next(r for r in _rules(body) if r["key"] == hours_key)
+    assert clarified["in_conflict"] is True
+    assert [c["id"] for c in clarified["clarifications"]] == [str(hours.id)]
+    assert clarified["clarifications"][0]["assistant"] == ASSISTANT
     assert all(r["change"] is None for r in _rules(body))
-    assert not any(r["in_conflict"] for r in _rules(body) if r["key"] != answered_key)
+    assert not any(r["in_conflict"] for r in _rules(body) if r["key"] != hours_key)
 
     # An earlier version shows no conflicts: they are about the rules now.
     first = client.get(
@@ -121,15 +161,20 @@ def test_comparing_marks_kept_added_and_dropped(
     # Version 3 rewrites the prompt rules: the first is kept, the second dropped.
     v2 = crud.latest_spec(session=db, agent_id=agent.id)
     assert v2 is not None
-    keep = next(
-        r.key
-        for r in crud.spec_rules(session=db, spec_id=v2.id)
-        if r.text == RULES[0].text
-    )
+    keys = {r.text: r.key for r in crud.spec_rules(session=db, spec_id=v2.id)}
     write_agent_spec(
         session=db,
         agent=agent,
-        drafts=[RULES[0]._replace(key=keep)],
+        drafts=[
+            RULES[0]._replace(key=keys[RULES[0].text]),
+            RuleDraft(
+                text=ADDED,
+                category="booking",
+                quote=RULES[0].quote,
+                touches=None,
+                key=keys[ADDED],
+            ),
+        ],
         author=user,
         assistant_name=ASSISTANT,
     )
@@ -143,10 +188,7 @@ def test_comparing_marks_kept_added_and_dropped(
     changes = {r["text"]: r["change"] for r in _rules(body)}
     assert changes[RULES[0].text] == "kept"
     assert changes[RULES[1].text] == "dropped"
-    assert (
-        changes["Change an existing appointment only when the caller asks for it"]
-        == "added"
-    )
+    assert changes[ADDED] == "added"
     # The dropped rule sits in its own category.
     pricing = next(g for g in body["groups"] if g["category"] == "pricing_and_quotes")
     assert [r["change"] for r in pricing["rules"]] == ["dropped"]
@@ -159,23 +201,22 @@ def test_a_changed_text_reads_as_dropped_and_added(
     _answered(db, user, agent)
     v2 = crud.latest_spec(session=db, agent_id=agent.id)
     assert v2 is not None
-    key = next(
-        r.key
-        for r in crud.spec_rules(session=db, spec_id=v2.id)
-        if r.clarification_id is not None
-    )
-    [replacing] = raise_clarifications(
+    keys = {r.text: r.key for r in crud.spec_rules(session=db, spec_id=v2.id)}
+    key = keys[ADDED]
+    write_agent_spec(
         session=db,
         agent=agent,
-        drafts=[CHANGE._replace(question="Move appointments now?", replaces_key=key)],
-        raised_by=user,
-        assistant_name=ASSISTANT,
-    )
-    answer_clarifications(
-        session=db,
-        company_id=user.company_id,
-        decisions=[Decision(replacing.id, "c")],
-        decided_by=user,
+        drafts=[
+            *(r._replace(key=keys[r.text]) for r in RULES),
+            RuleDraft(
+                text="Never change an existing appointment",
+                category="booking",
+                quote=RULES[0].quote,
+                touches=None,
+                key=key,
+            ),
+        ],
+        author=user,
         assistant_name=ASSISTANT,
     )
 
@@ -187,7 +228,7 @@ def test_a_changed_text_reads_as_dropped_and_added(
 
     same_key = [r for r in _rules(body) if r["key"] == key]
     assert sorted((r["text"], r["change"]) for r in same_key) == [
-        ("Change an existing appointment only when the caller asks for it", "dropped"),
+        (ADDED, "dropped"),
         ("Never change an existing appointment", "added"),
     ]
     assert body["comparison"] == {

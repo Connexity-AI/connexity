@@ -68,6 +68,17 @@ class RuleVerdict(SQLModel, table=True):
     mark_detail: list[str] | None = Field(
         default=None, sa_column=Column("mark_detail", JSONB, nullable=True)
     )
+    # The clarifications of the rule in force when the run started, which the judge
+    # read with it (plan `plans/2026-11-26-clarification-on-rule.md`).
+    clarification_ids: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(
+            "clarification_ids",
+            JSONB,
+            nullable=False,
+            server_default=text("'[]'::jsonb"),
+        ),
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},

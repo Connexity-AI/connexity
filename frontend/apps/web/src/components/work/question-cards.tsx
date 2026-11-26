@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+
 import { useQueryClient } from '@tanstack/react-query';
 
 import { cn } from '@workspace/ui/lib/utils';
@@ -121,12 +122,26 @@ export const QuestionCards: FC<Props> = ({ agentId, onClose }) => {
       )}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex flex-col gap-1">
-        <p className="m-0 text-pretty text-body text-ink">{q.question}</p>
-        <span className="text-label text-ink-muted">{why(q)}</span>
-        {q.replaces?.text && (
-          <span className="text-label text-ink-muted">Earlier answer: “{q.replaces.text}”</span>
+      <div className="flex flex-col gap-2">
+        {/* What the question is about (designs/24-clarification-on-rule.md). */}
+        {q.kind === 'clarification' && q.rule?.text && (
+          <div className="flex flex-col gap-0.5">
+            <span className="text-label text-ink-muted">About the rule</span>
+            <span className="text-pretty text-label text-ink-secondary">“{q.rule.text}”</span>
+          </div>
         )}
+        {q.kind === 'prompt_gap' && (
+          <span className="text-label text-ink-muted">The prompt doesn’t cover this</span>
+        )}
+        <div className="flex flex-col gap-1">
+          <p className="m-0 text-pretty text-body text-ink">{q.question}</p>
+          <span className="text-label text-ink-muted">{why(q)}</span>
+          {q.replaces_sentence && (
+            <span className="text-label text-ink-muted">
+              Earlier answer: “{q.replaces_sentence}”
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -137,13 +152,17 @@ export const QuestionCards: FC<Props> = ({ agentId, onClose }) => {
             disabled={sending}
             onClick={() => choose(a.letter)}
             className={cn(
-              'min-h-11 rounded-lg border px-4 py-2.5 text-left text-body text-ink hover:bg-wash',
+              'flex min-h-11 flex-col items-start justify-center gap-0.5 rounded-lg border px-4 py-2.5 text-left text-body text-ink hover:bg-wash',
               picked?.answer === a.letter
                 ? 'border-ink bg-wash'
                 : 'border-border-control bg-surface-1'
             )}
           >
-            {a.label}
+            <span>{a.label}</span>
+            <span className="text-pretty text-label text-ink-secondary">
+              {q.kind === 'prompt_gap' ? 'Prompt would say: ' : 'Adds: '}
+              {a.sentence}
+            </span>
           </button>
         ))}
         <button
@@ -166,7 +185,11 @@ export const QuestionCards: FC<Props> = ({ agentId, onClose }) => {
               onChange={(e) => setOtherText(e.target.value)}
               maxLength={500}
               rows={3}
-              placeholder="Write it as the rule the agent should follow."
+              placeholder={
+                q.kind === 'prompt_gap'
+                  ? 'Tell the assistant what the agent should do'
+                  : 'Write the clarification in your own words'
+              }
               className="w-full resize-none rounded-lg border border-border-control bg-surface-1 px-3 py-2 text-body text-ink placeholder:text-ink-muted"
             />
             <button

@@ -41,7 +41,7 @@ A living document. One row per job in the agent's lifecycle. Update a row when a
 | Job | Connexity | Assistant | Person | Status |
 |---|---|---|---|---|
 | Keep every agent's spec up to date (**spec drift**, an internal term, never shown in the UI): behaviour the spec does not cover, and behaviour against the spec | Detects both on real calls: not covered becomes a clarification, against the spec becomes a "Spec rule broken" issue | — | — | Decided: Connexity's job, it is observability and the assistant does not run all the time |
-| Answer a clarification | Records the answer and who gave it; the answer becomes spec | Prepares answers and confirms them with the person in batches, then submits through MCP | Confirms the batch, or answers in the app | Decided |
+| Answer a clarification | Records the answer and who gave it; a clarification is attached to its rule and read with it by every check, a prompt gap becomes a task to propose the prompt change (105.12) | Prepares answers and confirms them with the person in batches, then submits through MCP | Confirms the batch, or answers in the app | Decided |
 | Spot a new prompt contradicting an earlier answer | Marks the rule in conflict, asks again | — | — | Decided |
 | Park a clarification | Records it | Can park | Can park | Decided |
 

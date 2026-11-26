@@ -16,7 +16,7 @@ import statistics
 import time
 import uuid
 from collections import Counter
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
@@ -118,6 +118,10 @@ from app.services.eval_runtimes import (
 )
 from app.services.eval_runtimes.types import TestCaseRunResult
 from app.services.retell import PLAYGROUND_THROTTLED
+from app.services.rule_context import (
+    RuleWithClarifications,
+    rules_with_clarifications,
+)
 from app.services.rule_judge import JudgeFailed, RuleToJudge, judge_rules
 from app.services.tool_schema_check import check_tool_calls, tool_schemas
 from app.services.trace_capabilities import derive_capabilities
@@ -564,6 +568,8 @@ class _RunContext:
     run_snapshot: RunSnapshot
     rules: dict[str, SpecRule]
     modes: dict[str, CheckMode]
+    # Each rule with the clarifications in force when the run started.
+    clarified: dict[str, RuleWithClarifications] = field(default_factory=dict)
 
 
 async def _simulate(
@@ -622,7 +628,15 @@ async def _simulate(
                 error = f"The conversation stopped: {_why_stopped(failure)}"[:1000]
             else:
                 to_judge = [
-                    RuleToJudge(key=key, text=ctx.rules[key].text)
+                    RuleToJudge(
+                        key=key,
+                        text=ctx.rules[key].text,
+                        clarifications=tuple(
+                            c.sentence for c in ctx.clarified[key].clarifications
+                        )
+                        if key in ctx.clarified
+                        else (),
+                    )
                     for key in keys
                     if key in ctx.rules
                 ]
@@ -659,6 +673,9 @@ async def _simulate(
                             critical=ctx.rules[v.key].critical,
                             mark=VerdictMark.DEFAULT_FAKE if rested[v.key] else None,
                             mark_detail=rested[v.key] or None,
+                            clarification_ids=ctx.clarified[v.key].clarification_ids
+                            if v.key in ctx.clarified
+                            else [],
                         )
                         for v in judged.verdicts
                     ]
@@ -858,6 +875,12 @@ async def _execute(run_id: uuid.UUID) -> None:
                 ),
                 rules=rules,
                 modes=modes,
+                clarified=rules_with_clarifications(
+                    session=session,
+                    agent_id=agent.id,
+                    rules=list(rules.values()),
+                    at=run.started_at,
+                ),
             )
         runtime = config.runtime
         if (

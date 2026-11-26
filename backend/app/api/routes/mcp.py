@@ -1253,12 +1253,15 @@ _SPEC_RULES = [
     "as dropped and added again.",
     "Rules are never edited: every `write_spec` is a new version, and earlier versions "
     "stay as they were.",
-    "in_conflict means an open question replaces the rule; answering it changes the "
-    "rule. With compare, each rule is kept, added or dropped against that version; a "
-    "rule whose text changed reads as dropped and added.",
-    "Rules with source clarification are the person's answers: Connexity carries them "
-    "into every version; never pass them to `write_spec`. To change one, raise a "
-    "clarification that replaces it.",
+    "A rule's `clarifications` are the person's notes on where its boundary lies; "
+    "every check reads the rule with them. They stay with the rule's key across "
+    "versions and stop applying when the key is dropped. in_conflict means an open "
+    "question replaces one of them. With compare, each rule is kept, added or dropped "
+    "against that version; a rule whose text changed reads as dropped and added.",
+    "Rules with source clarification are earlier answers about behaviour the prompt "
+    "did not cover: Connexity carries them until the prompt does. Never pass their "
+    "keys; once the prompt covers one, name its `prompt_gap_id` in `closes` on the "
+    "rule that now covers it, which takes its key and critical mark.",
     "A critical rule is one whose failure must stop a release; a failure of any other "
     "rule is a Warning. Marking is yours to decide, without asking the person: mark "
     "with `critical` in `write_spec` or with `mark_critical_rules`. Marks carry into "
@@ -1305,7 +1308,7 @@ def _scenario_step(answer: SpecPublic, agent_id: uuid.UUID) -> str | None:
 def _critical_step(answer: SpecPublic, agent_id: uuid.UUID) -> str:
     counts = answer.counts
     critical = counts.critical if counts else 0
-    total = counts.from_prompt + counts.from_clarifications if counts else 0
+    total = counts.from_prompt + counts.from_answers if counts else 0
     if critical == 0:
         return (
             "No rule is marked critical. Mark the rules whose failure must stop a "
@@ -1369,8 +1372,9 @@ def _spec_steps(answer: SpecPublic) -> list[str]:
             f"The agent moved to version {answer.current_agent_version}; Connexity "
             "copied the previous spec to it. Compare the prompts, keep what holds (with "
             "keys), and write what changed with `write_spec`. Raise what the change "
-            "leaves unsettled with `raise_clarifications`, and replace (`replaces_key`) "
-            "any answered rule it contradicts."
+            "leaves unsettled with `raise_clarifications`. Name in `closes` any answered "
+            "prompt gap the new prompt now covers, and check the clarifications "
+            "`write_spec` lists for rules whose text changed."
         )
     return steps
 
@@ -1439,6 +1443,7 @@ def write_spec(
                     touches=r.touches,
                     key=r.key or None,
                     critical=r.critical,
+                    closes=r.closes,
                 )
                 for r in body.rules
             ],
@@ -1464,8 +1469,20 @@ def write_spec(
         )
     if changes.carried:
         steps.append(
-            f"{changes.carried} rules from the person's answers were carried over "
-            "unchanged."
+            f"{changes.carried} rules from earlier answers were carried over until "
+            "the prompt covers them."
+        )
+    if changes.gaps_closed:
+        steps.append(
+            f"{changes.gaps_closed} prompt gaps closed: their behaviour is now a rule "
+            "from the prompt, and checked."
+        )
+    if changes.check_clarifications:
+        steps.append(
+            f"{len(changes.check_clarifications)} clarifications sit on rules whose "
+            "text changed (`check_clarifications`). Check each still fits the new "
+            "rule; where one does not, raise a question on that rule with "
+            "`replaces_id` set to it."
         )
     steps.append(
         f"Look at the agent's recent calls (`list_calls` with agent_id {agent.id}) for "
@@ -1529,17 +1546,24 @@ def mark_critical(
 
 
 _CLARIFICATION_RULES = [
-    "A clarification is a question about behaviour the agent's spec does not settle. "
-    "Each answer carries the rule it becomes; the chosen answer's rule is added to the "
-    "spec in a new version.",
+    "A question is one of two kinds. A clarification explains an existing rule "
+    "(`rule_key`): its answer is one sentence attached to that rule, and every check "
+    "reads the rule with it. A prompt gap is behaviour no rule covers (no `rule_key`, "
+    "a `gap_topic`): its answer is what the prompt should say.",
+    "An answer never writes a rule or a spec version. A rule comes only from the "
+    "prompt: the only way to change one is to change the prompt.",
+    "An answered prompt gap is not checked until the prompt says it. It becomes a "
+    "task for you to propose the prompt change to the person; Connexity never edits the "
+    "prompt. Once the new prompt is live, write the spec from it and name the gap in "
+    "`closes` on the rule that covers it.",
     "The person answers. Ask them in your chat and confirm every answer with them before "
     "`answer_clarifications`; you may tell them what you would pick and why. Connexity "
     "records only the answer. When they leave a decision to you, it is still recorded "
     "as theirs, with you as the assistant that acted; tell them so.",
     "When the person's answer is none of the choices, answer `other` with their words as "
-    "`text`: it becomes the rule as written.",
-    "An answer is final. To change one, raise a clarification that replaces its rule "
-    "(`replaces_key`), quoting the earlier answer.",
+    "`text`: it is kept in their own words.",
+    "An answer is final. To change a clarification, raise a question on the same rule "
+    "with `replaces_id` set to it, quoting the earlier answer.",
     "You may propose answers where the spec, the prompt or the calls support them, "
     "saying why; the person confirms them, as a batch if they like. Mark an answer "
     "they confirmed from your proposal `proposed`; never send one they have not seen.",
@@ -1591,11 +1615,13 @@ def raise_agent_clarifications(
             drafts=[
                 QuestionDraft(
                     question=q.question,
-                    answers=[AnswerDraft(a.label, a.rule) for a in q.answers],
-                    category=q.category,
+                    answers=[AnswerDraft(a.label, a.sentence) for a in q.answers],
+                    rule_key=q.rule_key or None,
+                    gap_topic=q.gap_topic or None,
+                    category=q.category or None,
                     touches=q.touches,
                     call_ids=q.call_ids,
-                    replaces_key=q.replaces_key or None,
+                    replaces_id=q.replaces_id,
                 )
                 for q in body.questions
             ],
@@ -1701,9 +1727,15 @@ def answer_workspace_clarifications(
     data = answered_public(session=session, company_id=workspace.id, result=result)
     steps = [
         *([_dashboard_ready(session, workspace.id)] if finished else []),
-        "Tell the person what was recorded: their answers are now spec rules, carried "
-        "into every later version, and recorded as theirs.",
+        "Tell the person what was recorded, as theirs: each clarification is now read "
+        "with its rule by every check; each prompt gap waits for a prompt change.",
     ]
+    if any(a.prompt_gaps for a in data.agents):
+        steps.append(
+            "For each answered prompt gap, propose to the person the prompt change "
+            "that says it (`get_next_task` hands it out as a task). A change to the "
+            "agent is made with their approval, outside Connexity."
+        )
     if data.open:
         steps.append(
             f"{data.open} {'question is' if data.open == 1 else 'questions are'} still "
@@ -1884,6 +1916,18 @@ def _task_steps(task: Task) -> list[str]:
             "Write the rules the prompt settles with `write_spec`.",
             "Raise what the prompt does not settle with `raise_clarifications`; the "
             "person answers it.",
+        ]
+    if task.kind is TaskKind.PROMPT_GAP:
+        return [
+            f"Call `list_clarifications` with agent_id {agent} and state `answered`: "
+            f"prompt gap `{task.ref}` holds the person's answer, the sentence the "
+            "prompt should say.",
+            "Read the agent's prompt from the voice platform and propose to the person "
+            "the change that says it. The change is made with their approval, outside "
+            "Connexity; Connexity never changes an agent.",
+            "Once the version with the new prompt is live, write the spec for it with "
+            f"`write_spec`, naming `{task.ref}` in `closes` on the rule that covers "
+            "it. Until then the behaviour is not checked.",
         ]
     if task.kind is TaskKind.TESTS:
         return [

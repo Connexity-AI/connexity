@@ -1,11 +1,11 @@
 'use client';
 
 import { Fragment, useEffect, useState, useTransition } from 'react';
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import {
   ChevronDown,
   ChevronRight,
@@ -54,6 +54,8 @@ const KIND: Record<TaskKind, { word: string; icon: LucideIcon }> = {
   onboarding: { word: 'Onboarding', icon: Flag },
   spec: { word: 'Spec', icon: FileText },
   clarifications: { word: 'Clarifications', icon: CircleHelp },
+  // The person answered a prompt gap: the assistant proposes the prompt change.
+  prompt_gap: { word: 'Spec', icon: FileText },
   calls_to_review: { word: 'Calls to review', icon: Phone },
   tests: { word: 'Tests', icon: FlaskConical },
 };
@@ -471,8 +473,8 @@ const Panel: FC<{
                 <span className="flex flex-col gap-1">
                   <span>{timeLabel(quietSince(task)!)}</span>
                   <span className="text-label text-ink-muted">
-                    Your assistant hasn&apos;t asked Connexity for its next task since then.
-                    The task stays with this session until the assistant moves on.
+                    Your assistant hasn&apos;t asked Connexity for its next task since then. The
+                    task stays with this session until the assistant moves on.
                   </span>
                 </span>
               </Fact>
@@ -661,7 +663,10 @@ export const WorkView: FC = () => {
         {!work.assistant_connected
           ? 'No assistant connected'
           : sessions.length
-            ? [working > 0 && `${plural(working, 'session')} working`, quiet > 0 && `${quiet} quiet`]
+            ? [
+                working > 0 && `${plural(working, 'session')} working`,
+                quiet > 0 && `${quiet} quiet`,
+              ]
                 .filter(Boolean)
                 .join(', ')
             : 'No assistant working'}

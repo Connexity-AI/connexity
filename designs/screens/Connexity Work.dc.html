@@ -77,18 +77,22 @@
 </div>
 <sc-if value="{{ r.showQ }}">
 <div style="{{ r.qStyle }}">
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-if value="{{ r.q.isRule }}"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;line-height:18px;color:var(--ink3)">About the rule</span><span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">“{{ r.q.rule }}”</span></div></sc-if>
+<sc-if value="{{ r.q.isGap }}"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>The prompt doesn’t cover this</span></sc-if>
 <div style="display:flex;flex-direction:column;gap:4px">
 <span style="font-size:17px;line-height:24px;font-weight:500;text-wrap:pretty">{{ r.q.text }}</span>
 <span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ r.q.why }}</span>
 </div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">
+</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
 <sc-for list="{{ r.q.options }}" as="o" hint-placeholder-count="0">
-<button onClick="{{ o.pick }}" style="{{ o.style }}" style-hover="border-color:var(--ink)">{{ o.label }}</button>
+<button onClick="{{ o.pick }}" style="{{ o.style }}" style-hover="border-color:var(--ink)"><span>{{ o.label }}</span><sc-if value="{{ o.hasAdds }}"><span style="font-size:13px;line-height:18px;color:var(--ink2);text-wrap:pretty">{{ o.adds }}</span></sc-if></button>
 </sc-for>
 </div>
 <sc-if value="{{ r.q.otherOpen }}">
 <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-start">
-<textarea value="{{ r.q.otherText }}" onChange="{{ r.q.onOther }}" placeholder="Tell the assistant what the agent should do" rows="3" style="width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--bc);border-radius:8px;background:var(--s1);color:var(--ink);font:inherit;outline:none"></textarea>
+<textarea value="{{ r.q.otherText }}" onChange="{{ r.q.onOther }}" placeholder="{{ r.q.otherPh }}" rows="3" style="width:100%;resize:vertical;padding:10px 12px;border:1px solid var(--bc);border-radius:8px;background:var(--s1);color:var(--ink);font:inherit;outline:none"></textarea>
 <button onClick="{{ r.q.saveOther }}" style="height:36px;padding:0 16px;border:0;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;cursor:pointer" style-hover="opacity:.88">Save answer</button>
 </div>
 </sc-if>
@@ -245,9 +249,18 @@ class Component extends DCLogic {
     ['3 answers added to the Car service booking spec','Alex','11:30','Connexity Agent Profile.dc.html?agent=car&tab=spec'],
     ['Calls reviewed for Car service booking','Alex\u2019s Claude Code','10:05','Connexity Calls.dc.html?agent=car'] ];
   static QS = [
-    { text:'A caller asks for a time that is already booked. What should the agent do?', why:'Seen on 9 calls', options:['Offer the next free time','Offer the three nearest times','Take a callback request'] },
-    { text:'Can the agent book a service without the car\u2019s registration number?', why:'Seen on 14 calls', options:['Yes, with make and model','Yes, and flag it for the service desk','No, ask for it before booking'] },
-    { text:'How far ahead can a caller book a service?', why:'Seen on 6 calls', options:['Up to 2 weeks','Up to 4 weeks','Up to 3 months'] } ];
+    { rule:'Never offer a time the availability tool did not return.', text:'The caller names a time the first lookup did not return, and a second lookup returns it. Can the agent offer it?', why:'Seen on 9 calls', options:[
+      ['Yes, once a lookup returns it','A time counts as returned once any lookup on the call returns it.'],
+      ['No, only times from the first lookup','Only times from the first lookup on the call count; later lookups do not add times.'],
+      ['Yes, but read it back as new','A time from a later lookup can be offered once the agent says it has just come free.'] ] },
+    { gap:'changing appointments', text:'A caller wants to add work to a service they already booked, such as a tyre check. What should the agent do?', why:'Seen on 14 calls', options:[
+      ['Add it to the same booking','Add extra work to an existing booking when the availability tool shows the bay is free for the longer time.'],
+      ['Make a second booking','Book extra work as a separate booking, right after the first one when possible.'],
+      ['Pass it to the service desk','Pass any change to the work on an existing booking to the service desk.'] ] },
+    { rule:'Offer the earliest slot first, then two alternatives.', text:'A caller asks for a time that is already booked. What should the agent do?', why:'Seen on 6 calls', options:[
+      ['Offer the next free time','When the time asked for is taken, the earliest slot means the next free time after it.'],
+      ['Offer the three nearest times','When the time asked for is taken, offer the free times nearest to it, before or after.'],
+      ['Take a callback request','When the time asked for is taken, take a callback request instead of offering other slots.'] ] } ];
   static ONB = [
     { id:'o1', text:'Connect your AI assistant' },
     { id:'o2', text:'Connect your voice platform', step:'Asked which voice platform you use', ago:'30 seconds ago', on:'1 minute' },
@@ -274,7 +287,7 @@ class Component extends DCLogic {
     super(props);
     const v = props.view;
     this.state = { sel: { panel:'w1', quiet:'t1' }[v] || null, linkHover: v === 'hover', refreshing:false, updated:null, qOpen: v === 'answering', qi: v === 'answering' ? 1 : 0,
-      answers: v === 'answering' ? ['Offer the next free time', null, null] : [null, null, null], answered: v === 'answered', other:false, otherText:'', flash:null, plan:false, nextOrder:null, goalOrder: Component.GOALS.map(g => g.id),
+      answers: v === 'answering' ? ['Yes, once a lookup returns it', null, null] : [null, null, null], answered: v === 'answered', other:false, otherText:'', flash:null, plan:false, nextOrder:null, goalOrder: Component.GOALS.map(g => g.id),
       hover: v === 'hover' ? 't1' : null, drag:null, gDrag:null, done: v === 'done', team:false };
     this.lastSwap = 0;
   }
@@ -300,6 +313,8 @@ class Component extends DCLogic {
     if (!onb) progress.push({ ...C.SETUP[0], st:'progress', owner:'Alex', session:'Setup', step:'Started connecting the Slack workspace', ago:'1 minute ago', on:'2 minutes' });
     let next = (onb ? C.ONB.slice(onb0 ? 1 : 2) : [C.FIX2].concat(C.SETUP.slice(1))).map(t => ({ ...t, st:'next' }));
     if (fresh) next = [{ ...C.SETUP[0], st:'next' }].concat(next.filter(t => t.id !== 's1'));
+    const gapI = C.QS.findIndex(q => q.gap);
+    if (S.answered && (S.answers[gapI] || view === 'answered')) next = [{ id:'p1', st:'next', text:'Propose the prompt change: ' + C.QS[gapI].gap, sub:'Car service booking', type:'spec' }].concat(next);
     if (S.nextOrder) { const ix = id => { const i = S.nextOrder.indexOf(id); return i < 0 ? 1000 : i; }; next = next.slice().sort((a, b) => ix(a.id) - ix(b.id)); }
     const nextIds = next.map(t => t.id);
     const all = fresh ? (S.answered ? [] : [C.CHATW]).concat([C.FIXW, C.QUIET], next) : waiting.concat(progress, next);
@@ -319,12 +334,13 @@ class Component extends DCLogic {
       const nx = QS.map((_, k) => (i + 1 + k) % QS.length).find(k => !a[k]);
       if (nx === undefined) this.setState({ answers:a, answered:true, qOpen:false, other:false, otherText:'', sel:null, hover:null });
       else this.setState({ answers:a, qi:nx, other:false, otherText:'' }); };
-    const optSt = on => ({ display:'flex', alignItems:'center', minHeight:48, padding:'12px 16px', borderRadius:8, border:'1px solid ' + (on ? 'var(--ink)' : 'var(--bc)'), background: on ? 'var(--wash)' : 'var(--s1)', color:'var(--ink)', fontSize:15, lineHeight:'22px', textAlign:'left', cursor:'pointer', textWrap:'pretty' });
+    const optSt = on => ({ display:'flex', flexDirection:'column', alignItems:'flex-start', justifyContent:'center', gap:2, minHeight:48, padding:'12px 16px', borderRadius:8, border:'1px solid ' + (on ? 'var(--ink)' : 'var(--bc)'), background: on ? 'var(--wash)' : 'var(--s1)', color:'var(--ink)', fontSize:15, lineHeight:'22px', textAlign:'left', cursor:'pointer', textWrap:'pretty' });
     const qv = {
       text: cq.text, why: cq.why, step: `${qi + 1} of ${QS.length}`, noBack: qi === 0,
-      options: cq.options.map(label => ({ label, style: optSt(S.flash ? S.flash === label : S.answers[qi] === label),
+      isRule: !!cq.rule, isGap: !!cq.gap, rule: cq.rule || '', otherPh: cq.rule ? 'Write the clarification in your own words' : 'Tell the assistant what the agent should do',
+      options: cq.options.map(([label, said]) => ({ label, hasAdds: true, adds: (cq.rule ? 'Adds: ' : 'Prompt would say: ') + said, style: optSt(S.flash ? S.flash === label : S.answers[qi] === label),
         pick: () => { this.setState({ flash:label, other:false }); clearTimeout(this.qT); this.qT = setTimeout(() => { this.setState({ flash:null }); answerQ(label); }, 220); } }))
-        .concat([{ label:'Something else', style: optSt(S.other), pick: () => this.setState(s => ({ other: !s.other })) }]),
+        .concat([{ label:'Something else', hasAdds: false, adds:'', style: optSt(S.other), pick: () => this.setState(s => ({ other: !s.other })) }]),
       otherOpen: S.other, otherText: S.otherText, onOther: e => this.setState({ otherText: e.target.value }),
       saveOther: () => { const t = (this.state.otherText || '').trim(); if (t) answerQ(t); },
       back: () => this.setState(s => ({ qi: Math.max(0, s.qi - 1), other:false, otherText:'' })),

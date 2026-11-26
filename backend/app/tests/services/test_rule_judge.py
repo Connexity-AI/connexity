@@ -11,6 +11,7 @@ from app.services.rule_judge import (
     JudgeFailed,
     RuleToJudge,
     _response_format,
+    _user_prompt,
     parse_verdicts,
 )
 
@@ -69,3 +70,22 @@ def test_an_answer_in_that_order_is_read_in_the_rules_order() -> None:
 def test_an_answer_that_cannot_be_read_gives_no_verdicts(raw: str) -> None:
     with pytest.raises(JudgeFailed):
         parse_verdicts(raw, RULES)
+
+
+def test_a_rule_is_given_with_its_clarifications() -> None:
+    rules = [
+        RuleToJudge(
+            key="k1",
+            text="Never quote a price",
+            clarifications=("A range from the price list is not a quote.",),
+        ),
+        RuleToJudge(key="k2", text="Greet the caller"),
+    ]
+
+    prompt = _user_prompt([], rules, None, [])
+
+    assert (
+        "- [k1] Never quote a price\n"
+        "  Note on this rule: A range from the price list is not a quote.\n"
+        "- [k2] Greet the caller"
+    ) in prompt

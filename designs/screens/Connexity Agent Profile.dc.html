@@ -204,10 +204,11 @@
 <sc-if value="{{ onSpec }}" hint-placeholder-val="{{ false }}">
 <div style="display:flex;flex-direction:column;gap:16px">
 <sc-if value="{{ notComparing }}" hint-placeholder-val="{{ true }}">
-<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Rules</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ specTotal }}</span></div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">From the prompt</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ specPrompt }}</span></div>
-<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">From clarifications</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ specClar }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Clarified rules</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ specClar }}</span></div>
+<div title="Answers waiting for a prompt change" style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Prompt gaps</span><span style="font-size:30px;line-height:36px;font-weight:400;color:var(--ink2)">{{ specGaps }}</span></div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px">
 <sc-if value="{{ hasConflict }}"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>In conflict</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--warn)">{{ specConflict }}</span></sc-if>
 <sc-if value="{{ noConflict }}"><span style="font-size:13px;line-height:18px;color:var(--ink2)">In conflict</span><span style="font-size:30px;line-height:36px;font-weight:500">0</span></sc-if>
@@ -278,6 +279,10 @@
 <sc-if value="{{ r.hasRisk }}"><span title="{{ r.riskTitle }}" style="display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 6px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;line-height:18px;font-weight:500"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path></svg>{{ r.risk }}</span></sc-if>
 </div>
 <span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ r.src }}<sc-if value="{{ r.conflict }}"> · <a href="{{ r.href }}" style="color:var(--warn)">The new prompt says otherwise. Open the clarification</a></sc-if></span>
+<sc-if value="{{ r.hasClars }}"><div style="display:flex;flex-direction:column;gap:4px;padding:6px 0 2px 16px">
+<sc-for list="{{ r.clars }}" as="c" hint-placeholder-count="0"><div style="display:flex;flex-wrap:wrap;column-gap:8px;font-size:13px;line-height:18px"><span style="color:var(--ink2);text-wrap:pretty">{{ c.text }}</span><span style="color:var(--ink3)">{{ c.by }}</span></div></sc-for>
+<sc-if value="{{ r.hasMoreClars }}"><button onClick="{{ r.showMoreClars }}" style="align-self:flex-start;padding:0;border:0;background:transparent;color:var(--ink2);font-size:13px;line-height:18px;cursor:pointer;text-decoration:underline;text-underline-offset:2px">{{ r.moreClars }}</button></sc-if>
+</div></sc-if>
 </div>
 <div style="display:flex;align-items:center;gap:6px">
 <sc-if value="{{ r.added }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:var(--pass-bg);color:var(--pass);font-size:13px;font-weight:500">{{ r.addedLabel }}</span></sc-if>
@@ -472,16 +477,23 @@ class Component extends DCLogic {
       end:["+|Confirm the payment method before ending the call.|A 9 Nov","|Give a renewal reference number at the end of the call.","|Read the reference number back in groups of three.","|Offer to send the renewal summary by email.","|Ask if the caller needs anything else before closing.","|End the call only after the caller says goodbye.","|Ask twice before ending a silent call.","m3*|Never end the call during a payment.","|Keep the call open while a text confirmation is sent.","|Thank the caller at the end of every call."],
       other:["|Name the cover level as it appears on the policy.","|Say which drivers are named on the policy when asked.","|Never guess a policy detail the lookup does not return.","|Describe what the policy covers only from the policy summary.","|Give the claims phone number from the policy summary.","|State the vehicle on the policy by make and model.","3|Give the office’s opening hours when asked.|Y 1 Nov","|Give the website address when asked.","|Give the company’s registered name when asked.","|Never comment on the caller’s driving."]
     }},
-    car: { clar:1, rules:{
+    car: { clar:1, gaps:1, clars:{
+      'book|0':[['A time counts as returned only if it came from a lookup on this call, not from an earlier call.','A','26 Nov'],['A time the caller suggests is not offered until the availability tool returns it.','A','20 Nov']],
+      'greet|0':[['Saying it inside the greeting counts; it does not need its own sentence.','A','14 Nov']],
+      'greet|3':[['A family member booking for the owner has permission once they say the owner asked them to.','A','12 Nov']],
+      'resched|2':[['The 24 hours count back from the booking’s start time, not from the start of that day.','A','10 Nov']],
+      'price|1':[['A price range from the price list is not a promise; a single total for the repair is.','A','6 Nov']],
+      'transfer|0':[['A warning light alone does not make the car unsafe; trouble with brakes, steering or smoke does.','Y','4 Nov']] },
+      rules:{
       greet:["c*|Say the call may be recorded at the start of every call.","|Greet callers with the garage name.","|Ask for the caller’s name before booking.","c|Confirm the caller owns the car or has the owner’s permission."],
-      collect:["|Spell the registration back letter by letter.|A 28 Aug","|Ask for the make and model of the car.","|Ask for the current mileage.","|Ask what the problem is in the caller’s own words.","|Ask for a mobile number for the confirmation text.","|Read the mobile number back in groups of three.","|Never ask for the registration twice.","|Ask whether the warning light is on, flashing or off."],
-      book:["+*|Book only slots returned by the slot finder.","|Read the booking date and time back before ending the call.","*|Never book two cars into the same bay slot.","|Offer the earliest slot first, then two alternatives.","|Ask whether the caller needs a courtesy car.","*|Book a courtesy car only if one is free on the booking day.","|Tell the caller how long the service usually takes.","|Ask whether the caller will wait or drop the car off."],
-      resched:["|Move a booking only to slots returned by the slot finder.","|Read the new date and time back after moving a booking.","m|Mention the late cancellation fee for cancellations under 24 hours.","|Cancel a booking only after the caller confirms.","|Send a text after every change or cancellation."],
+      collect:["|Spell the registration back letter by letter.|A 18 Nov","|Ask for the make and model of the car.","|Ask for the current mileage.","|Ask what the problem is in the caller’s own words.","|Ask for a mobile number for the confirmation text.","|Read the mobile number back in groups of three.","|Never ask for the registration twice.","|Ask whether the warning light is on, flashing or off."],
+      book:["+*|Never offer a time the availability tool did not return.","|Read the booking date and time back before ending the call.","*|Never book two cars into the same bay slot.","|Offer the earliest slot first, then two alternatives.","|Ask whether the caller needs a courtesy car.","*|Book a courtesy car only if one is free on the booking day.","|Tell the caller how long the service usually takes.","|Ask whether the caller will wait or drop the car off."],
+      resched:["|Move a booking only to slots returned by the slot finder.","|Read the new date and time back after moving a booking.","m|Mention the late cancellation fee for cancellations under 24 hours.","|Cancel a booking only after the caller confirms.","|Send a text after every change or cancellation.","|Offer to move a booking before offering to cancel it."],
       price:["m|Quote service prices including tax.","m*|Never promise a repair price before the car is inspected.","m*|Quote service prices only from the price list.","m|Say that parts are charged on top of the labour price.","m|Never offer a discount that is not on the price list.","m|Say when payment is due."],
-      transfer:["s*|Transfer at once if the caller says the car is unsafe to drive.","|Transfer to a person whenever the caller asks for one.","|Warn the caller before a transfer.","|Offer a callback when no person is free within 2 minutes.","|Transfer complaints about earlier work to the service manager."],
+      transfer:["s*|Transfer at once if the caller says the car is unsafe to drive.","|Transfer to a person whenever the caller asks for one.","|Warn the caller before a transfer.","|Offer a callback when no person is free within 2 minutes.","|Transfer complaints about earlier work to the service manager.","|Say who the caller is being transferred to."],
       compliance:["c*|Never read out a full card number.","c|Never confirm a booking to anyone but the caller.","|Never pretend to be a person when asked."],
-      flow:["|Say “I’ll check” before every slot lookup.","|Ask one question at a time."],
-      end:["|Give the booking reference at the end of the call.","|Ask if the caller needs anything else before closing."]
+      flow:["|Say “I’ll check” before every slot lookup.","|Ask one question at a time.","|Never leave a caller on hold for more than 2 minutes.","|Confirm yes or no answers before acting on them."],
+      end:["|Give the booking reference at the end of the call.","|Ask if the caller needs anything else before closing.","|Thank the caller at the end of every call."]
     }},
     restaurant: { clar:1, rules:{
       book:["|Read every booking back to the caller.","+|Take bookings for up to 10 guests and pass larger groups to a person.","+|Hold a table for late guests for up to 20 minutes.|Y 10 Nov"],
@@ -630,12 +642,14 @@ class Component extends DCLogic {
     const cmp = earlier.some(v => v.v === req) ? req : null;
     const changesOnly = cmp != null && (this.state.changesOnly ?? !!this.props.changesOnly);
     const actionsHref = 'Connexity Action items.dc.html?agent=' + aid;
-    const srcText = src => { if (!src) return 'From the prompt'; const [w, ...d] = src.split(' '); return 'From a clarification, answered by ' + (w === 'Y' ? 'your assistant' : 'Alex') + ' on ' + d.join(' '); };
+    const who = w => w === 'Y' ? 'your assistant' : 'Alex', md = d => { const [dd, mm] = d.split(' '); return mm + ' ' + dd; };
+    const srcText = src => { if (!src) return 'From the prompt'; const [w, ...d] = src.split(' '); return 'From an answer, until the prompt covers it · answered by ' + who(w) + ' on ' + md(d.join(' ')); };
+    const CL = SP.clars || {}, clarOpen = this.state.clarOpen || {};
     const parsed = [];
     Object.keys(SP.rules).forEach(area => SP.rules[area].forEach((s, idx) => {
       const [fl, text, src] = s.split('|');
       const inV = fl.includes('+') ? [allV[allV.length - 1]] : fl.includes('-') ? allV.slice(0, -1) : fl.includes('3') ? allV.slice(-2) : allV;
-      parsed.push({ area, idx, text, src, inV, risk: ['m','s','c'].find(k => fl.includes(k)), crit: fl.includes('*'), clar: !!src, conflictFlag: fl.includes('!') });
+      parsed.push({ area, idx, text, src, inV, clars: CL[area + '|' + idx] || [], risk: ['m','s','c'].find(k => fl.includes(k)), crit: fl.includes('*'), clar: !!src, conflictFlag: fl.includes('!') });
     }));
     const liveRules = parsed.filter(r => r.inV.includes(lv));
     const rules = parsed.map(r => {
@@ -643,7 +657,11 @@ class Component extends DCLogic {
       if (!inLive && !inCmp) return null;
       const st = cmp == null ? 'live' : inLive && inCmp ? 'kept' : inLive ? 'added' : 'dropped';
       const conflict = r.conflictFlag && inLive;
-      return { area: r.area, key: r.area + '|' + r.idx, st, text: r.text, src: srcText(r.src), href: actionsHref,
+      const key = r.area + '|' + r.idx, cAll = r.clars.map(([t, w, d]) => ({ text: 'Clarified: ' + t, by: 'answered by ' + who(w) + ' on ' + md(d) }));
+      const cOpen = !!clarOpen[key], cMore = cAll.length - 3;
+      return { area: r.area, key, st, text: r.text, src: srcText(r.src), href: actionsHref,
+        hasClars: cAll.length > 0, clars: cOpen ? cAll : cAll.slice(0, 3), hasMoreClars: cMore > 0 && !cOpen, moreClars: cMore + ' more clarification' + (cMore === 1 ? '' : 's'),
+        showMoreClars: () => this.setState(s => ({ clarOpen: { ...(s.clarOpen || {}), [key]: true } })),
         hasRisk: !!r.risk, risk: r.risk ? C.RISK[r.risk][0] : '', riskTitle: r.risk ? C.RISK[r.risk][1] : '',
         crit: r.crit, dropped: st === 'dropped', live: st !== 'dropped', added: st === 'added', addedLabel: 'Added', conflict, rank: conflict ? 0 : r.risk ? 1 : 2 };
     }).filter(Boolean);
@@ -752,7 +770,7 @@ class Component extends DCLogic {
       mainStyle: compact ? { flex:1, minWidth:0, padding:'16px 16px 40px' } : { flex:1, minWidth:944, padding:'24px 32px 48px' },
       innerStyle: { maxWidth:1120, minWidth: compact ? 0 : 880, display:'flex', flexDirection:'column', gap:24 },
       tabsStyle: { display:'flex', gap: compact ? 16 : 24, borderBottom:'1px solid var(--border)', marginTop:-8, ...(compact ? { overflowX:'auto', scrollbarWidth:'none' } : {}) },
-      specTotal: A.noSpec ? '' : liveRules.length, specPrompt: liveRules.filter(r => !r.clar).length, specClar: liveRules.filter(r => r.clar).length,
+      specTotal: A.noSpec ? '' : liveRules.length, specPrompt: liveRules.filter(r => !r.clar).length, specClar: liveRules.filter(r => r.clars.length).length, specGaps: liveRules.filter(r => r.clar).length + (SP.gaps || 0),
       specConflict: nConf, hasConflict: nConf > 0, noConflict: nConf === 0, clarCount: SP.clar,
       keptN: cnt('kept'), addedN: cnt('added'), droppedN: cnt('dropped'),
       changesOnly, toggleChanges: () => this.setState({ changesOnly: !changesOnly }),
