@@ -1,6 +1,7 @@
 """The spec as `get_spec`, `write_spec` and the web route answer it (plan
 `plans/2026-11-14-spec-api.md`)."""
 
+import re
 import uuid
 from collections.abc import Sequence
 from datetime import datetime
@@ -18,13 +19,27 @@ from app.crud.clarification import (
     unanswered,
 )
 from app.crud.scenario import scenarios_by_rule
-from app.crud.spec import RuleInput, mark_critical, normalise, prompt_text, write_spec
+from app.crud.spec import (
+    KnownInput,
+    RuleInput,
+    mark_critical,
+    normalise,
+    prompt_text,
+    write_spec,
+)
 from app.models.agent import Agent
 from app.models.clarification import ANSWER_LETTERS, OTHER, Clarification
-from app.models.enums import ClarificationState, SpecRuleSource, SpecRuleTouches
+from app.models.enums import (
+    ClarificationState,
+    SpecCheckType,
+    SpecRuleSource,
+    SpecRuleTouches,
+)
 from app.models.spec import (
     ClarificationToCheckPublic,
+    KnownInputPublic,
     RuleClarificationPublic,
+    RuleData,
     Spec,
     SpecChangesPublic,
     SpecComparisonPublic,
@@ -38,6 +53,8 @@ from app.models.spec import (
     SpecWrittenPublic,
 )
 from app.models.user import User
+from app.services.fingerprint import SECRET_NAME
+from app.services.rule_context import INPUT_DAYS, long_inputs
 from app.services.test_run import RuleMark, version_number, version_tested
 
 MAX_RULES = 500
@@ -45,6 +62,29 @@ type RuleChange = Literal["kept", "added", "dropped"]
 MAX_RULE_LENGTH = 500
 # A quote shorter than this is found in almost any prompt, so it proves nothing.
 MIN_QUOTE_WORDS = 3
+MAX_RULE_INPUTS = 10
+# Never sent to a model for a check: contact details and ids (Decided, Dmytro
+# 2026-11-26: "Refuse contact and ids"), and anything named like a secret.
+_PERSONAL_NAME = re.compile(
+    r"e-?mail|phone|mobile|caller[_-]?number|asserted[_-]?identity|uuid|(^|[_-])id$|sid$",
+    re.IGNORECASE,
+)
+
+
+def refused_input(name: str) -> str | None:
+    """Why ``name`` may not be named as a rule's input, or None."""
+    if SECRET_NAME.search(name):
+        return "it is named like a secret"
+    if _PERSONAL_NAME.search(name):
+        return "it is a contact detail or an id, which Connexity never sends to a model"
+    return None
+
+
+def rule_data(inputs: Sequence[str], long: set[str]) -> RuleData:
+    """What a rule needs: the call alone, short named inputs, or long text."""
+    if not inputs:
+        return "call"
+    return "long_text" if any(i in long for i in inputs) else "short_inputs"
 
 
 def spec_state(spec: Spec | None, current: str | None) -> SpecState:
@@ -234,6 +274,7 @@ def spec_answer(
             if latest is not None and spec.id == latest.id
             else set()
         )
+        known, long = long_inputs(session=session, agent_id=agent.id)
         notes = rule_clarifications_public(
             session, clarifications_in_force(session=session, agent_id=agent.id)
         )
@@ -272,6 +313,9 @@ def spec_answer(
                 prompt_gap_id=r.clarification_id
                 if r.source is SpecRuleSource.CLARIFICATION
                 else None,
+                check=r.check,
+                inputs=list(r.inputs),
+                data=rule_data(r.inputs, long),
                 in_conflict=change != "dropped" and r.key in conflicts,
                 change=change,
                 result=None
@@ -307,6 +351,9 @@ def spec_answer(
             prompt_gaps=len(gaps),
             in_conflict=sum(1 for r in rules if r.key in conflicts),
             critical=sum(1 for r in rules if r.critical),
+            classifier_on_call=sum(
+                1 for r in rules if r.check is SpecCheckType.CLASSIFIER and not r.inputs
+            ),
         )
         if earlier is not None:
             kept = sum(1 for r in rules if old_text.get(r.key) == r.text)
@@ -337,6 +384,17 @@ def spec_answer(
         results_version=results_version,
         results_at=results_at,
         for_version=for_version,
+        known_inputs=[
+            KnownInputPublic(
+                name=k.name,
+                long=k.name in long,
+                calls=k.calls,
+                allowed=refused_input(k.name) is None,
+            )
+            for k in known.values()
+        ]
+        if spec is not None
+        else [],
     )
 
 
@@ -349,6 +407,10 @@ class RuleDraft(NamedTuple):
     critical: bool | None = None
     # Answered prompt gaps this rule covers, now that the prompt says it.
     closes: Sequence[uuid.UUID] = ()
+    # None keeps a kept rule's check type and inputs; a new rule is a classifier check
+    # on the call alone.
+    check: SpecCheckType | None = None
+    inputs: Sequence[str] | None = None
 
 
 class SpecRefused(Exception):
@@ -356,6 +418,37 @@ class SpecRefused(Exception):
         super().__init__(error)
         self.error = error
         self.problems = problems
+
+
+def _input_problems(
+    rule: str,
+    draft: RuleDraft,
+    kept: SpecRule | None,
+    known: dict[str, KnownInput],
+    long: set[str],
+) -> list[str]:
+    problems: list[str] = []
+    names = list(dict.fromkeys(draft.inputs or []))
+    if len(names) > MAX_RULE_INPUTS:
+        problems.append(f"{rule}: at most {MAX_RULE_INPUTS} inputs, not {len(names)}.")
+    for name in names:
+        why = refused_input(name)
+        if why:
+            problems.append(f"{rule}: input '{name}' is refused: {why}.")
+        elif name not in known:
+            listed = ", ".join(sorted(known)[:20]) or "none"
+            problems.append(
+                f"{rule}: no call of this agent in the last {INPUT_DAYS} days carries an "
+                f"input named '{name}'. Known inputs: {listed}."
+            )
+    check = draft.check or (kept.check if kept else SpecCheckType.CLASSIFIER)
+    inputs = names if draft.inputs is not None else (kept.inputs if kept else [])
+    if check == SpecCheckType.CLASSIFIER and rule_data(inputs, long) == "long_text":
+        problems.append(
+            f"{rule}: it needs long text ({', '.join(i for i in inputs if i in long)}), "
+            "which goes only to the LLM step; choose `classifier_then_llm` or `llm`."
+        )
+    return problems
 
 
 def write_agent_spec(
@@ -407,9 +500,14 @@ def write_agent_spec(
     prompt = crud.agent_prompt(session=session, agent=agent, agent_version=current)
     text = prompt_text(prompt.content) if prompt is not None else None
 
+    known, long = long_inputs(session=session, agent_id=agent.id)
+    before = {r.key: r for r in previous_rules}
     problems: list[str] = []
     seen: set[str] = set()
     for n, draft in enumerate(drafts, start=1):
+        problems += _input_problems(
+            f"Rule {n}", draft, before.get(draft.key or ""), known, long
+        )
         rule = f"Rule {n}"
         if not draft.text.strip():
             problems.append(f"{rule}: the text is empty.")
@@ -486,6 +584,8 @@ def write_agent_spec(
                 critical=d.critical
                 if d.critical is not None
                 else (old.critical if old else None),
+                check=d.check,
+                inputs=list(dict.fromkeys(d.inputs)) if d.inputs is not None else None,
             )
         )
         closes += [(gaps[g], key or "") for g in d.closes]

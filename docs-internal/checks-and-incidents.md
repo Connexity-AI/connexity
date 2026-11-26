@@ -233,6 +233,28 @@ rate and no outcome dashboard.
 - **Every finding says its kind,** shown as `found_by`: `code_based`, `classifier` or
   `judge`. A model finding's detail names the model.
 
+**How a spec rule is checked (105.14; the spec check itself is 105.15).**
+
+- **Each rule says how:** `classifier`, `classifier_then_llm` (the classifier raises,
+  the LLM step confirms or dismisses, 105.16) or `llm`. The assistant sets it for now
+  (Decided, Dmytro 2026-11-26). Code checks are Connexity's own and not a choice. A rule
+  given none is `classifier`.
+- **Each rule names the call inputs it needs,** at most 10, and a check is given only
+  those, never all of them. In the lab, giving every rule every input moved 98
+  unrelated answers; giving each only its own moved no more than the classifier's
+  noise.
+- **Short and long:** an input whose longest value on the agent's calls in the last 30
+  days is over 200 characters is long (Decided, Dmytro 2026-11-26). Today that is the
+  call history. The classifier gets only short inputs; the LLM step gets all of them.
+  A rule that needs a long one cannot be `classifier`.
+- **Never an input:** contact details, ids and secrets (Decided, Dmytro 2026-11-26),
+  so no customer's email or number is sent to a model.
+- **One way to read a rule:** `app/services/rule_context.py` gives every check the
+  rule's text, its clarifications in force, its check type and its inputs' values on
+  one call, with a fingerprint over all but the values.
+- **Accepted weakness:** a strange call on a `classifier` rule is not verified.
+  Marking false positives will reduce it later.
+
 **Adding a check.** Dmytro names it in the Issue library. Then:
 
 1. Pick the kind: code-based if code over the trace can decide it; a classifier if it

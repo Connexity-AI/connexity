@@ -11,6 +11,7 @@ import logging
 import re
 import uuid
 from collections.abc import Sequence
+from datetime import datetime
 from typing import Any, NamedTuple
 
 from sqlmodel import Session, col, func, select
@@ -21,7 +22,12 @@ from app.models.agent import Agent
 from app.models.call import Call
 from app.models.clarification import Clarification
 from app.models.component_version import ComponentVersion
-from app.models.enums import SpecOrigin, SpecRuleSource, SpecRuleTouches
+from app.models.enums import (
+    SpecCheckType,
+    SpecOrigin,
+    SpecRuleSource,
+    SpecRuleTouches,
+)
 from app.models.spec import Spec, SpecRule
 from app.models.user import User
 
@@ -230,6 +236,10 @@ class RuleInput(NamedTuple):
     key: str | None
     # None keeps the previous version's mark for a kept key; a new rule is not critical.
     critical: bool | None = None
+    # None keeps the previous version's check type and inputs for a kept key; a new rule
+    # is a classifier check on the call alone.
+    check: SpecCheckType | None = None
+    inputs: Sequence[str] | None = None
 
 
 def write_spec(
@@ -274,8 +284,8 @@ def write_spec(
     )
     session.add(spec)
     session.flush()
-    marks = (
-        {r.key: r.critical for r in spec_rules(session=session, spec_id=previous.id)}
+    before = (
+        {r.key: r for r in spec_rules(session=session, spec_id=previous.id)}
         if previous is not None
         else {}
     )
@@ -296,8 +306,20 @@ def write_spec(
                 critical=(
                     rule.critical
                     if rule.critical is not None
-                    else bool(rule.key and marks.get(rule.key, False))
+                    else bool(
+                        rule.key and rule.key in before and before[rule.key].critical
+                    )
                 ),
+                check=rule.check
+                if rule.check is not None
+                else (
+                    before[rule.key].check
+                    if rule.key in before
+                    else SpecCheckType.CLASSIFIER
+                ),
+                inputs=list(rule.inputs)
+                if rule.inputs is not None
+                else (list(before[rule.key].inputs) if rule.key in before else []),
             )
         )
     closed = {gap.id for gap, _ in closes}
@@ -341,6 +363,8 @@ def copy_rule(rule: SpecRule, *, spec_id: uuid.UUID) -> SpecRule:
         clarification_id=rule.clarification_id,
         touches=rule.touches,
         critical=rule.critical,
+        check=rule.check,
+        inputs=list(rule.inputs),
     )
 
 
@@ -433,3 +457,35 @@ def adopt_spec_safely(*, session: Session, agent_id: uuid.UUID) -> Spec | None:
         session.rollback()
         logger.exception("Adopting the spec failed for agent %s", agent_id)
         return None
+
+
+class KnownInput(NamedTuple):
+    name: str
+    # On how many of the calls it appears, and its longest value in characters.
+    calls: int
+    longest: int
+
+
+def known_inputs(
+    *, session: Session, agent_id: uuid.UUID, since: datetime
+) -> list[KnownInput]:
+    """The input names the agent's calls since ``since`` carry, with how many calls
+    carry each and its longest value. Never a value."""
+    name = func.jsonb_object_keys(col(Call.inputs)).column_valued("k")
+    rows = session.exec(
+        select(  # type: ignore[call-overload]
+            name,
+            func.count(),
+            func.max(func.length(col(Call.inputs).op("->>")(name))),
+        )
+        .select_from(Call)
+        .where(
+            Call.agent_id == agent_id,
+            col(Call.deleted_at).is_(None),
+            col(Call.started_at) >= since.replace(tzinfo=None),
+            func.jsonb_typeof(col(Call.inputs)) == "object",
+        )
+        .group_by(name)
+        .order_by(name)
+    ).all()
+    return [KnownInput(str(n), int(c), int(m or 0)) for n, c, m in rows]

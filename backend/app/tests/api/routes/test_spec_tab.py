@@ -132,6 +132,7 @@ def test_the_spec_has_versions_sources_clarifications_and_conflicts(
         "prompt_gaps": 1,
         "in_conflict": 1,
         "critical": 0,
+        "classifier_on_call": len(RULES) + 1,
     }
     assert body["open_clarifications"] == 2
     old = next(r for r in _rules(body) if r["source"] == "clarification")

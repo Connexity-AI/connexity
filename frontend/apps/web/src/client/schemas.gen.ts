@@ -5626,6 +5626,33 @@ export const KeyValueSchema = {
   title: 'KeyValue',
 } as const;
 
+export const KnownInputPublicSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+    },
+    long: {
+      type: 'boolean',
+      title: 'Long',
+      description: 'Its longest value is over 200 characters: only the LLM step gets it',
+    },
+    calls: {
+      type: 'integer',
+      title: 'Calls',
+      description: "How many of the agent's recent calls carry it",
+    },
+    allowed: {
+      type: 'boolean',
+      title: 'Allowed',
+      description: "False for contact details, ids and secrets: never a rule's input",
+    },
+  },
+  type: 'object',
+  required: ['name', 'long', 'calls', 'allowed'],
+  title: 'KnownInputPublic',
+} as const;
+
 export const LiveVersionPublicSchema = {
   properties: {
     version: {
@@ -9633,6 +9660,36 @@ export const McpSpecRuleSchema = {
       description:
         'True when a failure of the rule must stop a release; left out, a kept rule keeps its mark and a new one is not critical',
     },
+    check: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SpecCheckType',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'classifier (the call settles it plainly), classifier_then_llm (a condition or the kind of call matters) or llm (needs long text or the call history); left out, a kept rule keeps its own and a new one is classifier',
+    },
+    inputs: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+            maxLength: 100,
+          },
+          type: 'array',
+          maxItems: 50,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Inputs',
+      description:
+        "The names of the call inputs the rule needs, from `get_spec`'s known_inputs, at most 10; [] for the call alone; left out, a kept rule keeps its own",
+    },
     closes: {
       items: {
         type: 'string',
@@ -12067,6 +12124,14 @@ export const SpecChangesPublicSchema = {
   title: 'SpecChangesPublic',
 } as const;
 
+export const SpecCheckTypeSchema = {
+  type: 'string',
+  enum: ['classifier', 'classifier_then_llm', 'llm'],
+  title: 'SpecCheckType',
+  description:
+    "How a spec rule is checked (plan `plans/2026-11-26-rule-data-and-check.md`). Code\nchecks are Connexity's own and not a choice.",
+} as const;
+
 export const SpecComparisonPublicSchema = {
   properties: {
     version: {
@@ -12124,6 +12189,13 @@ export const SpecCountsPublicSchema = {
       type: 'integer',
       title: 'Critical',
       description: 'Rules marked critical',
+      default: 0,
+    },
+    classifier_on_call: {
+      type: 'integer',
+      title: 'Classifier On Call',
+      description:
+        "Rules that are classifier checks on the call alone, the default: check each one's type and inputs are right",
       default: 0,
     },
   },
@@ -12294,6 +12366,15 @@ export const SpecPublicSchema = {
       ],
       description: 'With compare: how the shown version differs',
     },
+    known_inputs: {
+      items: {
+        $ref: '#/components/schemas/KnownInputPublic',
+      },
+      type: 'array',
+      title: 'Known Inputs',
+      description:
+        "The input names the agent's calls carried in the last 30 days, never their values: the names a rule may use",
+    },
   },
   type: 'object',
   required: ['agent_id', 'agent_name', 'state'],
@@ -12355,6 +12436,27 @@ export const SpecRulePublicSchema = {
       type: 'array',
       title: 'Clarifications',
       description: "The person's clarifications in force on this rule, oldest first",
+    },
+    check: {
+      $ref: '#/components/schemas/SpecCheckType',
+      description: 'classifier, classifier_then_llm or llm: how the rule is checked',
+      default: 'classifier',
+    },
+    inputs: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Inputs',
+      description: 'The call inputs it needs; a check is given only these',
+    },
+    data: {
+      type: 'string',
+      enum: ['call', 'short_inputs', 'long_text'],
+      title: 'Data',
+      description:
+        'call: the call alone; short_inputs: short named inputs, given to the classifier; long_text: a long input, given only to the LLM step',
+      default: 'call',
     },
     answered_by: {
       anyOf: [
@@ -12628,6 +12730,15 @@ export const SpecWrittenPublicSchema = {
         },
       ],
       description: 'With compare: how the shown version differs',
+    },
+    known_inputs: {
+      items: {
+        $ref: '#/components/schemas/KnownInputPublic',
+      },
+      type: 'array',
+      title: 'Known Inputs',
+      description:
+        "The input names the agent's calls carried in the last 30 days, never their values: the names a rule may use",
     },
     changes: {
       $ref: '#/components/schemas/SpecChangesPublic',

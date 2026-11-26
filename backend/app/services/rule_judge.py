@@ -29,6 +29,8 @@ class RuleToJudge:
     text: str
     # The person's clarifications in force on the rule, read with it.
     clarifications: tuple[str, ...] = ()
+    # The values the agent was given that the rule names, and only those.
+    inputs: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -59,7 +61,9 @@ For every rule you are given, answer exactly one verdict:
   nothing about this rule. Do not guess a pass.
 
 A rule may come with notes from the person who owns the agent. A note says where the
-rule's boundary lies; judge the rule as its notes explain it.
+rule's boundary lies; judge the rule as its notes explain it. A rule may also come with
+inputs: values the agent was given before the call, such as whether it is a first call.
+Use them to decide whether the rule applies; "not set" means the agent had no value.
 
 For each rule, first write the reason in one or two plain sentences and the indices of
 the turns it rests on (empty for did_not_come_up), and only then the verdict that
@@ -108,6 +112,7 @@ def _user_prompt(
     listed = "\n".join(
         f"- [{rule.key}] {rule.text}"
         + "".join(f"\n  Note on this rule: {note}" for note in rule.clarifications)
+        + "".join(f"\n  Input {name}: {value}" for name, value in rule.inputs)
         for rule in rules
     )
     goal = (caller_goal or "").strip() or "(not given)"

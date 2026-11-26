@@ -33,6 +33,7 @@ from app.models.enums import (
     FindingEffect,
     FirstTurn,
     Platform,
+    SpecCheckType,
     SpecRuleTouches,
     TaskKind,
 )
@@ -253,6 +254,22 @@ class McpSpecRule(BaseModel):
             "True when a failure of the rule must stop a release; left out, a kept "
             "rule keeps its mark and a new one is not critical"
         ),
+    )
+    check: SpecCheckType | None = Field(
+        default=None,
+        description="classifier (the call settles it plainly), classifier_then_llm (a "
+        "condition or the kind of call matters) or llm (needs long text or the call "
+        "history); left out, a kept rule keeps its own and a new one is classifier",
+    )
+    inputs: (
+        list[Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]]
+        | None
+    ) = Field(
+        default=None,
+        max_length=50,
+        description="The names of the call inputs the rule needs, from `get_spec`'s "
+        "known_inputs, at most 10; [] for the call alone; left out, a kept rule keeps "
+        "its own",
     )
     closes: list[uuid.UUID] = Field(
         default_factory=list,

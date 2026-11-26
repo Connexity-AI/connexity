@@ -23,6 +23,7 @@ from app.models.call import Call
 from app.models.check import Finding
 from app.models.enums import Platform, RunStatus, ToolCallStatus
 from app.models.run import Run
+from app.models.spec import SpecRule
 from app.models.test_case_result import TestCaseResult
 from app.models.test_run import RuleVerdict
 from app.services import test_run as runner
@@ -273,6 +274,12 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
         assistant_name=None,
     )
 
+    # The price rule names an input the scenario sets, and one it does not.
+    for rule in db.exec(select(SpecRule).where(SpecRule.key == keys[PRICE])).all():
+        rule.inputs = ["clinic_hours", "attempt_number"]
+        db.add(rule)
+    db.commit()
+
     judge = AsyncMock(
         side_effect=[_verdict(keys[PRICE], "passed"), _verdict(keys[PRICE], "failed")]
     )
@@ -304,6 +311,8 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
     judged = judge.call_args.args[0][1].content
     assert PRICE in judged and BOOKING not in judged
     assert "Note on this rule: A range from the price list is not a quote." in judged
+    assert "Input clinic_hours: 9 to 5" in judged
+    assert "Input attempt_number: not set" in judged
     assert "book_slot" in judged
     # Both run on Claude, on Connexity's own key: the workspace has none.
     for model_call in (caller, judge):
