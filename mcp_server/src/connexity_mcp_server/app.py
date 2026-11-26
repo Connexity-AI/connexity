@@ -656,10 +656,12 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         Each rule: one plain sentence, a category key, the prompt's exact words it
         rests on, touches (money, safety, compliance) when it protects one, the key
         of a rule kept from the previous version, and critical when a failure of the
-        rule must stop a release. Only what the prompt settles;
-        behaviour the prompt does not settle is a question for the person
-        (`raise_clarifications`). Rules from the person's answers are carried over by
-        Connexity; never pass them. Follow connexity://guides/spec."""
+        rule must stop a release, and closes for the answered prompt gaps a rule now
+        covers. Only what the prompt settles; behaviour the prompt does not settle is a
+        question for the person (`raise_clarifications`). Rules from earlier answers
+        are carried over by Connexity until a rule closes their gap; never pass their
+        keys. The person's clarifications stay with their rule's key. Follow
+        connexity://guides/spec."""
         return await _write_spec(
             client=backend_client,
             workspace_id=workspace_id,
@@ -860,12 +862,14 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         agent_id: AgentId,
         questions: Annotated[list[QuestionToRaise], Field(description="Up to 20 questions for the person.")],
     ) -> RaiseClarificationsResult:
-        """Raise questions for the person about behaviour the agent's spec does not
-        settle, never deciding it yourself. Each question: one plain sentence with how
-        often it happened, two to four answers each with the spec rule it becomes, a
-        category key, touches when it protects money, safety or compliance, the calls
-        where it was seen (none for a prompt change), and replaces_key to replace an
-        answered rule a new prompt contradicts. Up to 20 per call; check
+        """Raise questions for the person, never deciding them yourself. A
+        clarification explains an existing rule: give its rule_key, and each answer's
+        sentence is the note it adds to that rule (replaces_id replaces an earlier
+        one). A prompt gap is behaviour no rule covers: no rule_key, a gap_topic and a
+        category, and each answer's sentence is what the prompt would need to say.
+        Each question: one plain sentence with how often it happened, two to four
+        answers, the calls where it was seen (none for a prompt change). An answer
+        never writes a rule; only the prompt does. Up to 20 per call; check
         `list_clarifications` first. Follow connexity://guides/spec."""
         return await _raise_clarifications(
             client=backend_client,
@@ -884,10 +888,12 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> ListClarificationsResult:
         """Questions for the person about the workspace's agents: open by default,
         most important first (seen on more calls, then money, safety or compliance,
-        then newest), or answered or parked, newest first. Each has its answers (a to d) with the rule
-        each becomes, how many calls it was seen on, and, once answered, the choice,
-        who made it and the spec version it made. Counts of every state come with each
-        page; pass `next_cursor` as `cursor` for the next."""
+        then newest), or answered or parked, newest first. Each is a clarification
+        of a rule (with the rule) or a prompt gap (with its topic, and whether a spec
+        has closed it), with its answers (a to d) and the sentence each adds, how many
+        calls it was seen on, and, once answered, the choice and who made it. Counts of
+        every state come with each page; pass `next_cursor` as `cursor` for the
+        next."""
         return await _list_clarifications(
             client=backend_client,
             workspace_id=workspace_id,

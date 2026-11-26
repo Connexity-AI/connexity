@@ -254,6 +254,12 @@ class McpSpecRule(BaseModel):
             "rule keeps its mark and a new one is not critical"
         ),
     )
+    closes: list[uuid.UUID] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Answered prompt gaps this rule covers now that the prompt says "
+        "it; for a rule from an earlier answer, its `prompt_gap_id`",
+    )
 
 
 class McpWriteSpec(BaseModel):
@@ -417,8 +423,9 @@ class McpClarificationAnswer(BaseModel):
     label: Annotated[str, StringConstraints(max_length=2000)] = Field(
         description="A short answer the person picks, e.g. 'Only when the caller asks'"
     )
-    rule: Annotated[str, StringConstraints(max_length=2000)] = Field(
-        description="The spec rule this answer becomes, in one plain sentence"
+    sentence: Annotated[str, StringConstraints(max_length=2000)] = Field(
+        description="What this answer adds, in one plain sentence: the clarification "
+        "on the rule, or for a prompt gap what the prompt would need to say"
     )
 
 
@@ -429,20 +436,41 @@ class McpClarificationQuestion(BaseModel):
     answers: list[McpClarificationAnswer] = Field(
         max_length=10, description="Two to four, a to d"
     )
+    rule_key: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=64)
+    ] = Field(
+        default=None,
+        description="The key of the rule it explains (a clarification); leave out for "
+        "behaviour no rule covers (a prompt gap)",
+    )
+    gap_topic: Annotated[
+        str | None, StringConstraints(strip_whitespace=True, max_length=100)
+    ] = Field(
+        default=None,
+        description="For a prompt gap: the behaviour in a few words, e.g. 'changing "
+        "appointments'",
+    )
     category: Annotated[
-        str, StringConstraints(strip_whitespace=True, max_length=64)
-    ] = Field(description="A category key from `list_categories`")
+        str | None, StringConstraints(strip_whitespace=True, max_length=64)
+    ] = Field(
+        default=None,
+        description="For a prompt gap: a category key from `list_categories`; a "
+        "clarification takes its rule's",
+    )
     touches: SpecRuleTouches | None = Field(
-        default=None, description="money, safety or compliance, when it protects one"
+        default=None,
+        description="For a prompt gap: money, safety or compliance, when it protects one",
     )
     call_ids: list[uuid.UUID] = Field(
         default_factory=list,
         max_length=200,
         description="The calls where it was seen, at most 50; none for a prompt change",
     )
-    replaces_key: Annotated[
-        str | None, StringConstraints(strip_whitespace=True, max_length=64)
-    ] = Field(default=None, description="The key of the spec rule the answer replaces")
+    replaces_id: uuid.UUID | None = Field(
+        default=None,
+        description="For a clarification: the earlier clarification on the same rule "
+        "its answer replaces",
+    )
 
 
 class McpRaiseClarifications(BaseModel):
@@ -457,8 +485,7 @@ class McpClarificationDecision(BaseModel):
     )
     text: Annotated[str | None, StringConstraints(max_length=500)] = Field(
         default=None,
-        description="For 'other': the person's own answer, as the rule the agent "
-        "should follow",
+        description="For 'other': the person's own answer, in their words",
     )
     proposed: bool = Field(
         default=False,

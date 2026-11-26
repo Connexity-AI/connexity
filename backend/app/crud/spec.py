@@ -10,13 +10,16 @@ import json
 import logging
 import re
 import uuid
+from collections.abc import Sequence
 from typing import Any, NamedTuple
 
 from sqlmodel import Session, col, func, select
 
 from app.crud.check import lock_agent
+from app.crud.clarification import close_gaps
 from app.models.agent import Agent
 from app.models.call import Call
+from app.models.clarification import Clarification
 from app.models.component_version import ComponentVersion
 from app.models.enums import SpecOrigin, SpecRuleSource, SpecRuleTouches
 from app.models.spec import Spec, SpecRule
@@ -238,14 +241,15 @@ def write_spec(
     rules: list[RuleInput],
     author: User,
     assistant_name: str | None,
+    closes: Sequence[tuple[Clarification, str]] = (),
 ) -> tuple[Spec, Spec | None]:
     """A new spec version with ``rules`` for ``agent_version``. Commits.
 
     Rules keep their key when given one; new rules get a fresh key. A kept rule given
-    no mark keeps its previous one. Positions follow
-    the order the rules were given, within each category. Every rule of the previous
-    version that came from a clarification is carried over unchanged: a person's
-    answer changes only through another clarification.
+    no mark keeps its previous one. Positions follow the order the rules were given,
+    within each category. Every rule of the previous version that came from an earlier
+    answer is carried over unchanged until a rule of this version closes its prompt
+    gap: ``closes`` pairs each gap closed with the key of the rule that closes it.
 
     Two writes for one agent are made in turn: the agent row is locked, so each takes
     the next version number.
@@ -296,16 +300,26 @@ def write_spec(
                 ),
             )
         )
+    closed = {gap.id for gap, _ in closes}
     if previous is not None:
         for kept in answered_rules(session=session, spec_id=previous.id):
-            session.add(copy_rule(kept, spec_id=spec.id))
+            if kept.clarification_id not in closed:
+                session.add(copy_rule(kept, spec_id=spec.id))
+    close_gaps(
+        session=session,
+        gaps=closes,
+        spec=spec,
+        decided_by=author,
+        assistant_name=assistant_name,
+    )
     session.commit()
     session.refresh(spec)
     return spec, previous
 
 
 def answered_rules(*, session: Session, spec_id: uuid.UUID) -> list[SpecRule]:
-    """The rules of a spec version that came from answered clarifications."""
+    """The rules of a spec version that came from earlier answers (before 2026-11-26,
+    an answer became a rule)."""
     return [
         r
         for r in spec_rules(session=session, spec_id=spec_id)

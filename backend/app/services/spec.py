@@ -10,13 +10,21 @@ from sqlmodel import Session, col, select
 
 from app import crud
 from app.crud.check import lock_agent
-from app.crud.clarification import state_counts, unanswered
+from app.crud.clarification import (
+    chosen_sentence,
+    clarifications_in_force,
+    open_gaps,
+    state_counts,
+    unanswered,
+)
 from app.crud.scenario import scenarios_by_rule
 from app.crud.spec import RuleInput, mark_critical, normalise, prompt_text, write_spec
 from app.models.agent import Agent
-from app.models.clarification import Clarification
+from app.models.clarification import ANSWER_LETTERS, OTHER, Clarification
 from app.models.enums import ClarificationState, SpecRuleSource, SpecRuleTouches
 from app.models.spec import (
+    ClarificationToCheckPublic,
+    RuleClarificationPublic,
     Spec,
     SpecChangesPublic,
     SpecComparisonPublic,
@@ -73,30 +81,64 @@ def _version_public(session: Session, spec: Spec, rule_count: int) -> SpecVersio
     )
 
 
+def _answerers(session: Session, rows: Sequence[Clarification]) -> dict[uuid.UUID, str]:
+    """Who answered each of ``rows``, as the app names people."""
+    user_ids = {c.decided_by for c in rows if c.decided_by}
+    users = {
+        u.id: u
+        for u in session.exec(select(User).where(col(User.id).in_(user_ids))).all()
+    }
+    out: dict[uuid.UUID, str] = {}
+    for c in rows:
+        user = users.get(c.decided_by) if c.decided_by else None
+        if user is not None:
+            out[c.id] = (user.full_name or "").strip() or user.email.split("@")[0]
+        elif c.decided_by_email:
+            out[c.id] = c.decided_by_email.split("@")[0]
+    return out
+
+
 def _answers(
     session: Session, rules: list[SpecRule]
 ) -> dict[uuid.UUID, tuple[str | None, datetime | None]]:
-    """Who answered, and when, each clarification behind ``rules``."""
+    """Who answered, and when, the earlier answer behind each rule of ``rules`` that
+    came from one."""
     ids = {r.clarification_id for r in rules if r.clarification_id}
     if not ids:
         return {}
     found = session.exec(
         select(Clarification).where(col(Clarification.id).in_(ids))
     ).all()
-    user_ids = {c.decided_by for c in found if c.decided_by}
-    users = {
-        u.id: u
-        for u in session.exec(select(User).where(col(User.id).in_(user_ids))).all()
+    names = _answerers(session, found)
+    return {c.id: (names.get(c.id), c.decided_at) for c in found}
+
+
+def _label(c: Clarification) -> str:
+    if c.answer == OTHER or c.answer is None:
+        return "Something else"
+    return str(c.answers[ANSWER_LETTERS.index(c.answer)]["label"])
+
+
+def rule_clarifications_public(
+    session: Session, in_force: dict[str, list[Clarification]]
+) -> dict[str, list[RuleClarificationPublic]]:
+    """``in_force`` as `get_spec` shows it under each rule."""
+    names = _answerers(session, [c for rows in in_force.values() for c in rows])
+    return {
+        key: [
+            RuleClarificationPublic(
+                id=c.id,
+                sentence=chosen_sentence(c),
+                question=c.question,
+                answer=_label(c),
+                answered_by=names.get(c.id),
+                assistant=c.decided_assistant,
+                answered_at=c.decided_at,
+            )
+            for c in rows
+        ]
+        for key, rows in in_force.items()
     }
-    out: dict[uuid.UUID, tuple[str | None, datetime | None]] = {}
-    for c in found:
-        user = users.get(c.decided_by) if c.decided_by else None
-        if user is not None:
-            name = (user.full_name or "").strip() or user.email.split("@")[0]
-        else:
-            name = c.decided_by_email.split("@")[0] if c.decided_by_email else None
-        out[c.id] = (name, c.decided_at)
-    return out
 
 
 def spec_in_force(*, session: Session, agent: Agent, agent_version: str) -> int | None:
@@ -185,12 +227,18 @@ def spec_answer(
         dropped = [r for r in old_rules if new_text.get(r.key) != r.text]
         conflicts = (
             {
-                c.replaces_key
+                c.rule_key
                 for c in unanswered(session=session, agent_id=agent.id)
-                if c.replaces_key
+                if c.replaces_id and c.rule_key
             }
             if latest is not None and spec.id == latest.id
             else set()
+        )
+        notes = rule_clarifications_public(
+            session, clarifications_in_force(session=session, agent_id=agent.id)
+        )
+        gaps = open_gaps(
+            session=session, company_id=agent.company_id, agent_id=agent.id
         )
         answers = _answers(session, rules + dropped)
         listed = scenarios_by_rule(session=session, agent_id=agent.id)
@@ -218,8 +266,12 @@ def spec_answer(
                 touches=r.touches,
                 critical=r.critical,
                 scenarios=listed.get(r.key, 0) if change != "dropped" else 0,
+                clarifications=notes.get(r.key, []) if change != "dropped" else [],
                 answered_by=who,
                 answered_at=when,
+                prompt_gap_id=r.clarification_id
+                if r.source is SpecRuleSource.CLARIFICATION
+                else None,
                 in_conflict=change != "dropped" and r.key in conflicts,
                 change=change,
                 result=None
@@ -247,12 +299,12 @@ def spec_answer(
                     )
                 )
         summary = _version_public(session, spec, len(rules))
-        from_clarifications = sum(
-            1 for r in rules if r.source is SpecRuleSource.CLARIFICATION
-        )
+        from_answers = sum(1 for r in rules if r.source is SpecRuleSource.CLARIFICATION)
         counts = SpecCountsPublic(
-            from_prompt=len(rules) - from_clarifications,
-            from_clarifications=from_clarifications,
+            from_prompt=len(rules) - from_answers,
+            from_answers=from_answers,
+            clarified=sum(1 for r in rules if notes.get(r.key)),
+            prompt_gaps=len(gaps),
             in_conflict=sum(1 for r in rules if r.key in conflicts),
             critical=sum(1 for r in rules if r.critical),
         )
@@ -295,6 +347,8 @@ class RuleDraft(NamedTuple):
     touches: SpecRuleTouches | None
     key: str | None
     critical: bool | None = None
+    # Answered prompt gaps this rule covers, now that the prompt says it.
+    closes: Sequence[uuid.UUID] = ()
 
 
 class SpecRefused(Exception):
@@ -334,11 +388,22 @@ def write_agent_spec(
     previous_rules = (
         crud.spec_rules(session=session, spec_id=previous.id) if previous else []
     )
-    # Rules from answered clarifications are carried over by Connexity, not rewritten.
-    answered_keys = {
-        r.key for r in previous_rules if r.source is SpecRuleSource.CLARIFICATION
+    # Rules from earlier answers are carried over by Connexity until a rule closes
+    # their prompt gap; the closing rule takes the old one's key and critical mark.
+    answered = {
+        r.clarification_id: r
+        for r in previous_rules
+        if r.source is SpecRuleSource.CLARIFICATION and r.clarification_id
     }
+    answered_keys = {r.key for r in answered.values()}
     previous_keys = {r.key for r in previous_rules} - answered_keys
+    gaps = {
+        g.id: g
+        for g in open_gaps(
+            session=session, company_id=agent.company_id, agent_id=agent.id
+        )
+    }
+    closing: dict[uuid.UUID, int] = {}
     prompt = crud.agent_prompt(session=session, agent=agent, agent_version=current)
     text = prompt_text(prompt.content) if prompt is not None else None
 
@@ -355,14 +420,29 @@ def write_agent_spec(
                 f"{rule}: unknown category '{draft.category}'; use a key from "
                 "`list_categories`."
             )
+        for gap_id in draft.closes:
+            if gap_id not in gaps:
+                problems.append(
+                    f"{rule}: {gap_id} is not an answered prompt gap of this agent "
+                    "still open; `list_clarifications` with state `answered` lists "
+                    "them."
+                )
+            elif gap_id in closing:
+                problems.append(
+                    f"{rule}: prompt gap {gap_id} is already closed by rule "
+                    f"{closing[gap_id]}."
+                )
+            closing.setdefault(gap_id, n)
+        own = {answered[g].key for g in draft.closes if g in answered and g in gaps}
         if draft.key is not None:
             if draft.key in seen:
                 problems.append(f"{rule}: key '{draft.key}' is used twice.")
-            elif draft.key in answered_keys:
+            elif draft.key in answered_keys and draft.key not in own:
                 problems.append(
-                    f"{rule}: key '{draft.key}' is a rule from the person's answer to a "
-                    "clarification. Connexity carries it over unchanged; leave it out. "
-                    "To change it, raise a clarification that replaces it."
+                    f"{rule}: key '{draft.key}' is a rule from an earlier answer. "
+                    "Connexity carries it over until the prompt covers it; leave it "
+                    "out, or name its `prompt_gap_id` in `closes` on the rule that "
+                    "now covers it."
                 )
             elif draft.key not in previous_keys:
                 problems.append(
@@ -389,26 +469,51 @@ def write_agent_spec(
     if problems:
         raise SpecRefused("The spec was not stored", problems)
 
-    spec, before = write_spec(
-        session=session,
-        agent=agent,
-        agent_version=current,
-        prompt_fingerprint=prompt.fingerprint if prompt else None,
-        rules=[
+    inputs: list[RuleInput] = []
+    closes: list[tuple[Clarification, str]] = []
+    for d in drafts:
+        old = next((answered[g] for g in d.closes if g in answered), None)
+        key = d.key or (old.key if old else None)
+        if d.closes and key is None:
+            key = uuid.uuid4().hex[:12]
+        inputs.append(
             RuleInput(
                 text=d.text.strip(),
                 category_id=categories[d.category],
                 quote=(d.quote or "").strip(),
                 touches=d.touches,
-                key=d.key,
-                critical=d.critical,
+                key=key,
+                critical=d.critical
+                if d.critical is not None
+                else (old.critical if old else None),
             )
-            for d in drafts
-        ],
+        )
+        closes += [(gaps[g], key or "") for g in d.closes]
+    previous_text = {r.key: r.text for r in previous_rules}
+    in_force = clarifications_in_force(session=session, agent_id=agent.id)
+    to_check = [
+        ClarificationToCheckPublic(
+            rule_key=r.key or "",
+            clarification_id=c.id,
+            sentence=chosen_sentence(c),
+        )
+        for r in inputs
+        if r.key in previous_text and previous_text[r.key] != r.text
+        for c in in_force.get(r.key or "", [])
+    ]
+
+    spec, before = write_spec(
+        session=session,
+        agent=agent,
+        agent_version=current,
+        prompt_fingerprint=prompt.fingerprint if prompt else None,
+        rules=inputs,
         author=author,
         assistant_name=assistant_name,
+        closes=closes,
     )
-    kept = sum(1 for d in drafts if d.key is not None)
+    kept = sum(1 for d in drafts if d.key is not None and d.key in previous_keys)
+    closed_old = {g for gap, _ in closes for g in [gap.id] if g in answered}
     answer = spec_answer(session=session, agent=agent)
     assert answer is not None
     return SpecWrittenPublic(
@@ -418,7 +523,9 @@ def write_agent_spec(
             kept=kept,
             added=len(drafts) - kept,
             dropped=len(previous_keys) - kept if before else 0,
-            carried=len(answered_keys),
+            carried=len(answered_keys) - len(closed_old),
+            gaps_closed=len(closes),
+            check_clarifications=to_check,
             quotes_checked=text is not None,
         ),
     )

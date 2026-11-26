@@ -19,6 +19,7 @@ from sqlmodel import Session, select
 from app import crud
 from app.core.config import settings
 from app.crud import work as crud_work
+from app.crud.clarification import open_gaps
 from app.crud.issue_list import calls_by_agent
 from app.crud.readiness import connected_assistants, first_connection
 from app.crud.scenario import agents_with_scenarios
@@ -26,7 +27,7 @@ from app.crud.spec import rules_of_specs
 from app.models import Agent, Company, ReadinessStepKey, ReadinessStepState, User
 from app.models.assistant_task import AssistantTask
 from app.models.check import Issue
-from app.models.enums import AssistantTaskState, IssueState, SpecOrigin, TaskKind
+from app.models.enums import AssistantTaskState, IssueState, TaskKind
 from app.models.task_order import TaskOrder
 from app.models.work import (
     TaskState,
@@ -321,6 +322,36 @@ def _clarification_tasks(
     return tasks
 
 
+def _prompt_gap_tasks(
+    session: Session, company_id: uuid.UUID, names: Mapping[uuid.UUID, str]
+) -> list[Task]:
+    """One per answered prompt gap no spec has closed: the assistant proposes the
+    prompt change (plan `plans/2026-11-26-clarification-on-rule.md`)."""
+    tasks = []
+    for gap in open_gaps(session=session, company_id=company_id):
+        name = names.get(gap.agent_id, "")
+        topic = gap.gap_topic or gap.question
+        tasks.append(
+            Task(
+                key=f"prompt_gap:{gap.id}",
+                kind=TaskKind.PROMPT_GAP,
+                group=Group.SETUP,
+                title=f"Propose the prompt change: {topic}",
+                facts=[
+                    f"Spec · {name}",
+                    "The person answered; the prompt does not say it yet, so nothing "
+                    "checks it",
+                ],
+                agent_id=gap.agent_id,
+                agent_name=name,
+                since=_aware(gap.decided_at),
+                ref=gap.id,
+                line=f"Spec · {name}",
+            )
+        )
+    return tasks
+
+
 def _review_tasks(
     session: Session, company_id: uuid.UUID, names: Mapping[uuid.UUID, str]
 ) -> list[Task]:
@@ -491,8 +522,9 @@ def work_list(
     )
     before_scan = any(task.key == SPECS_STEP for task in onboarding)
     specs = [] if before_scan else _spec_tasks(session, company_id)
+    gaps = _prompt_gap_tasks(session, company_id, names)
     scenarios = [] if before_scan else _scenario_tasks(session, names)
-    setup = onboarding + specs + ([] if onboarded else questions) + scenarios
+    setup = onboarding + specs + gaps + ([] if onboarded else questions) + scenarios
     other = sorted(
         [task for task in issues if task.group == Group.OTHER]
         + (questions if onboarded else [])
@@ -571,10 +603,11 @@ def _ending(row: AssistantTask, live: Mapping[str, Task]) -> AssistantTaskState 
         return AssistantTaskState.DONE
     if row.kind is TaskKind.CALLS_TO_REVIEW:
         return AssistantTaskState.DONE  # a review is done once handed out
-    if row.kind is TaskKind.ISSUE_FIX:
+    if row.kind in (TaskKind.ISSUE_FIX, TaskKind.PROMPT_GAP):
         # The fix stays In progress with its session until the issue is resolved or
         # archived, or the session puts it back (Dmytro, 2026-11-18: "Waiting for you
-        # IS ONLY FOR CLARIFICATIONS").
+        # IS ONLY FOR CLARIFICATIONS"). A prompt change likewise, until a spec written
+        # from the new prompt closes the gap.
         return None
     return AssistantTaskState.RETURNED
 
@@ -730,27 +763,30 @@ def _done(session: Session, company_id: uuid.UUID) -> list[WorkDonePublic]:
             select(Agent).where(Agent.company_id == company_id)
         ).all()
     }
-    specs = crud_work.specs_since(session=session, company_id=company_id, since=since)
-    answers = crud_work.answers_by_spec(
-        session=session,
-        spec_ids=[s.id for s in specs if s.origin is SpecOrigin.ANSWERED],
-    )
-    for spec in specs:
+    for spec in crud_work.specs_since(
+        session=session, company_id=company_id, since=since
+    ):
         agent = names.get(spec.agent_id, "")
         person = _display(session, spec.created_by, spec.created_by_email)
-        if spec.origin is SpecOrigin.WRITTEN:
-            title = f"Spec written for {agent} · version {spec.version}"
-            by = _by(person, spec.assistant_name)
-        else:
-            count = answers.get(spec.id, 0)
-            title = f"{_plural(count, 'answer')} added to the {agent} spec"
-            by = person
         out.append(
             WorkDonePublic(
-                title=title,
-                by=by,
+                title=f"Spec written for {agent} · version {spec.version}",
+                by=_by(person, spec.assistant_name),
                 at=_aware(spec.created_at),
                 link=WorkDoneLinkPublic(kind="agent_spec", id=spec.agent_id),
+            )
+        )
+    # Answers no longer make spec versions: one line per agent and person who answered.
+    for (agent_id, person_id, email), (count, at) in crud_work.answers_since(
+        session=session, company_id=company_id, since=since
+    ).items():
+        out.append(
+            WorkDonePublic(
+                title=f"{_plural(count, 'answer')} added to the "
+                f"{names.get(agent_id, '')} spec",
+                by=_display(session, person_id, email),
+                at=_aware(at),
+                link=WorkDoneLinkPublic(kind="agent_spec", id=agent_id),
             )
         )
     for record in crud_work.issue_decisions_since(

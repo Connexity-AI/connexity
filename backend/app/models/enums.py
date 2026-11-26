@@ -214,6 +214,8 @@ class DecisionKind(StrEnum):
     CLARIFICATION_ANSWERED = "clarification_answered"
     CLARIFICATION_PARKED = "clarification_parked"
     CLARIFICATION_REOPENED = "clarification_reopened"
+    # A spec written from a prompt that covers an answered prompt gap closed it.
+    PROMPT_GAP_CLOSED = "prompt_gap_closed"
 
 
 class CheckOutcome(StrEnum):
@@ -297,6 +299,8 @@ class TaskKind(StrEnum):
     ONBOARDING = "onboarding"
     SPEC = "spec"
     CLARIFICATIONS = "clarifications"
+    # An answered prompt gap: the assistant proposes the prompt change.
+    PROMPT_GAP = "prompt_gap"
     CALLS_TO_REVIEW = "calls_to_review"
     TESTS = "tests"
 

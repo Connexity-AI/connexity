@@ -201,12 +201,14 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "get_spec": ToolEntry(
         "agents_and_spec",
-        "The agent's spec: what it must do, as plain rules with their sources.",
+        "The agent's spec: what it must do, as plain rules from its prompt, each with "
+        "your clarifications.",
         "spec",
     ),
     "write_spec": ToolEntry(
         "agents_and_spec",
-        "Writes the agent's spec as a new version; earlier versions are kept.",
+        "Writes the agent's spec from its prompt as a new version; earlier versions "
+        "and your clarifications are kept.",
         "spec",
     ),
     "mark_critical_rules": ToolEntry(
@@ -216,17 +218,20 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "raise_clarifications": ToolEntry(
         "agents_and_spec",
-        "Asks you about behaviour the spec does not settle.",
+        "Asks you where a rule's boundary lies, or about behaviour the prompt does not "
+        "cover yet.",
         "spec",
     ),
     "list_clarifications": ToolEntry(
         "agents_and_spec",
-        "Lists open, answered and parked questions.",
+        "Lists open, answered and parked questions, and the prompt gaps waiting for a "
+        "prompt change.",
         "spec",
     ),
     "answer_clarifications": ToolEntry(
         "agents_and_spec",
-        "Records your answers to open questions.",
+        "Records your answers: a clarification on a rule, or what the prompt should "
+        "say.",
         "spec",
         needs_yes=True,
     ),

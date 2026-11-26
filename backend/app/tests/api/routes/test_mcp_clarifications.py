@@ -29,22 +29,27 @@ QUESTION: dict[str, Any] = {
     "answers": [
         {
             "label": "Yes, always",
-            "rule": "The agent may change an existing appointment",
+            "sentence": "The agent may change an existing appointment",
         },
         {
             "label": "Only when the caller asks",
-            "rule": "Change an existing appointment only when the caller asks for it",
+            "sentence": "Change an existing appointment only when the caller asks for it",
         },
-        {"label": "Never", "rule": "Never change an existing appointment"},
+        {"label": "Never", "sentence": "Never change an existing appointment"},
     ],
+    "gap_topic": "changing appointments",
     "category": "booking",
 }
 DEPOSIT: dict[str, Any] = {
     "question": "Callers asked about a deposit. May the agent say one is needed?",
     "answers": [
-        {"label": "Yes", "rule": "Tell callers a deposit is needed for new patients"},
-        {"label": "No", "rule": "Never mention a deposit"},
+        {
+            "label": "Yes",
+            "sentence": "Tell callers a deposit is needed for new patients",
+        },
+        {"label": "No", "sentence": "Never mention a deposit"},
     ],
+    "gap_topic": "deposits",
     "category": "pricing_and_quotes",
     "touches": "money",
 }
@@ -112,21 +117,22 @@ def test_raise_list_answer_and_read_the_spec(client: TestClient, db: Session) ->
     assert answered.status_code == 200, answered.text
     result = answered.json()["data"]
     assert (result["answered"], result["parked"], result["open"]) == (1, 1, 0)
-    assert result["specs"] == [
+    assert result["agents"] == [
         {
             "agent_id": str(agent.id),
             "agent_name": "Front desk",
-            "spec_version": 2,
-            "rules_added": 1,
+            "clarifications": 0,
+            "prompt_gaps": 1,
         }
     ]
+    assert any("propose to the person" in s for s in answered.json()["next_steps"])
     spec = client.get(
         f"{_base(user)}/agents/{agent.id}/spec", headers=_headers(user)
     ).json()
+    # A prompt gap adds no rule: it waits for a prompt change.
     rules = [r for g in spec["data"]["groups"] for r in g["rules"]]
-    assert {r["text"] for r in rules if r["source"] == "clarification"} == {
-        "Change an existing appointment only when the caller asks for it"
-    }
+    assert not any(r["source"] == "clarification" for r in rules)
+    assert spec["data"]["counts"]["prompt_gaps"] == 1
     assert spec["data"]["open_clarifications"] == 0
     assert not any("questions wait" in s for s in spec["next_steps"])
 
@@ -135,8 +141,57 @@ def test_raise_list_answer_and_read_the_spec(client: TestClient, db: Session) ->
         headers=_headers(user),
         params={"state": "answered"},
     ).json()["data"]["data"]
-    assert (done[0]["answer"], done[0]["answer_spec_version"]) == ("b", 2)
+    assert (done[0]["kind"], done[0]["answer"], done[0]["closed"]) == (
+        "prompt_gap",
+        "b",
+        False,
+    )
+    assert done[0]["answer_spec_version"] is None
     assert done[0]["decided_by"] and done[0]["decided_at"]
+
+
+def test_a_clarification_through_mcp_sits_under_its_rule(
+    client: TestClient, db: Session
+) -> None:
+    user, agent, _ = _ready(db)
+    spec = client.get(
+        f"{_base(user)}/agents/{agent.id}/spec", headers=_headers(user)
+    ).json()["data"]
+    key = next(
+        r["key"]
+        for g in spec["groups"]
+        for r in g["rules"]
+        if r["text"] == RULES[0].text
+    )
+    question = {
+        "question": "Callers asked for 8:00, the minute the clinic opens. Inside?",
+        "rule_key": key,
+        "answers": [
+            {"label": "Yes", "sentence": "A slot starting at opening time is inside."},
+            {"label": "No", "sentence": "The first slot starts 15 minutes after."},
+        ],
+    }
+
+    unknown = _raise(client, user, agent, question | {"rule_key": "nope"})
+    assert unknown.status_code == 422
+    assert any(
+        "not a rule of the agent's latest spec" in s
+        for s in unknown.json()["detail"]["next_steps"]
+    )
+    [raised] = _raise(client, user, agent, question).json()["data"]
+    assert (raised["kind"], raised["rule"]["key"]) == ("clarification", key)
+    answered = _answer(client, user, (raised["id"], "a")).json()["data"]
+    assert answered["agents"][0]["clarifications"] == 1
+
+    after = client.get(
+        f"{_base(user)}/agents/{agent.id}/spec", headers=_headers(user)
+    ).json()["data"]
+    assert after["spec"]["version"] == spec["spec"]["version"]
+    rule = next(r for g in after["groups"] for r in g["rules"] if r["key"] == key)
+    assert [c["sentence"] for c in rule["clarifications"]] == [
+        "A slot starting at opening time is inside."
+    ]
+    assert after["counts"]["clarified"] == 1
 
 
 def test_refusals_list_every_problem(client: TestClient, db: Session) -> None:

@@ -38,11 +38,49 @@ const dayLabel = (iso: string) => {
   return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
 };
 
+/** "Nov 26", as the rule lines say it (designs/24-clarification-on-rule.md). */
+const monthDay = (iso: string) => {
+  const date = parseTime(iso);
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+};
+
+const answered = (by?: string | null, at?: string | null) =>
+  ['answered', by ? `by ${by}` : null, at ? `on ${monthDay(at)}` : null].filter(Boolean).join(' ');
+
 const source = (rule: SpecRulePublic) => {
   if (rule.source !== 'clarification') return 'From the prompt';
-  const who = rule.answered_by ? ` answered by ${rule.answered_by}` : '';
-  const when = rule.answered_at ? ` on ${dayLabel(rule.answered_at)}` : '';
-  return `From a clarification,${who}${when}`.replace(/,$/, '');
+  return `From an answer, until the prompt covers it · ${answered(rule.answered_by, rule.answered_at)}`;
+};
+
+const SHOWN_CLARIFICATIONS = 3;
+
+/** A rule's clarifications under its text: three, then the rest on request. */
+const Clarifications: FC<{ rule: SpecRulePublic }> = ({ rule }) => {
+  const [all, setAll] = useState(false);
+  const list = rule.clarifications ?? [];
+  if (list.length === 0) return null;
+  const more = list.length - SHOWN_CLARIFICATIONS;
+  return (
+    <div className="flex flex-col gap-1 pt-1.5 pb-0.5 pl-4">
+      {(all ? list : list.slice(0, SHOWN_CLARIFICATIONS)).map((c) => (
+        <div key={c.id} className="flex flex-wrap gap-x-2 text-label">
+          <span className="text-pretty text-ink-secondary">Clarified: {c.sentence}</span>
+          <span className="text-ink-muted">
+            {answered(c.answered_by ?? (c.assistant ? 'your assistant' : null), c.answered_at)}
+          </span>
+        </div>
+      ))}
+      {more > 0 && !all && (
+        <button
+          type="button"
+          onClick={() => setAll(true)}
+          className="self-start border-0 bg-transparent p-0 text-label text-ink-secondary underline underline-offset-2"
+        >
+          {more} more {more === 1 ? 'clarification' : 'clarifications'}
+        </button>
+      )}
+    </div>
+  );
 };
 
 /** In conflict first, then rules that touch money, safety or compliance, then the spec's order. */
@@ -132,6 +170,7 @@ const RuleRow: FC<{ rule: SpecRulePublic; questionsHref: Route }> = ({ rule, que
             </span>
           )}
         </span>
+        {!dropped && <Clarifications rule={rule} />}
       </div>
       <div className="flex items-center gap-1.5">
         {rule.change === 'added' && <Badge tone="passed">Added</Badge>}
@@ -265,13 +304,19 @@ export const SpecTab: FC<Props> = ({ spec, liveSince, onCompare }) => {
           <NumberTile label="Dropped" value={comparison.dropped.toLocaleString()} />
         </div>
       ) : (
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <NumberTile label="Rules" value={version.rule_count.toLocaleString()} />
           <NumberTile label="From the prompt" value={(counts?.from_prompt ?? 0).toLocaleString()} />
-          <NumberTile
-            label="From clarifications"
-            value={(counts?.from_clarifications ?? 0).toLocaleString()}
-          />
+          <NumberTile label="Clarified rules" value={(counts?.clarified ?? 0).toLocaleString()} />
+          <div
+            title="Answers waiting for a prompt change"
+            className="flex flex-col gap-2 rounded-xl border border-hairline bg-surface-1 p-4"
+          >
+            <span className="text-label text-ink-secondary">Prompt gaps</span>
+            <span className="text-tile font-normal text-ink-secondary">
+              {(counts?.prompt_gaps ?? 0).toLocaleString()}
+            </span>
+          </div>
           <NumberTile
             label="In conflict"
             value={conflicts.toLocaleString()}

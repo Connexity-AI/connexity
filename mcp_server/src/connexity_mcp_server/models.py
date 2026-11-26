@@ -868,6 +868,16 @@ ReadCallsResult = Answer[ReadCalls]
 GetCallResult = Answer[CallDetail]
 
 
+class RuleClarification(BaseModel):
+    id: str
+    sentence: str
+    question: str
+    answer: str
+    answered_by: str | None = None
+    assistant: str | None = None
+    answered_at: str | None = None
+
+
 class SpecRule(BaseModel):
     key: str
     text: str
@@ -876,8 +886,10 @@ class SpecRule(BaseModel):
     touches: str | None = None
     critical: bool = False
     scenarios: int = 0
+    clarifications: list[RuleClarification] = Field(default_factory=list)
     answered_by: str | None = None
     answered_at: str | None = None
+    prompt_gap_id: str | None = None
     in_conflict: bool = False
     change: str | None = None
 
@@ -900,7 +912,9 @@ class SpecVersion(BaseModel):
 
 class SpecCounts(BaseModel):
     from_prompt: int = 0
-    from_clarifications: int = 0
+    from_answers: int = 0
+    clarified: int = 0
+    prompt_gaps: int = 0
     in_conflict: int = 0
     critical: int = 0
 
@@ -912,12 +926,20 @@ class SpecComparison(BaseModel):
     dropped: int
 
 
+class ClarificationToCheck(BaseModel):
+    rule_key: str
+    clarification_id: str
+    sentence: str
+
+
 class SpecChanges(BaseModel):
     rules: int
     kept: int
     added: int
     dropped: int
     carried: int = 0
+    gaps_closed: int = 0
+    check_clarifications: list[ClarificationToCheck] = Field(default_factory=list)
     quotes_checked: bool
 
 
@@ -955,6 +977,11 @@ class SpecRuleToWrite(BaseModel):
             "rule keeps its mark and a new one is not critical"
         ),
     )
+    closes: list[str] | None = Field(
+        default=None,
+        description="Answered prompt gaps this rule covers now that the prompt says "
+        "it (their ids); for a rule from an earlier answer, its `prompt_gap_id`",
+    )
 
 
 SpecResult = Answer[Spec]
@@ -963,10 +990,10 @@ SpecResult = Answer[Spec]
 class ClarificationAnswer(BaseModel):
     letter: str
     label: str
-    rule: str
+    sentence: str
 
 
-class ReplacedRule(BaseModel):
+class ClarifiedRule(BaseModel):
     key: str
     text: str | None = None
 
@@ -983,7 +1010,13 @@ class Clarification(BaseModel):
     calls_seen: int = 0
     call_ids: list[str] = Field(default_factory=list)
     spec_version: int | None = None
-    replaces: ReplacedRule | None = None
+    kind: str
+    rule: ClarifiedRule | None = None
+    gap_topic: str | None = None
+    replaces_id: str | None = None
+    replaces_sentence: str | None = None
+    closed: bool = False
+    closed_rule_key: str | None = None
     state: str
     raised_by: str
     raised_assistant: str | None = None
@@ -1009,18 +1042,18 @@ class Clarifications(BaseModel):
     data: list[Clarification] = Field(default_factory=list)
 
 
-class AnsweredSpec(BaseModel):
+class AnsweredAgent(BaseModel):
     agent_id: str
     agent_name: str
-    spec_version: int
-    rules_added: int
+    clarifications: int = 0
+    prompt_gaps: int = 0
 
 
 class ClarificationsAnswered(BaseModel):
     answered: int
     parked: int
     reopened: int = 0
-    specs: list[AnsweredSpec] = Field(default_factory=list)
+    agents: list[AnsweredAgent] = Field(default_factory=list)
     open: int
 
 
@@ -1028,7 +1061,10 @@ class AnswerToRaise(BaseModel):
     """One answer of a question for `raise_clarifications`."""
 
     label: str = Field(description="What the person picks, e.g. 'Only when asked'")
-    rule: str = Field(description="The spec rule this answer becomes, one sentence")
+    sentence: str = Field(
+        description="What this answer adds, one sentence: the clarification on the "
+        "rule, or for a prompt gap what the prompt would need to say"
+    )
 
 
 class QuestionToRaise(BaseModel):
@@ -1038,16 +1074,33 @@ class QuestionToRaise(BaseModel):
         description="One plain sentence, with how often it happened"
     )
     answers: list[AnswerToRaise] = Field(description="Two to four, a to d")
-    category: str = Field(description="A category key from `list_categories`")
+    rule_key: str | None = Field(
+        default=None,
+        description="The key of the rule it explains (a clarification), from "
+        "`get_spec`; leave out for behaviour no rule covers (a prompt gap)",
+    )
+    gap_topic: str | None = Field(
+        default=None,
+        description="For a prompt gap: the behaviour in a few words, e.g. 'changing "
+        "appointments'",
+    )
+    category: str | None = Field(
+        default=None,
+        description="For a prompt gap: a category key from `list_categories`; a "
+        "clarification takes its rule's",
+    )
     touches: str | None = Field(
-        default=None, description="money, safety or compliance, when it protects one"
+        default=None,
+        description="For a prompt gap: money, safety or compliance, when it protects one",
     )
     call_ids: list[str] | None = Field(
         default=None,
         description="The calls where it was seen, at most 50; none for a prompt change",
     )
-    replaces_key: str | None = Field(
-        default=None, description="The key of the spec rule the answer replaces"
+    replaces_id: str | None = Field(
+        default=None,
+        description="For a clarification: the earlier clarification on the same rule "
+        "its answer replaces",
     )
 
 
@@ -1061,8 +1114,7 @@ class AnswerToGive(BaseModel):
     )
     text: str | None = Field(
         default=None,
-        description="For 'other': the person's own answer, as the rule the agent "
-        "should follow",
+        description="For 'other': the person's own answer, in their words",
     )
     proposed: bool = Field(
         default=False,

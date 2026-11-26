@@ -775,9 +775,9 @@ export type AgentVersionOptionPublic = {
 };
 
 /**
- * AnsweredSpecPublic
+ * AnsweredAgentPublic
  */
-export type AnsweredSpecPublic = {
+export type AnsweredAgentPublic = {
   /**
    * Agent Id
    */
@@ -787,15 +787,17 @@ export type AnsweredSpecPublic = {
    */
   agent_name: string;
   /**
-   * Spec Version
+   * Clarifications
    *
-   * The new spec version the answers made
+   * Clarifications added to its rules
    */
-  spec_version: number;
+  clarifications: number;
   /**
-   * Rules Added
+   * Prompt Gaps
+   *
+   * Prompt gaps answered: each is now a task to propose the prompt change
    */
-  rules_added: number;
+  prompt_gaps: number;
 };
 
 /**
@@ -1919,11 +1921,11 @@ export type ClarificationAnswerPublic = {
    */
   label: string;
   /**
-   * Rule
+   * Sentence
    *
-   * The spec rule this answer becomes
+   * The clarification this answer adds to the rule; for a prompt gap, what the prompt would need to say
    */
-  rule: string;
+  sentence: string;
 };
 
 /**
@@ -2068,9 +2070,45 @@ export type ClarificationPublic = {
    */
   spec_version?: number | null;
   /**
-   * The spec rule the answer replaces
+   * Kind
+   *
+   * clarification: it explains `rule`; prompt_gap: behaviour no rule covers, which the prompt should settle
    */
-  replaces?: ReplacedRulePublic | null;
+  kind: 'clarification' | 'prompt_gap';
+  /**
+   * For a clarification: the rule it explains
+   */
+  rule?: ClarifiedRulePublic | null;
+  /**
+   * Gap Topic
+   *
+   * For a prompt gap: the behaviour, in a few words
+   */
+  gap_topic?: string | null;
+  /**
+   * Replaces Id
+   *
+   * The earlier clarification on the same rule its answer replaces
+   */
+  replaces_id?: string | null;
+  /**
+   * Replaces Sentence
+   *
+   * That earlier clarification, as answered
+   */
+  replaces_sentence?: string | null;
+  /**
+   * Closed
+   *
+   * For an answered prompt gap: a spec written from a prompt that covers it closed it
+   */
+  closed?: boolean;
+  /**
+   * Closed Rule Key
+   *
+   * For a closed prompt gap: the rule that covers it
+   */
+  closed_rule_key?: string | null;
   state: ClarificationState;
   /**
    * Raised By
@@ -2093,7 +2131,7 @@ export type ClarificationPublic = {
   /**
    * Answer Text
    *
-   * For 'other': the person's words, now the rule
+   * For 'other': the person's own words, kept as the sentence
    */
   answer_text?: string | null;
   /**
@@ -2105,7 +2143,7 @@ export type ClarificationPublic = {
   /**
    * Answer Spec Version
    *
-   * The spec version the answer made
+   * Only for an answer from before answers stopped making spec versions (2026-11-26): the version it made
    */
   answer_spec_version?: number | null;
   /**
@@ -2141,6 +2179,24 @@ export const ClarificationState = {
 export type ClarificationState = (typeof ClarificationState)[keyof typeof ClarificationState];
 
 /**
+ * ClarificationToCheckPublic
+ */
+export type ClarificationToCheckPublic = {
+  /**
+   * Rule Key
+   */
+  rule_key: string;
+  /**
+   * Clarification Id
+   */
+  clarification_id: string;
+  /**
+   * Sentence
+   */
+  sentence: string;
+};
+
+/**
  * ClarificationsAnsweredPublic
  */
 export type ClarificationsAnsweredPublic = {
@@ -2157,15 +2213,31 @@ export type ClarificationsAnsweredPublic = {
    */
   reopened?: number;
   /**
-   * Specs
+   * Agents
    */
-  specs: Array<AnsweredSpecPublic>;
+  agents: Array<AnsweredAgentPublic>;
   /**
    * Open
    *
-   * Open clarifications left in the workspace
+   * Open questions left in the workspace
    */
   open: number;
+};
+
+/**
+ * ClarifiedRulePublic
+ */
+export type ClarifiedRulePublic = {
+  /**
+   * Key
+   */
+  key: string;
+  /**
+   * Text
+   *
+   * The rule's text in the agent's latest spec; None if dropped since
+   */
+  text?: string | null;
 };
 
 /**
@@ -2493,6 +2565,7 @@ export const DecisionKind = {
   CLARIFICATION_ANSWERED: 'clarification_answered',
   CLARIFICATION_PARKED: 'clarification_parked',
   CLARIFICATION_REOPENED: 'clarification_reopened',
+  PROMPT_GAP_CLOSED: 'prompt_gap_closed',
 } as const;
 
 /**
@@ -5470,11 +5543,11 @@ export type McpClarificationAnswer = {
    */
   label: string;
   /**
-   * Rule
+   * Sentence
    *
-   * The spec rule this answer becomes, in one plain sentence
+   * What this answer adds, in one plain sentence: the clarification on the rule, or for a prompt gap what the prompt would need to say
    */
-  rule: string;
+  sentence: string;
 };
 
 /**
@@ -5494,7 +5567,7 @@ export type McpClarificationDecision = {
   /**
    * Text
    *
-   * For 'other': the person's own answer, as the rule the agent should follow
+   * For 'other': the person's own answer, in their words
    */
   text?: string | null;
   /**
@@ -5522,13 +5595,25 @@ export type McpClarificationQuestion = {
    */
   answers: Array<McpClarificationAnswer>;
   /**
+   * Rule Key
+   *
+   * The key of the rule it explains (a clarification); leave out for behaviour no rule covers (a prompt gap)
+   */
+  rule_key?: string | null;
+  /**
+   * Gap Topic
+   *
+   * For a prompt gap: the behaviour in a few words, e.g. 'changing appointments'
+   */
+  gap_topic?: string | null;
+  /**
    * Category
    *
-   * A category key from `list_categories`
+   * For a prompt gap: a category key from `list_categories`; a clarification takes its rule's
    */
-  category: string;
+  category?: string | null;
   /**
-   * money, safety or compliance, when it protects one
+   * For a prompt gap: money, safety or compliance, when it protects one
    */
   touches?: SpecRuleTouches | null;
   /**
@@ -5538,11 +5623,11 @@ export type McpClarificationQuestion = {
    */
   call_ids?: Array<string>;
   /**
-   * Replaces Key
+   * Replaces Id
    *
-   * The key of the spec rule the answer replaces
+   * For a clarification: the earlier clarification on the same rule its answer replaces
    */
-  replaces_key?: string | null;
+  replaces_id?: string | null;
 };
 
 /**
@@ -6539,6 +6624,12 @@ export type McpSpecRule = {
    * True when a failure of the rule must stop a release; left out, a kept rule keeps its mark and a new one is not critical
    */
   critical?: boolean | null;
+  /**
+   * Closes
+   *
+   * Answered prompt gaps this rule covers now that the prompt says it; for a rule from an earlier answer, its `prompt_gap_id`
+   */
+  closes?: Array<string>;
 };
 
 /**
@@ -7281,22 +7372,6 @@ export const ReadinessStepState = {
 export type ReadinessStepState = (typeof ReadinessStepState)[keyof typeof ReadinessStepState];
 
 /**
- * ReplacedRulePublic
- */
-export type ReplacedRulePublic = {
-  /**
-   * Key
-   */
-  key: string;
-  /**
-   * Text
-   *
-   * The rule's text in the agent's latest spec; None if dropped since
-   */
-  text?: string | null;
-};
-
-/**
  * RetellAgentSummary
  */
 export type RetellAgentSummary = {
@@ -7316,6 +7391,46 @@ export type RetellAgentSummary = {
    * Version
    */
   version?: number | null;
+};
+
+/**
+ * RuleClarificationPublic
+ */
+export type RuleClarificationPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Sentence
+   *
+   * What it settles about the rule; read with the rule by every check
+   */
+  sentence: string;
+  /**
+   * Question
+   */
+  question: string;
+  /**
+   * Answer
+   *
+   * The answer's label, or 'Something else'
+   */
+  answer: string;
+  /**
+   * Answered By
+   */
+  answered_by?: string | null;
+  /**
+   * Assistant
+   *
+   * The assistant that recorded it for the person
+   */
+  assistant?: string | null;
+  /**
+   * Answered At
+   */
+  answered_at?: string | null;
 };
 
 export type RuleKey = string;
@@ -8281,9 +8396,21 @@ export type SpecChangesPublic = {
   /**
    * Carried
    *
-   * Rules from answered clarifications, carried over unchanged
+   * Rules from earlier answers, carried over unchanged until a rule closes their prompt gap
    */
   carried: number;
+  /**
+   * Gaps Closed
+   *
+   * Prompt gaps this version closed
+   */
+  gaps_closed?: number;
+  /**
+   * Check Clarifications
+   *
+   * Clarifications on rules whose text changed: check each still fits, and raise a replacing question where one does not
+   */
+  check_clarifications?: Array<ClarificationToCheckPublic>;
   /**
    * Quotes Checked
    *
@@ -8325,9 +8452,23 @@ export type SpecCountsPublic = {
    */
   from_prompt: number;
   /**
-   * From Clarifications
+   * From Answers
+   *
+   * Rules from earlier answers, waiting for the prompt to cover them
    */
-  from_clarifications: number;
+  from_answers?: number;
+  /**
+   * Clarified
+   *
+   * Rules with at least one clarification
+   */
+  clarified?: number;
+  /**
+   * Prompt Gaps
+   *
+   * Answered prompt gaps waiting for a prompt change
+   */
+  prompt_gaps?: number;
   /**
    * In Conflict
    */
@@ -8488,9 +8629,15 @@ export type SpecRulePublic = {
    */
   scenarios?: number;
   /**
+   * Clarifications
+   *
+   * The person's clarifications in force on this rule, oldest first
+   */
+  clarifications?: Array<RuleClarificationPublic>;
+  /**
    * Answered By
    *
-   * For a rule from a clarification: who answered it
+   * For a rule from an earlier answer (source clarification): who answered it
    */
   answered_by?: string | null;
   /**
@@ -8498,9 +8645,15 @@ export type SpecRulePublic = {
    */
   answered_at?: string | null;
   /**
+   * Prompt Gap Id
+   *
+   * For a rule from an earlier answer: the prompt gap it waits on. Name it in `closes` on the rule written from a prompt that covers it
+   */
+  prompt_gap_id?: string | null;
+  /**
    * In Conflict
    *
-   * An open or parked clarification replaces this rule
+   * An open or parked question replaces one of its clarifications
    */
   in_conflict?: boolean;
   /**
@@ -8749,6 +8902,7 @@ export const TaskKind = {
   ONBOARDING: 'onboarding',
   SPEC: 'spec',
   CLARIFICATIONS: 'clarifications',
+  PROMPT_GAP: 'prompt_gap',
   CALLS_TO_REVIEW: 'calls_to_review',
   TESTS: 'tests',
 } as const;

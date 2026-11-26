@@ -11,6 +11,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
+from app.crud.clarification import chosen_sentence, open_gaps
 from app.tests.api.routes.test_issues_list import _signed_in
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
     _agent,
@@ -65,7 +66,7 @@ def test_the_person_lists_answers_parks_and_reopens(
         client, cookies, (str(change.id), "b"), (str(deposit.id), "park")
     )
     assert answered.status_code == 200, answered.text
-    assert answered.json()["specs"][0]["rules_added"] == 1
+    assert answered.json()["agents"][0]["prompt_gaps"] == 1
     week = client.get(
         f"{API}/clarifications",
         cookies=cookies,
@@ -74,8 +75,9 @@ def test_the_person_lists_answers_parks_and_reopens(
     assert week["counts"]["answered_this_week"] == 1
     assert week["data"][0]["decided_assistant"] is None  # answered in the app
     assert week["data"][0]["decided_by"]
+    # Answers make no spec version.
     spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None and spec.assistant_name is None
+    assert spec is not None and spec.version == 1
 
     reopened = _decide(client, cookies, (str(deposit.id), "reopen"))
     assert reopened.json()["reopened"] == 1
@@ -120,7 +122,7 @@ def test_refusals_and_other_workspaces(client: TestClient, db: Session) -> None:
     )
 
 
-def test_something_else_becomes_the_rule_as_written(
+def test_something_else_is_kept_in_the_persons_words(
     client: TestClient, db: Session
 ) -> None:
     user, cookies = _signed_in(client, db)
@@ -138,10 +140,14 @@ def test_something_else_becomes_the_rule_as_written(
     assert empty.status_code == 422
     assert "needs the person's answer as text" in str(empty.json())
     assert answered.status_code == 200, answered.text
+    # No rule: both are prompt gaps, kept as the person said them.
+    db.expire_all()  # answered through the API, in another session
     spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None and spec.version == before.version + 1  # one version
-    rules = {r.text for r in crud.spec_rules(session=db, spec_id=spec.id)}
-    assert words in rules and "Never mention a deposit" in rules
+    assert spec is not None and spec.version == before.version
+    gaps = {
+        chosen_sentence(g) for g in open_gaps(session=db, company_id=user.company_id)
+    }
+    assert gaps == {words, "Never mention a deposit"}
     shown = client.get(
         f"{API}/clarifications",
         cookies=cookies,
@@ -171,6 +177,6 @@ def test_something_else_through_mcp(client: TestClient, db: Session) -> None:
     )
 
     assert r.status_code == 200, r.text
-    spec = crud.latest_spec(session=db, agent_id=agent.id)
-    assert spec is not None
-    assert "Ask first" in {r.text for r in crud.spec_rules(session=db, spec_id=spec.id)}
+    db.refresh(change)
+    assert (change.answer, change.answer_text) == ("other", "Ask first")
+    assert chosen_sentence(change) == "Ask first"

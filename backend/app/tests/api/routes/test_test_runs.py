@@ -27,6 +27,13 @@ from app.models.test_case_result import TestCaseResult
 from app.models.test_run import RuleVerdict
 from app.services import test_run as runner
 from app.services.call_screen import simulated_call_screen
+from app.services.clarification import (
+    AnswerDraft,
+    Decision,
+    QuestionDraft,
+    answer_clarifications,
+    raise_clarifications,
+)
 from app.services.eval_runtimes.text.retell import DEFAULT_FAKE_RESULT
 from app.services.llm import LLMResponse
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
@@ -241,6 +248,30 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
         2,
     )
     assert run.platform_version == "4"
+    # The person clarified the price rule: the judge reads it with the rule.
+    [note] = raise_clarifications(
+        session=db,
+        agent=agent,
+        drafts=[
+            QuestionDraft(
+                question="Is a price range from the list a quote?",
+                rule_key=keys[PRICE],
+                answers=[
+                    AnswerDraft("No", "A range from the price list is not a quote."),
+                    AnswerDraft("Yes", "Any price, even a range, is a quote."),
+                ],
+            )
+        ],
+        raised_by=user,
+        assistant_name=None,
+    )
+    answer_clarifications(
+        session=db,
+        company_id=user.company_id,
+        decisions=[Decision(note.id, "a")],
+        decided_by=user,
+        assistant_name=None,
+    )
 
     judge = AsyncMock(
         side_effect=[_verdict(keys[PRICE], "passed"), _verdict(keys[PRICE], "failed")]
@@ -272,6 +303,7 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
     # The judge reads the listed rule only.
     judged = judge.call_args.args[0][1].content
     assert PRICE in judged and BOOKING not in judged
+    assert "Note on this rule: A range from the price list is not a quote." in judged
     assert "book_slot" in judged
     # Both run on Claude, on Connexity's own key: the workspace has none.
     for model_call in (caller, judge):
@@ -294,6 +326,7 @@ def test_a_set_runs_every_repeat_with_every_tool_faked_and_judges_listed_rules(
     ).all()
     assert sorted(v.outcome for v in verdicts) == ["failed", "passed"]
     assert all(v.rule_key == keys[PRICE] and v.critical for v in verdicts)
+    assert all(v.clarification_ids == [str(note.id)] for v in verdicts)
     # Nothing reached production calls or findings.
     assert _counts(db, agent) == before
 

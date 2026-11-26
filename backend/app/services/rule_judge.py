@@ -27,6 +27,8 @@ class JudgeFailed(Exception):
 class RuleToJudge:
     key: str
     text: str
+    # The person's clarifications in force on the rule, read with it.
+    clarifications: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,9 @@ For every rule you are given, answer exactly one verdict:
   what the rule says, or did what it forbids.
 - "did_not_come_up": the conversation never reached what the rule is about, so it says
   nothing about this rule. Do not guess a pass.
+
+A rule may come with notes from the person who owns the agent. A note says where the
+rule's boundary lies; judge the rule as its notes explain it.
 
 For each rule, first write the reason in one or two plain sentences and the indices of
 the turns it rests on (empty for did_not_come_up), and only then the verdict that
@@ -100,7 +105,11 @@ def _user_prompt(
     caller_goal: str | None,
     default_fakes: list[str],
 ) -> str:
-    listed = "\n".join(f"- [{rule.key}] {rule.text}" for rule in rules)
+    listed = "\n".join(
+        f"- [{rule.key}] {rule.text}"
+        + "".join(f"\n  Note on this rule: {note}" for note in rule.clarifications)
+        for rule in rules
+    )
     goal = (caller_goal or "").strip() or "(not given)"
     fakes = (
         "These tools were not available in this test and answered with an error: "

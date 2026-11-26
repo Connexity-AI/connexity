@@ -1,5 +1,5 @@
-"""Storing clarifications and turning answers into spec versions (plan
-`plans/2026-11-15-clarifications.md`)."""
+"""Storing clarifications and prompt gaps, and which clarifications are in force (plans
+`plans/2026-11-15-clarifications.md`, `plans/2026-11-26-clarification-on-rule.md`)."""
 
 import uuid
 from collections.abc import Sequence
@@ -8,18 +8,11 @@ from typing import NamedTuple
 
 from sqlmodel import Session, col, func, select
 
-from app.crud.spec import copy_rule, latest_spec, spec_rules
-from app.models.agent import Agent
 from app.models.call import Call
 from app.models.check import DecisionRecord
 from app.models.clarification import ANSWER_LETTERS, OTHER, Clarification
-from app.models.enums import (
-    ClarificationState,
-    DecisionKind,
-    SpecOrigin,
-    SpecRuleSource,
-)
-from app.models.spec import Spec, SpecRule
+from app.models.enums import ClarificationState, DecisionKind
+from app.models.spec import Spec
 from app.models.user import User
 
 
@@ -131,83 +124,105 @@ class Answer(NamedTuple):
     proposed: bool = False
 
 
-def rule_text(clarification: Clarification, letter: str, text: str | None) -> str:
-    """The rule an answer becomes: the chosen answer's rule, or the person's words."""
+def answer_sentence(clarification: Clarification, letter: str, text: str | None) -> str:
+    """What an answer adds: the chosen answer's sentence, or the person's own words."""
     if letter == OTHER:
         return text or ""
-    return str(clarification.answers[ANSWER_LETTERS.index(letter)]["rule"])
+    return str(clarification.answers[ANSWER_LETTERS.index(letter)]["sentence"])
 
 
-def write_answered_spec(
+def chosen_sentence(clarification: Clarification) -> str:
+    """The sentence an answered question added."""
+    if clarification.answer is None:
+        return ""
+    return answer_sentence(
+        clarification, clarification.answer, clarification.answer_text
+    )
+
+
+def _aware(moment: datetime) -> datetime:
+    return moment if moment.tzinfo else moment.replace(tzinfo=UTC)
+
+
+def clarifications_in_force(
     *,
     session: Session,
-    agent: Agent,
-    answers: Sequence[Answer],
+    agent_id: uuid.UUID,
+    at: datetime | None = None,
+) -> dict[str, list[Clarification]]:
+    """The agent's clarifications in force at ``at`` (now when not given), by the key
+    of the rule each explains, oldest first: answered by then, and not replaced by
+    another answered by then. Whether the rule is in a spec version is the caller's."""
+    rows = list(
+        session.exec(
+            select(Clarification)
+            .where(
+                Clarification.agent_id == agent_id,
+                Clarification.state == ClarificationState.ANSWERED,
+                col(Clarification.rule_key).is_not(None),
+            )
+            .order_by(col(Clarification.decided_at), col(Clarification.id))
+        ).all()
+    )
+    if at is not None:
+        rows = [r for r in rows if r.decided_at and _aware(r.decided_at) <= _aware(at)]
+    replaced = {r.replaces_id for r in rows if r.replaces_id}
+    out: dict[str, list[Clarification]] = {}
+    for row in rows:
+        if row.id not in replaced and row.rule_key is not None:
+            out.setdefault(row.rule_key, []).append(row)
+    return out
+
+
+def open_gaps(
+    *, session: Session, company_id: uuid.UUID, agent_id: uuid.UUID | None = None
+) -> list[Clarification]:
+    """Answered prompt gaps no spec has closed yet, oldest answer first."""
+    query = select(Clarification).where(
+        Clarification.company_id == company_id,
+        Clarification.state == ClarificationState.ANSWERED,
+        col(Clarification.rule_key).is_(None),
+        col(Clarification.closed_at).is_(None),
+    )
+    if agent_id is not None:
+        query = query.where(Clarification.agent_id == agent_id)
+    return list(
+        session.exec(
+            query.order_by(col(Clarification.decided_at), col(Clarification.id))
+        ).all()
+    )
+
+
+def close_gaps(
+    *,
+    session: Session,
+    gaps: Sequence[tuple[Clarification, str]],
+    spec: Spec,
     decided_by: User,
     assistant_name: str | None,
-) -> Spec:
-    """A new spec version: the latest one's rules plus one rule per answer.
-
-    The caller holds the agent lock and has checked the answers. A rule an answer
-    replaces is dropped, and the answer's rule takes its key, its critical mark and,
-    within the same category, its place. Does not commit.
-    """
-    previous = latest_spec(session=session, agent_id=agent.id)
-    assert previous is not None  # clarifications need a spec
-    spec = Spec(
-        company_id=agent.company_id,
-        agent_id=agent.id,
-        version=previous.version + 1,
-        agent_version=previous.agent_version,
-        prompt_fingerprint=previous.prompt_fingerprint,
-        origin=SpecOrigin.ANSWERED,
-        written_for=previous.written_for,
-        previous_id=previous.id,
-        created_by=decided_by.id,
-        created_by_email=decided_by.email,
-        assistant_name=assistant_name,
-    )
-    session.add(spec)
-    session.flush()
-    rules = spec_rules(session=session, spec_id=previous.id)
-    old_by_key = {r.key: r for r in rules}
-    # A replaced rule the spec has since dropped is not replaced: the answer's rule is
-    # new, so a key the assistant dropped never comes back on another rule.
-    replaced = {
-        a.clarification.replaces_key
-        for a in answers
-        if a.clarification.replaces_key in old_by_key
-    }
-    kept = [r for r in rules if r.key not in replaced]
-    last: dict[uuid.UUID, int] = {}
-    for rule in kept:
-        session.add(copy_rule(rule, spec_id=spec.id))
-        last[rule.category_id] = max(last.get(rule.category_id, 0), rule.position)
-    for answer in answers:
-        c = answer.clarification
-        old = old_by_key.get(c.replaces_key) if c.replaces_key in replaced else None
-        if old is not None and old.category_id == c.category_id:
-            position = old.position
-        else:
-            position = last.get(c.category_id, 0) + 1
-            last[c.category_id] = position
+) -> None:
+    """Close each answered prompt gap with the rule of ``spec`` that now covers it, as a
+    decision record. Does not commit."""
+    now = datetime.now(UTC)
+    for gap, key in gaps:
+        gap.closed_spec_id = spec.id
+        gap.closed_rule_key = key
+        gap.closed_at = now
+        session.add(gap)
         session.add(
-            SpecRule(
-                company_id=agent.company_id,
-                spec_id=spec.id,
-                key=old.key if old is not None else uuid.uuid4().hex[:12],
-                position=position,
-                category_id=c.category_id,
-                text=rule_text(c, answer.letter, answer.text),
-                source=SpecRuleSource.CLARIFICATION,
-                clarification_id=c.id,
-                touches=c.touches,
-                # It settles the same behaviour as the rule it replaces.
-                critical=old.critical if old is not None else False,
+            DecisionRecord(
+                company_id=gap.company_id,
+                agent_id=gap.agent_id,
+                kind=DecisionKind.PROMPT_GAP_CLOSED,
+                subject=str(gap.id),
+                old_value=None,
+                new_value=key,
+                decided_by=decided_by.id,
+                decided_by_email=decided_by.email,
+                assistant_name=assistant_name,
+                detail={"spec_version": spec.version},
             )
         )
-    session.flush()
-    return spec
 
 
 def decide(
@@ -216,7 +231,6 @@ def decide(
     clarification: Clarification,
     state: ClarificationState,
     letter: str | None,
-    answer_spec: Spec | None,
     decided_by: User,
     assistant_name: str | None,
     text: str | None = None,
@@ -229,7 +243,6 @@ def decide(
     clarification.state = state
     clarification.answer = letter
     clarification.answer_text = text if letter == OTHER else None
-    clarification.answer_spec_id = answer_spec.id if answer_spec else None
     clarification.answer_proposed = proposed and state is ClarificationState.ANSWERED
     clarification.decided_by = decided_by.id
     clarification.decided_by_email = decided_by.email
@@ -243,10 +256,14 @@ def decide(
         ClarificationState.OPEN: DecisionKind.CLARIFICATION_REOPENED,
     }[state]
     detail = None
-    if answered and letter is not None and answer_spec is not None:
+    if answered and letter is not None:
         detail = {
-            "rule": rule_text(clarification, letter, text),
-            "spec_version": answer_spec.version,
+            "sentence": answer_sentence(clarification, letter, text),
+            **(
+                {"rule_key": clarification.rule_key}
+                if clarification.rule_key
+                else {"prompt_gap": True}
+            ),
             # Only for an answer the assistant proposed and the person confirmed.
             **({"proposed": True} if proposed else {}),
         }

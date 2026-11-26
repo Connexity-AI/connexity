@@ -1014,7 +1014,7 @@ async def test_mark_critical_rules_sends_both_lists() -> None:
                     ],
                     "counts": {
                         "from_prompt": 1,
-                        "from_clarifications": 0,
+                        "from_answers": 0,
                         "in_conflict": 0,
                         "critical": 1,
                     },
@@ -1045,9 +1045,15 @@ _CLARIFICATION = {
     "agent_name": "Front desk",
     "question": "The agent changed an existing appointment on 2 calls. Is it allowed to?",
     "answers": [
-        {"letter": "a", "label": "Yes", "rule": "The agent may change appointments"},
-        {"letter": "b", "label": "Never", "rule": "Never change an appointment"},
+        {
+            "letter": "a",
+            "label": "Yes",
+            "sentence": "The agent may change appointments",
+        },
+        {"letter": "b", "label": "Never", "sentence": "Never change an appointment"},
     ],
+    "kind": "prompt_gap",
+    "gap_topic": "changing appointments",
     "category": "booking",
     "category_name": "Booking",
     "calls_seen": 0,
@@ -1072,9 +1078,13 @@ async def test_raise_clarifications_sends_questions_without_empty_fields() -> No
                 {
                     "question": _CLARIFICATION["question"],
                     "answers": [
-                        {"label": "Yes", "rule": "The agent may change appointments"},
-                        {"label": "Never", "rule": "Never change an appointment"},
+                        {
+                            "label": "Yes",
+                            "sentence": "The agent may change appointments",
+                        },
+                        {"label": "Never", "sentence": "Never change an appointment"},
                     ],
+                    "gap_topic": "changing appointments",
                     "category": "booking",
                 }
             ]
@@ -1092,10 +1102,13 @@ async def test_raise_clarifications_sends_questions_without_empty_fields() -> No
                     question=str(_CLARIFICATION["question"]),
                     answers=[
                         AnswerToRaise(
-                            label="Yes", rule="The agent may change appointments"
+                            label="Yes", sentence="The agent may change appointments"
                         ),
-                        AnswerToRaise(label="Never", rule="Never change an appointment"),
+                        AnswerToRaise(
+                            label="Never", sentence="Never change an appointment"
+                        ),
                     ],
+                    gap_topic="changing appointments",
                     category="booking",
                 )
             ],
@@ -1151,12 +1164,12 @@ async def test_answer_clarifications_sends_each_answer() -> None:
                 "data": {
                     "answered": 1,
                     "parked": 1,
-                    "specs": [
+                    "agents": [
                         {
                             "agent_id": "a1",
                             "agent_name": "Front desk",
-                            "spec_version": 2,
-                            "rules_added": 1,
+                            "clarifications": 0,
+                            "prompt_gaps": 1,
                         }
                     ],
                     "open": 0,
@@ -1177,7 +1190,7 @@ async def test_answer_clarifications_sends_each_answer() -> None:
         ),
     )
 
-    assert result.data.specs[0].spec_version == 2
+    assert result.data.agents[0].prompt_gaps == 1
 
 
 _SCENARIO = {

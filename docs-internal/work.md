@@ -55,6 +55,7 @@ wins. What `get_next_task` hands out is planned in the
 - An assistant is a named connection ("Alex's Claude Code"), and each session has a name ("Onboarding"). The row's chip shows "assistant · session".
 - The assistant names its session in its MCP calls, and Connexity shows the name. Built in 10.125, keyed by the name: the stateless MCP adapter passes no session id.
 - The task types and their icons: Clarifications, Issue fix, Setup, Incident, Spec, Calls to review, Tests, Onboarding.
+- A prompt gap the person answered is a Spec-type task for the assistant, "Propose the prompt change: <topic>" (105.12). Like an issue fix, it stays with the session that took it until a spec written from the new prompt closes the gap.
 - The side panel fields: type, agent, assistant, session, latest step, worked on for, blocks / blocked by, links.
 
 ## Open

@@ -1118,7 +1118,7 @@ export const AgentVersionOptionPublicSchema = {
   title: 'AgentVersionOptionPublic',
 } as const;
 
-export const AnsweredSpecPublicSchema = {
+export const AnsweredAgentPublicSchema = {
   properties: {
     agent_id: {
       type: 'string',
@@ -1129,19 +1129,20 @@ export const AnsweredSpecPublicSchema = {
       type: 'string',
       title: 'Agent Name',
     },
-    spec_version: {
+    clarifications: {
       type: 'integer',
-      title: 'Spec Version',
-      description: 'The new spec version the answers made',
+      title: 'Clarifications',
+      description: 'Clarifications added to its rules',
     },
-    rules_added: {
+    prompt_gaps: {
       type: 'integer',
-      title: 'Rules Added',
+      title: 'Prompt Gaps',
+      description: 'Prompt gaps answered: each is now a task to propose the prompt change',
     },
   },
   type: 'object',
-  required: ['agent_id', 'agent_name', 'spec_version', 'rules_added'],
-  title: 'AnsweredSpecPublic',
+  required: ['agent_id', 'agent_name', 'clarifications', 'prompt_gaps'],
+  title: 'AnsweredAgentPublic',
 } as const;
 
 export const AssistantTaskStateSchema = {
@@ -2779,14 +2780,15 @@ export const ClarificationAnswerPublicSchema = {
       type: 'string',
       title: 'Label',
     },
-    rule: {
+    sentence: {
       type: 'string',
-      title: 'Rule',
-      description: 'The spec rule this answer becomes',
+      title: 'Sentence',
+      description:
+        'The clarification this answer adds to the rule; for a prompt gap, what the prompt would need to say',
     },
   },
   type: 'object',
-  required: ['letter', 'label', 'rule'],
+  required: ['letter', 'label', 'sentence'],
   title: 'ClarificationAnswerPublic',
 } as const;
 
@@ -2985,16 +2987,79 @@ export const ClarificationPublicSchema = {
       title: 'Spec Version',
       description: 'The spec version it was raised against',
     },
-    replaces: {
+    kind: {
+      type: 'string',
+      enum: ['clarification', 'prompt_gap'],
+      title: 'Kind',
+      description:
+        'clarification: it explains `rule`; prompt_gap: behaviour no rule covers, which the prompt should settle',
+    },
+    rule: {
       anyOf: [
         {
-          $ref: '#/components/schemas/ReplacedRulePublic',
+          $ref: '#/components/schemas/ClarifiedRulePublic',
         },
         {
           type: 'null',
         },
       ],
-      description: 'The spec rule the answer replaces',
+      description: 'For a clarification: the rule it explains',
+    },
+    gap_topic: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Gap Topic',
+      description: 'For a prompt gap: the behaviour, in a few words',
+    },
+    replaces_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Replaces Id',
+      description: 'The earlier clarification on the same rule its answer replaces',
+    },
+    replaces_sentence: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Replaces Sentence',
+      description: 'That earlier clarification, as answered',
+    },
+    closed: {
+      type: 'boolean',
+      title: 'Closed',
+      description:
+        'For an answered prompt gap: a spec written from a prompt that covers it closed it',
+      default: false,
+    },
+    closed_rule_key: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Closed Rule Key',
+      description: 'For a closed prompt gap: the rule that covers it',
     },
     state: {
       $ref: '#/components/schemas/ClarificationState',
@@ -3041,7 +3106,7 @@ export const ClarificationPublicSchema = {
         },
       ],
       title: 'Answer Text',
-      description: "For 'other': the person's words, now the rule",
+      description: "For 'other': the person's own words, kept as the sentence",
     },
     answer_proposed: {
       type: 'boolean',
@@ -3059,7 +3124,8 @@ export const ClarificationPublicSchema = {
         },
       ],
       title: 'Answer Spec Version',
-      description: 'The spec version the answer made',
+      description:
+        'Only for an answer from before answers stopped making spec versions (2026-11-26): the version it made',
     },
     decided_by: {
       anyOf: [
@@ -3109,6 +3175,7 @@ export const ClarificationPublicSchema = {
     'category_name',
     'calls_seen',
     'call_ids',
+    'kind',
     'state',
     'raised_by',
     'raised_at',
@@ -3120,6 +3187,27 @@ export const ClarificationStateSchema = {
   type: 'string',
   enum: ['open', 'answered', 'parked'],
   title: 'ClarificationState',
+} as const;
+
+export const ClarificationToCheckPublicSchema = {
+  properties: {
+    rule_key: {
+      type: 'string',
+      title: 'Rule Key',
+    },
+    clarification_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Clarification Id',
+    },
+    sentence: {
+      type: 'string',
+      title: 'Sentence',
+    },
+  },
+  type: 'object',
+  required: ['rule_key', 'clarification_id', 'sentence'],
+  title: 'ClarificationToCheckPublic',
 } as const;
 
 export const ClarificationsAnsweredPublicSchema = {
@@ -3137,22 +3225,46 @@ export const ClarificationsAnsweredPublicSchema = {
       title: 'Reopened',
       default: 0,
     },
-    specs: {
+    agents: {
       items: {
-        $ref: '#/components/schemas/AnsweredSpecPublic',
+        $ref: '#/components/schemas/AnsweredAgentPublic',
       },
       type: 'array',
-      title: 'Specs',
+      title: 'Agents',
     },
     open: {
       type: 'integer',
       title: 'Open',
-      description: 'Open clarifications left in the workspace',
+      description: 'Open questions left in the workspace',
     },
   },
   type: 'object',
-  required: ['answered', 'parked', 'specs', 'open'],
+  required: ['answered', 'parked', 'agents', 'open'],
   title: 'ClarificationsAnsweredPublic',
+} as const;
+
+export const ClarifiedRulePublicSchema = {
+  properties: {
+    key: {
+      type: 'string',
+      title: 'Key',
+    },
+    text: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Text',
+      description: "The rule's text in the agent's latest spec; None if dropped since",
+    },
+  },
+  type: 'object',
+  required: ['key'],
+  title: 'ClarifiedRulePublic',
 } as const;
 
 export const ComponentVersionPublicSchema = {
@@ -3603,6 +3715,7 @@ export const DecisionKindSchema = {
     'clarification_answered',
     'clarification_parked',
     'clarification_reopened',
+    'prompt_gap_closed',
   ],
   title: 'DecisionKind',
 } as const;
@@ -7862,15 +7975,16 @@ export const McpClarificationAnswerSchema = {
       title: 'Label',
       description: "A short answer the person picks, e.g. 'Only when the caller asks'",
     },
-    rule: {
+    sentence: {
       type: 'string',
       maxLength: 2000,
-      title: 'Rule',
-      description: 'The spec rule this answer becomes, in one plain sentence',
+      title: 'Sentence',
+      description:
+        'What this answer adds, in one plain sentence: the clarification on the rule, or for a prompt gap what the prompt would need to say',
     },
   },
   type: 'object',
-  required: ['label', 'rule'],
+  required: ['label', 'sentence'],
   title: 'McpClarificationAnswer',
 } as const;
 
@@ -7899,7 +8013,7 @@ export const McpClarificationDecisionSchema = {
         },
       ],
       title: 'Text',
-      description: "For 'other': the person's own answer, as the rule the agent should follow",
+      description: "For 'other': the person's own answer, in their words",
     },
     proposed: {
       type: 'boolean',
@@ -7931,11 +8045,46 @@ export const McpClarificationQuestionSchema = {
       title: 'Answers',
       description: 'Two to four, a to d',
     },
+    rule_key: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Rule Key',
+      description:
+        'The key of the rule it explains (a clarification); leave out for behaviour no rule covers (a prompt gap)',
+    },
+    gap_topic: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 100,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Gap Topic',
+      description: "For a prompt gap: the behaviour in a few words, e.g. 'changing appointments'",
+    },
     category: {
-      type: 'string',
-      maxLength: 64,
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 64,
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Category',
-      description: 'A category key from `list_categories`',
+      description:
+        "For a prompt gap: a category key from `list_categories`; a clarification takes its rule's",
     },
     touches: {
       anyOf: [
@@ -7946,7 +8095,7 @@ export const McpClarificationQuestionSchema = {
           type: 'null',
         },
       ],
-      description: 'money, safety or compliance, when it protects one',
+      description: 'For a prompt gap: money, safety or compliance, when it protects one',
     },
     call_ids: {
       items: {
@@ -7958,22 +8107,23 @@ export const McpClarificationQuestionSchema = {
       title: 'Call Ids',
       description: 'The calls where it was seen, at most 50; none for a prompt change',
     },
-    replaces_key: {
+    replaces_id: {
       anyOf: [
         {
           type: 'string',
-          maxLength: 64,
+          format: 'uuid',
         },
         {
           type: 'null',
         },
       ],
-      title: 'Replaces Key',
-      description: 'The key of the spec rule the answer replaces',
+      title: 'Replaces Id',
+      description:
+        'For a clarification: the earlier clarification on the same rule its answer replaces',
     },
   },
   type: 'object',
-  required: ['question', 'answers', 'category'],
+  required: ['question', 'answers'],
   title: 'McpClarificationQuestion',
 } as const;
 
@@ -9483,6 +9633,17 @@ export const McpSpecRuleSchema = {
       description:
         'True when a failure of the rule must stop a release; left out, a kept rule keeps its mark and a new one is not critical',
     },
+    closes: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 20,
+      title: 'Closes',
+      description:
+        'Answered prompt gaps this rule covers now that the prompt says it; for a rule from an earlier answer, its `prompt_gap_id`',
+    },
   },
   type: 'object',
   required: ['text', 'category'],
@@ -10504,30 +10665,6 @@ export const ReadinessStepStateSchema = {
   title: 'ReadinessStepState',
 } as const;
 
-export const ReplacedRulePublicSchema = {
-  properties: {
-    key: {
-      type: 'string',
-      title: 'Key',
-    },
-    text: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Text',
-      description: "The rule's text in the agent's latest spec; None if dropped since",
-    },
-  },
-  type: 'object',
-  required: ['key'],
-  title: 'ReplacedRulePublic',
-} as const;
-
 export const RetellAgentSummarySchema = {
   properties: {
     agent_id: {
@@ -10565,6 +10702,68 @@ export const RetellAgentSummarySchema = {
   type: 'object',
   required: ['agent_id'],
   title: 'RetellAgentSummary',
+} as const;
+
+export const RuleClarificationPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    sentence: {
+      type: 'string',
+      title: 'Sentence',
+      description: 'What it settles about the rule; read with the rule by every check',
+    },
+    question: {
+      type: 'string',
+      title: 'Question',
+    },
+    answer: {
+      type: 'string',
+      title: 'Answer',
+      description: "The answer's label, or 'Something else'",
+    },
+    answered_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Answered By',
+    },
+    assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant',
+      description: 'The assistant that recorded it for the person',
+    },
+    answered_at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Answered At',
+    },
+  },
+  type: 'object',
+  required: ['id', 'sentence', 'question', 'answer'],
+  title: 'RuleClarificationPublic',
 } as const;
 
 export const RuleKeySchema = {
@@ -11839,7 +12038,23 @@ export const SpecChangesPublicSchema = {
     carried: {
       type: 'integer',
       title: 'Carried',
-      description: 'Rules from answered clarifications, carried over unchanged',
+      description:
+        'Rules from earlier answers, carried over unchanged until a rule closes their prompt gap',
+    },
+    gaps_closed: {
+      type: 'integer',
+      title: 'Gaps Closed',
+      description: 'Prompt gaps this version closed',
+      default: 0,
+    },
+    check_clarifications: {
+      items: {
+        $ref: '#/components/schemas/ClarificationToCheckPublic',
+      },
+      type: 'array',
+      title: 'Check Clarifications',
+      description:
+        'Clarifications on rules whose text changed: check each still fits, and raise a replacing question where one does not',
     },
     quotes_checked: {
       type: 'boolean',
@@ -11883,9 +12098,23 @@ export const SpecCountsPublicSchema = {
       type: 'integer',
       title: 'From Prompt',
     },
-    from_clarifications: {
+    from_answers: {
       type: 'integer',
-      title: 'From Clarifications',
+      title: 'From Answers',
+      description: 'Rules from earlier answers, waiting for the prompt to cover them',
+      default: 0,
+    },
+    clarified: {
+      type: 'integer',
+      title: 'Clarified',
+      description: 'Rules with at least one clarification',
+      default: 0,
+    },
+    prompt_gaps: {
+      type: 'integer',
+      title: 'Prompt Gaps',
+      description: 'Answered prompt gaps waiting for a prompt change',
+      default: 0,
     },
     in_conflict: {
       type: 'integer',
@@ -11899,7 +12128,7 @@ export const SpecCountsPublicSchema = {
     },
   },
   type: 'object',
-  required: ['from_prompt', 'from_clarifications', 'in_conflict'],
+  required: ['from_prompt', 'in_conflict'],
   title: 'SpecCountsPublic',
 } as const;
 
@@ -12119,6 +12348,14 @@ export const SpecRulePublicSchema = {
       description: 'How many active scenarios list it; coverage counts the rules with at least one',
       default: 0,
     },
+    clarifications: {
+      items: {
+        $ref: '#/components/schemas/RuleClarificationPublic',
+      },
+      type: 'array',
+      title: 'Clarifications',
+      description: "The person's clarifications in force on this rule, oldest first",
+    },
     answered_by: {
       anyOf: [
         {
@@ -12129,7 +12366,7 @@ export const SpecRulePublicSchema = {
         },
       ],
       title: 'Answered By',
-      description: 'For a rule from a clarification: who answered it',
+      description: 'For a rule from an earlier answer (source clarification): who answered it',
     },
     answered_at: {
       anyOf: [
@@ -12143,10 +12380,24 @@ export const SpecRulePublicSchema = {
       ],
       title: 'Answered At',
     },
+    prompt_gap_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Prompt Gap Id',
+      description:
+        'For a rule from an earlier answer: the prompt gap it waits on. Name it in `closes` on the rule written from a prompt that covers it',
+    },
     in_conflict: {
       type: 'boolean',
       title: 'In Conflict',
-      description: 'An open or parked clarification replaces this rule',
+      description: 'An open or parked question replaces one of its clarifications',
       default: false,
     },
     result: {
@@ -12467,6 +12718,7 @@ export const TaskKindSchema = {
     'onboarding',
     'spec',
     'clarifications',
+    'prompt_gap',
     'calls_to_review',
     'tests',
   ],

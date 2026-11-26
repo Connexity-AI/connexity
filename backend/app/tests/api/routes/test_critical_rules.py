@@ -1,12 +1,14 @@
 """Marking spec rules critical through MCP, and the marks carried into later spec
 versions, on invented agents and calls (plan `plans/2026-11-17-critical-rules.md`)."""
 
+import uuid
 from typing import Any
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session, col, select
 
 from app.models import Agent, Spec, User
+from app.models.clarification import Clarification
 from app.models.enums import SpecOrigin
 from app.tests.api.routes.test_issue_page import _call
 from app.tests.api.routes.test_mcp_clarifications import QUESTION, _answer, _raise
@@ -25,6 +27,7 @@ from app.tests.api.routes.test_spec_api import (
     _url,
     _write,
 )
+from app.tests.services.test_clarifications import _earlier_answer_rule
 
 
 def _mark(
@@ -209,48 +212,33 @@ def test_an_adopted_version_carries_the_marks(client: TestClient, db: Session) -
     assert _marks(data) == {BOOKING: False, PRICE: True}
 
 
-def test_answers_carry_marks_and_a_replacing_answer_keeps_the_mark(
+def test_a_rule_closing_an_earlier_answer_takes_its_key_and_mark(
     client: TestClient, db: Session
 ) -> None:
     user, agent = _setup(db)
-    keys = _keys(
-        _write(client, user, agent, [RULES[0] | {"critical": True}, RULES[1]]).json()[
-            "data"
-        ]
+    _write(client, user, agent, [RULES[0], RULES[1]])
+    [gap] = _raise(client, user, agent, QUESTION).json()["data"]
+    _answer(client, user, (gap["id"], "b"))
+    stored = db.get(Clarification, uuid.UUID(gap["id"]))
+    assert stored is not None
+    old = _earlier_answer_rule(db, user, agent, stored, critical=True)
+    keys = _keys(_read(client, user, agent).json()["data"])
+
+    closed = _write(
+        client,
+        user,
+        agent,
+        [
+            RULES[0] | {"key": keys[BOOKING]},
+            RULES[1] | {"key": keys[PRICE]},
+            RULES[0]
+            | {"text": "Change an appointment only when asked", "closes": [gap["id"]]},
+        ],
     )
-    replacing, new = _raise(
-        client,
-        user,
-        agent,
-        QUESTION | {"replaces_key": keys[BOOKING]},
-        QUESTION | {"question": "May the agent move an appointment to another day?"},
-    ).json()["data"]
 
-    answered = _answer(client, user, (replacing["id"], "c"), (new["id"], "a"))
-
-    assert answered.status_code == 200, answered.text
-    data = _read(client, user, agent).json()["data"]
-    assert data["spec"]["origin"] == "answered"
-    assert _marks(data) == {
-        "Never change an existing appointment": True,
-        "The agent may change an existing appointment": False,
-        PRICE: False,
-    }
-    assert _keys(data)["Never change an existing appointment"] == keys[BOOKING]
-
-    # The person's answers can be marked like any rule, and a later write keeps them.
-    marked = _mark(
-        client,
-        user,
-        agent,
-        critical=[_keys(data)["The agent may change an existing appointment"]],
-    ).json()["data"]
-    assert _marks(marked)["The agent may change an existing appointment"] is True
-    rewritten = _write(client, user, agent, [RULES[1] | {"key": keys[PRICE]}]).json()[
-        "data"
-    ]
-    assert _marks(rewritten) == {
-        "Never change an existing appointment": True,
-        "The agent may change an existing appointment": True,
-        PRICE: False,
-    }
+    assert closed.status_code == 200, closed.text
+    data = closed.json()["data"]
+    assert data["changes"]["gaps_closed"] == 1
+    assert _keys(data)["Change an appointment only when asked"] == old.key
+    assert _marks(data)["Change an appointment only when asked"] is True
+    assert any("prompt gaps closed" in s for s in closed.json()["next_steps"])
