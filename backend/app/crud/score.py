@@ -11,7 +11,7 @@ from typing import NamedTuple
 from sqlalchemy import and_
 from sqlmodel import Session, col, func, select
 
-from app.crud.call_list import _counting, _ran
+from app.crud.call_list import _counting, _ran, short_call
 from app.crud.check import shown_finding
 from app.models.call import Call
 from app.models.check import Finding
@@ -53,7 +53,8 @@ def result_counts_by_agent(
     version: str | None = None,
 ) -> dict[uuid.UUID, ResultCounts]:
     """Each agent's failed, degraded and clean calls that started in ``[start, end)``,
-    on agent version ``version`` when given. Unchecked calls are left out."""
+    on agent version ``version`` when given. Unchecked and not graded calls are left
+    out."""
     fails = _counting(FindingEffect.FAILS)
     counts = _counting()
     rows = session.exec(
@@ -61,7 +62,7 @@ def result_counts_by_agent(
             Call.agent_id,
             func.count().filter(fails),
             func.count().filter(and_(counts, ~fails)),
-            func.count().filter(and_(~counts, _ran())),
+            func.count().filter(and_(~counts, _ran(), ~short_call())),
         )
         .where(
             *_window(company_id, start, end),
@@ -85,8 +86,8 @@ def result_counts_by_day(
     version: str | None = None,
 ) -> dict[date, ResultCounts]:
     """One agent's failed, degraded and clean calls by the UTC day they started, in
-    ``[start, end)``, on agent version ``version`` when given. Unchecked calls are left
-    out, as in `result_counts_by_agent`."""
+    ``[start, end)``, on agent version ``version`` when given. Unchecked and not graded
+    calls are left out, as in `result_counts_by_agent`."""
     fails = _counting(FindingEffect.FAILS)
     counts = _counting()
     day = func.date(col(Call.started_at))
@@ -95,7 +96,7 @@ def result_counts_by_day(
             day,
             func.count().filter(fails),
             func.count().filter(and_(counts, ~fails)),
-            func.count().filter(and_(~counts, _ran())),
+            func.count().filter(and_(~counts, _ran(), ~short_call())),
         )
         .where(
             *_window(company_id, start, end),

@@ -27,6 +27,7 @@ from app.models.trace import (
     UtteranceEvent,
 )
 from app.services.fingerprint import combined_fingerprint
+from app.services.grading import agent_word_count
 
 _CALL_TABLE: Table = Call.__table__  # type: ignore[attr-defined]
 
@@ -191,6 +192,7 @@ def store_trace(
     call.caller_number = parties.caller_number if parties else None
     call.recording_url = trace.recording_url
     call.reports_tool_calls = trace.reports_tool_calls
+    call.agent_words = agent_word_count(trace.events)
     call.agent_version, call.state_fingerprint = _state(trace)
     call.inputs = trace.inputs
     call.outputs = trace.outputs

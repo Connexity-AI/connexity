@@ -5,7 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { Calendar, OctagonAlert, Search, TriangleAlert, X } from 'lucide-react';
+import {
+  Calendar,
+  CircleDashed,
+  CircleMinus,
+  OctagonAlert,
+  Search,
+  TriangleAlert,
+  X,
+} from 'lucide-react';
 
 import { NumberTile } from '@workspace/ui/components/number-tile';
 import { PageBar } from '@workspace/ui/components/page-bar';
@@ -26,6 +34,7 @@ const RESULT_OPTIONS = [
   { value: 'failed', label: 'Failed' },
   { value: 'degraded', label: 'Degraded' },
   { value: 'clean', label: 'Clean' },
+  { value: 'not_graded', label: 'Not graded' },
   { value: 'unchecked', label: 'Unchecked' },
 ];
 const COLUMNS = 'grid-cols-[128px_200px_88px_72px_104px_minmax(0,1fr)]';
@@ -50,7 +59,15 @@ const ResultLabel: FC<{ result: CallListItemPublic['result'] }> = ({ result }) =
         Degraded
       </span>
     );
-  return <span className="text-ink-secondary">{result === 'clean' ? 'Clean' : 'Unchecked'}</span>;
+  if (result === 'clean') return <span className="text-ink-secondary">Clean</span>;
+  // Not graded: the agent spoke fewer than 10 words and nothing was found.
+  const Icon = result === 'not_graded' ? CircleMinus : CircleDashed;
+  return (
+    <span className="inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded-md bg-unchecked-bg px-2 text-label font-medium text-unchecked">
+      <Icon className="size-3.5" aria-hidden />
+      {result === 'not_graded' ? 'Not graded' : 'Unchecked'}
+    </span>
+  );
 };
 
 const worstLine = (call: CallListItemPublic) => {
@@ -115,7 +132,7 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize, embedded = false 
         />
       )}
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-6 gap-3">
         <NumberTile label="Calls" value={calls.tiles.calls.toLocaleString()} />
         <NumberTile
           label="Failed"
@@ -128,6 +145,16 @@ export const CallsView: FC<Props> = ({ calls, shown, pageSize, embedded = false 
           severity="warning"
         />
         <NumberTile label="Clean" value={calls.tiles.clean.toLocaleString()} />
+        <NumberTile
+          label="Not graded"
+          value={calls.tiles.not_graded.toLocaleString()}
+          icon={CircleMinus}
+        />
+        <NumberTile
+          label="Unchecked"
+          value={calls.tiles.unchecked.toLocaleString()}
+          icon={CircleDashed}
+        />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

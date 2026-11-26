@@ -501,6 +501,9 @@ export const IssueView: FC<Props> = ({ issue }) => {
                 </Chip>
               )}
               {call.result === 'clean' && <span className="text-ink-secondary">Clean</span>}
+              {call.result === 'not_graded' && (
+                <span className="text-ink-secondary">Not graded</span>
+              )}
               {call.result === 'unchecked' && <span className="text-ink-secondary">Unchecked</span>}
             </span>
             <span className="whitespace-nowrap text-ink-secondary">

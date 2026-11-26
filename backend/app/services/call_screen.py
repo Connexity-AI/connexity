@@ -35,6 +35,7 @@ from app.models.test_case_result import TestCaseResult
 from app.models.test_run import RuleVerdict, SimulatedFinding
 from app.models.trace import ToolCallEvent, Trace, UtteranceEvent
 from app.services.checks.registry import get_check
+from app.services.grading import NOT_GRADED_REASON, is_graded
 from app.services.test_run import default_fake_calls, edited_runs, trace_of
 
 MASK = "••••"
@@ -188,6 +189,7 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
     if call.ended_at is not None:
         duration = max(0, int((call.ended_at - call.started_at).total_seconds()))
     status = crud.call_check_statuses(session=session, call_ids=[call.id])[call.id]
+    graded = is_graded(call.agent_words)
     return CallScreenPublic(
         id=call.id,
         agent_id=call.agent_id,
@@ -198,6 +200,9 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
         result=status
         if isinstance(status, CallCheckStatus)
         else CallCheckStatus(status),
+        graded=graded,
+        not_graded_reason=None if graded else NOT_GRADED_REASON,
+        agent_words=call.agent_words,
         version=call.agent_version,
         has_recording=bool(call.recording_url),
         entries=entries,

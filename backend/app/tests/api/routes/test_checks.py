@@ -45,6 +45,11 @@ def _other_company(client: TestClient) -> dict[str, str]:
     return extract_cookies(r)
 
 
+# Ten words or more, so a call with nothing found is clean, not "not graded"
+# (`app/services/grading.py`).
+AGENT_LINE = "One moment while I check which tables are free tonight for you."
+
+
 def _trace(
     *,
     tool_status: str | None = "error",
@@ -65,7 +70,7 @@ def _trace(
                 "name": tool,
                 **({"status": tool_status} if tool_status else {}),
             },
-            {"id": "u2", "type": "utterance", "speaker": "agent", "text": "One moment"},
+            {"id": "u2", "type": "utterance", "speaker": "agent", "text": AGENT_LINE},
         ],
     }
 

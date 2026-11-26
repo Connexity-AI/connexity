@@ -410,7 +410,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         """One call in full: its timeline in order (agent and caller turns, and tool
         calls with arguments and result, secrets masked) and what the checks found,
         worst first, each pointing at its entry and saying whether a rule or a model
-        found it. Find the call_id with list_calls."""
+        found it. It says whether the call is graded: one where the agent spoke fewer
+        than 10 words is never judged against the spec, and with nothing found it is
+        not_graded and counts in no score. Find the call_id with list_calls."""
         return await _get_call(
             client=backend_client, workspace_id=workspace_id, call_id=call_id
         )
@@ -420,7 +422,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         workspace_id: WorkspaceId,
         query: Annotated[str | None, Field(description="The end of a caller's number, or a whole call id.")] = None,
         agent_id: Annotated[str | None, Field(description="Only this agent's calls.")] = None,
-        result: Annotated[str | None, Field(description="failed, degraded, clean or unchecked.")] = None,
+        result: Annotated[str | None, Field(description="failed, degraded, clean, not_graded (the agent spoke fewer than 10 words and nothing was found) or unchecked.")] = None,
         category: Annotated[str | None, Field(description="A category key, from `list_categories`.")] = None,
         period: Period = None,
         issue_id: Annotated[str | None, Field(description="Only the calls this issue was found on, with its findings.")] = None,
@@ -430,7 +432,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
     ) -> ListCallsResult:
         """The workspace's calls, newest first, with counts for the period. query is a
         phone number (matches the end of the caller's number) or a call id. Filters:
-        agent_id, result (failed, degraded, clean, unchecked), category (a category
+        agent_id, result (failed, degraded, clean, not_graded, unchecked), category (a category
         key), period (7d, 30d, 90d), issue_id (only the calls that issue was found on,
         each with its moment and that issue's findings on it: events and detail),
         version (only calls on that agent version). Each call carries its agent version.
@@ -454,7 +456,7 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         workspace_id: WorkspaceId,
         query: Annotated[str | None, Field(description="The end of a caller's number, or a whole call id.")] = None,
         agent_id: Annotated[str | None, Field(description="Only this agent's calls.")] = None,
-        result: Annotated[str | None, Field(description="failed, degraded, clean or unchecked.")] = None,
+        result: Annotated[str | None, Field(description="failed, degraded, clean, not_graded (the agent spoke fewer than 10 words and nothing was found) or unchecked.")] = None,
         category: Annotated[str | None, Field(description="A category key, from `list_categories`.")] = None,
         period: Period = None,
         issue_id: Annotated[str | None, Field(description="Only the calls this issue was found on.")] = None,

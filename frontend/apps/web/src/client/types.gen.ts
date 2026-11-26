@@ -1200,6 +1200,7 @@ export const CallCheckStatus = {
   FAILED: 'failed',
   DEGRADED: 'degraded',
   CLEAN: 'clean',
+  NOT_GRADED: 'not_graded',
   UNCHECKED: 'unchecked',
 } as const;
 
@@ -1421,7 +1422,7 @@ export type CallPublic = {
   test_case_count?: number;
   label?: CallLabel | null;
   /**
-   * failed: a finding from a check set to fail the call; degraded: other findings; clean: checked, nothing found; unchecked: no check ran
+   * failed: a finding from a check set to fail the call; degraded: other findings; clean: checked, nothing found; not_graded: checked, nothing found, and the agent spoke fewer than 10 words; unchecked: no check ran
    */
   check_status?: CallCheckStatus;
   /**
@@ -1581,6 +1582,24 @@ export type CallScreenPublic = {
   caller_last_four?: string | null;
   result: CallCheckStatus;
   /**
+   * Graded
+   *
+   * False when the agent spoke fewer than 10 words: the call is never judged against the spec, and with nothing found it does not count in the score
+   */
+  graded?: boolean;
+  /**
+   * Not Graded Reason
+   *
+   * Why the call is not graded; none when it is
+   */
+  not_graded_reason?: string | null;
+  /**
+   * Agent Words
+   *
+   * How many words the agent spoke; none on a simulated call
+   */
+  agent_words?: number | null;
+  /**
    * Version
    */
   version?: string | null;
@@ -1624,6 +1643,12 @@ export type CallTilesPublic = {
    * Clean
    */
   clean: number;
+  /**
+   * Not Graded
+   *
+   * Checked, nothing found, and the agent spoke fewer than 10 words: not counted in the score
+   */
+  not_graded: number;
   /**
    * Unchecked
    */

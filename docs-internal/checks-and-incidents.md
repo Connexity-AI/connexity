@@ -60,6 +60,16 @@ a person labelled is designed when the first judge is built.
 **A call is failed, degraded or clean.** Failed: at least one finding from a check set
 to "fails the call". Degraded: findings, none of those. Clean: no findings.
 
+- **Not graded** (Decided, Dmytro 2026-11-26, roadmap 105.11): a call where the agent
+  spoke fewer than 10 words is never judged against the spec, whatever the kind of call.
+  The floor counts the agent's words (`call.agent_words`, counted when the trace is
+  stored), not seconds. With nothing found it is "not graded" instead of clean and
+  counts in no score, so it cannot lift the score by looking like a call that passed. A
+  finding a code check made on it still counts: the call stays failed or degraded,
+  because that failure is real. One rule, `app/services/grading.py`, with its SQL twin
+  `short_call()` in `app/crud/call_list.py`. A call whose checks have not run stays
+  unchecked.
+
 - **Reliability** is the share of production calls that are not failed. Calls that never
   connected or reached voicemail are left out.
 - **Quality** is the share that are clean.
