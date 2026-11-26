@@ -24,6 +24,7 @@ from app.models.enums import (
 )
 from app.models.execution import Execution
 from app.models.trace import Trace
+from app.services.grading import GRADING_MIN_AGENT_WORDS
 
 
 class Call(SQLModel, table=True):
@@ -66,6 +67,9 @@ class Call(SQLModel, table=True):
     caller_number: str | None = Field(default=None, max_length=64, index=True)
     recording_url: str | None = Field(default=None, max_length=2048)
     reports_tool_calls: bool | None = Field(default=None)
+    # How many words the agent's turns hold, counted when the trace is stored. Under
+    # the floor the call is not graded (`app/services/grading.py`). Null without a trace.
+    agent_words: int | None = Field(default=None)
     # The agent's own version, and one fingerprint over what every call has (agent,
     # prompt, model), so calls can be grouped by the state that served them.
     agent_version: str | None = Field(default=None, max_length=255)
@@ -210,7 +214,8 @@ class CallPublic(SQLModel):
         default=CallCheckStatus.UNCHECKED,
         description=(
             "failed: a finding from a check set to fail the call; degraded: other "
-            "findings; clean: checked, nothing found; unchecked: no check ran"
+            "findings; clean: checked, nothing found; not_graded: checked, nothing "
+            f"found, and the agent spoke fewer than {GRADING_MIN_AGENT_WORDS} words; unchecked: no check ran"
         ),
     )
     created_at: datetime

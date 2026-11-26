@@ -6,6 +6,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.models.enums import CallCheckStatus, CheckKind
+from app.services.grading import GRADING_MIN_AGENT_WORDS
 
 
 class WorstFindingPublic(BaseModel):
@@ -52,6 +53,11 @@ class CallTilesPublic(BaseModel):
     failed: int
     degraded: int
     clean: int
+    not_graded: int = Field(
+        description="Checked, nothing found, and the agent spoke fewer than "
+        f"{GRADING_MIN_AGENT_WORDS} words: "
+        "not counted in the score"
+    )
     unchecked: int
 
 

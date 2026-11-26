@@ -26,8 +26,10 @@
 <sc-if value="{{ isFailed }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></sc-if>
 <sc-if value="{{ isDegraded }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
 <sc-if value="{{ isClean }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--border);color:var(--ink2);font-size:13px">Clean</span></sc-if>
+<sc-if value="{{ isNotGraded }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>Not graded</span></sc-if>
 <sc-if value="{{ hasSrc }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;border:1px solid var(--bc);color:var(--ink2);font-size:13px">{{ srcLabel }}</span></sc-if>
 </div>
+<sc-if value="{{ isShort }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:flex-start;gap:6px;padding-left:30px;font-size:13px;line-height:18px;color:var(--ink2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px;color:var(--ink3)"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg><span style="text-wrap:pretty">Not graded: the agent spoke fewer than 10 words. It isn't judged against the spec and doesn't count in the score.</span></div></sc-if>
 <sc-if value="{{ isRun }}" hint-placeholder-val="{{ false }}">
 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-left:30px">
 <span style="flex:none;white-space:nowrap;color:var(--ink3);margin-right:4px">Scenario: {{ scenario }}</span>
@@ -171,7 +173,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;,&quot;S-0916&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;,&quot;S-0916&quot;,&quot;C-20492&quot;,&quot;C-20490&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -318,6 +320,20 @@ class Component extends DCLogic {
         [121,'A','I\u2019m sorry. Is there anything else I can help with?'],
         [127,'C','No. I\u2019ll ring the garage directly.']
       ]},
+    'C-20492': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:36', dur:4, last4:'3318', result:'clean', src:'real', version:14, recording:true,
+      findings:[], by:[],
+      entries:[
+        [0,'C','Hi, you’ve reached Dana.'],
+        [2,'A','Hi, this is Sam from']
+      ]},
+    'C-20490': { agentId:'dental', agent:'Dental reception', when:'Today 09:27', dur:6, last4:'6042', result:'failed', src:'real', version:11, recording:true,
+      findings:[[0,'crit','Caller lookup returned an error','tools','Caller lookup returned an error']],
+      by:['rule'],
+      entries:[
+        [0,'T','find_patient',0,{ st:'failed', ms:1800, args:{ phone:'•••• 6042', practice_api_key:'••••' }, res:{ error:'500 Internal Server Error', detail:'patient_index_unavailable' } }],
+        [2,'A','Brightside Dental, hello?'],
+        [4,'C','Sorry, wrong number.']
+      ]},
     'C-20470': { agentId:'restaurant', agent:'Restaurant reservations', when:'Today 09:31', dur:50, last4:'1187', result:'clean', src:'real', version:6, recording:true,
       findings:[], by:[],
       entries:[
@@ -409,7 +425,10 @@ class Component extends DCLogic {
     c.entries.forEach((e, i) => { if (e[1] !== 'T') { tn++; turnNo[i] = tn; turnAt[tn] = i; } });
     const turnOfT = ft => { let n = 1; c.entries.forEach((e, i) => { if (e[0] <= ft && turnNo[i]) n = turnNo[i]; }); return n; };
     const vds = run && !run.stopped ? run.verdicts.map((v, i) => ({ v, i })).sort((a, b) => (a.v[2] === 'fail' ? 0 : 1) - (b.v[2] === 'fail' ? 0 : 1)) : [];
-    const res = run ? (vds.some(x => x.v[2] === 'fail' && x.v[1]) || c.findings.some(f => f[1] === 'crit') ? 'failed' : vds.some(x => x.v[2] === 'fail') || c.findings.length ? 'degraded' : 'clean') : c.result;
+    // under 10 agent words: not judged against the spec and not scored; a real failure still shows
+    const agentWords = c.entries.reduce((n, e) => n + (e[1] === 'A' ? e[2].split(/\s+/).filter(Boolean).length : 0), 0);
+    const short = !run && agentWords < 10;
+    const res = run ? (vds.some(x => x.v[2] === 'fail' && x.v[1]) || c.findings.some(f => f[1] === 'crit') ? 'failed' : vds.some(x => x.v[2] === 'fail') || c.findings.length ? 'degraded' : 'clean') : short && c.result === 'clean' ? 'notgraded' : c.result;
     const openV = run && S.reason != null ? run.verdicts[S.reason] : null;
     const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
     const pct = dur ? t / dur * 100 : 0;
@@ -444,7 +463,7 @@ class Component extends DCLogic {
       hasReason: !!openV, reasonRule: openV ? openV[0] : '', reasonWhy: openV ? openV[3] : '',
       reasonTurnsLabel: openV && openV[4].length === 1 ? 'Turn' : 'Turns',
       reasonTurns: openV ? openV[4].map(n => ({ label: String(n), go: () => { const ei = turnAt[n]; if (ei != null) this.seek(c.entries[ei][0]); } })) : [],
-      isFailed: res === 'failed', isDegraded: res === 'degraded', isClean: res === 'clean',
+      isFailed: res === 'failed', isDegraded: res === 'degraded', isClean: res === 'clean', isNotGraded: res === 'notgraded', isShort: short,
       hasSrc: c.src !== 'real', srcLabel: c.src === 'sim' ? 'Simulated' : 'Test',
       hasAudio: c.recording !== false, noAudio: c.recording === false,
       paused: !S.playing, playing: S.playing, playTitle: S.playing ? 'Pause' : 'Play',

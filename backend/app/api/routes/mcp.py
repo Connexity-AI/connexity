@@ -202,6 +202,7 @@ from app.services.feedback import (
     store_report,
 )
 from app.services.first_scan import SCAN_DAYS, scan_agents, scan_step
+from app.services.grading import GRADING_MIN_AGENT_WORDS
 from app.services.issue_list import (
     IssueCounts,
     IssueFilters,
@@ -565,8 +566,13 @@ def list_calls(
             "Callers are shown as their last four digits only; never ask Connexity or "
             "repeat a full number.",
             "A result is failed when a finding fails the call, degraded when one only "
-            "flags it, clean when checks ran and found nothing, unchecked otherwise. "
-            "Say whether the worst finding was found by code or a model (found_by).",
+            "flags it, clean when checks ran and found nothing, not_graded when checks "
+            f"ran and found nothing but the agent spoke fewer than {GRADING_MIN_AGENT_WORDS} words, unchecked "
+            "otherwise. Say whether the worst finding was found by code or a model "
+            "(found_by).",
+            "A not_graded call counts in no score and is never judged against the "
+            "spec: too little was said to judge. Do not raise clarifications or "
+            "fixes from it.",
             "Findings of archived issues are left out of every call's result, worst "
             "finding and findings, until the issue is unarchived; with issue_id of an "
             "archived issue, its own findings are listed so its calls can be read.",
@@ -646,6 +652,10 @@ def read_workspace_calls(
             "only sign that more remain.",
             "Callers are shown as their last four digits only, and secrets in tool "
             "arguments and results are masked; never ask Connexity for either.",
+            "A call whose result is not_graded had the agent speak fewer than "
+            f"{GRADING_MIN_AGENT_WORDS} "
+            "words: it counts in no score and is never judged against the spec, so "
+            "leave it out of a pattern about what the agent says.",
             "Connexity filters only on what it owns: issues, findings, versions, "
             "results, categories and the period. Searching what was said or a tool's "
             "arguments is your own analysis over these calls. A pattern worth "
@@ -692,6 +702,10 @@ def get_call(
             "their arguments and result; secret-looking values are masked.",
             "Findings are worst first and point at the entry they sit on; say whether "
             "a rule or a model found each.",
+            f"When `graded` is false the agent spoke fewer than {GRADING_MIN_AGENT_WORDS} words "
+            "(`not_graded_reason`): the call is never judged against the spec, and "
+            "with nothing found it counts in no score. A finding on it still counts. "
+            "Do not raise clarifications or fixes from what the agent did not say.",
             "Do not repeat a caller's name, address or other personal details back "
             "unless the person asks about this call.",
         ],

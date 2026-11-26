@@ -3,8 +3,10 @@ and worst finding. Used by the Calls page and `list_calls` (plan
 `plans/2026-11-13-calls-page.md`).
 
 A call's result follows `call_check_statuses`: failed when a finding fails it,
-degraded when one only flags it, clean when a check ran and found nothing, unchecked
-otherwise. A finding counts whenever its check was added (Dmytro, 2026-11-13).
+degraded when one only flags it, clean when a check ran and found nothing, not graded
+instead of clean when the agent spoke too few words (`app/services/grading.py`),
+unchecked otherwise. A finding counts whenever its check was added (Dmytro,
+2026-11-13).
 """
 
 import re
@@ -21,6 +23,7 @@ from app.models.call import Call
 from app.models.category import Category
 from app.models.check import CallCheck, Finding, Issue
 from app.models.enums import CallCheckStatus, CheckOutcome, FindingEffect
+from app.services.grading import GRADING_MIN_AGENT_WORDS
 
 PERIODS = {"7d": 7, "30d": 30, "90d": 90}
 
@@ -60,6 +63,7 @@ class CallTiles(NamedTuple):
     failed: int
     degraded: int
     clean: int
+    not_graded: int
     unchecked: int
 
 
@@ -77,13 +81,24 @@ def _ran() -> ColumnElement[bool]:
     )
 
 
+def short_call() -> ColumnElement[bool]:
+    """The agent spoke fewer words than the grading floor: with nothing found, the
+    call is not graded. The same rule as `grading.is_graded`."""
+    return and_(
+        col(Call.agent_words).is_not(None),
+        col(Call.agent_words) < GRADING_MIN_AGENT_WORDS,
+    )
+
+
 def _result_is(result: CallCheckStatus) -> ColumnElement[bool]:
     if result is CallCheckStatus.FAILED:
         return _counting(FindingEffect.FAILS)
     if result is CallCheckStatus.DEGRADED:
         return and_(_counting(), ~_counting(FindingEffect.FAILS))
     if result is CallCheckStatus.CLEAN:
-        return and_(~_counting(), _ran())
+        return and_(~_counting(), _ran(), ~short_call())
+    if result is CallCheckStatus.NOT_GRADED:
+        return and_(~_counting(), _ran(), short_call())
     return and_(~_counting(), ~_ran())
 
 
@@ -152,16 +167,19 @@ def _results(
             _counting(FindingEffect.FAILS),
             _counting(),
             _ran(),
+            short_call(),
         ).where(col(Call.id).in_(call_ids))
     ).all()
     results = {}
-    for call_id, fails, counts, ran in rows:
+    for call_id, fails, counts, ran, short in rows:
         if fails:
             results[call_id] = CallCheckStatus.FAILED
         elif counts:
             results[call_id] = CallCheckStatus.DEGRADED
         elif ran:
-            results[call_id] = CallCheckStatus.CLEAN
+            results[call_id] = (
+                CallCheckStatus.NOT_GRADED if short else CallCheckStatus.CLEAN
+            )
         else:
             results[call_id] = CallCheckStatus.UNCHECKED
     return results
@@ -244,16 +262,18 @@ def workspace_call_tiles(
     *, session: Session, company_id: uuid.UUID, filters: CallFilters
 ) -> CallTiles:
     """How many calls match the filters, and how many of those are failed, degraded,
-    clean or unchecked. The result filter does not narrow the tiles."""
+    clean, not graded or unchecked. The result filter does not narrow the tiles."""
     fails = _counting(FindingEffect.FAILS)
     counts = _counting()
     ran = _ran()
+    short = short_call()
     row = session.exec(
         select(
             func.count(),
             func.count().filter(fails),
             func.count().filter(and_(counts, ~fails)),
-            func.count().filter(and_(~counts, ran)),
+            func.count().filter(and_(~counts, ran, ~short)),
+            func.count().filter(and_(~counts, ran, short)),
             func.count().filter(and_(~counts, ~ran)),
         )
         .select_from(Call)

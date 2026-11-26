@@ -32,8 +32,9 @@ ok"). It lives in one function, `score_of` in `backend/app/services/score.py`.
 
     score = 100 × (1 − (failed + 0.5 × degraded) / checked calls), rounded
 
-- **Checked calls** are calls with a result other than unchecked, counted as the Calls
-  page counts them. No checked call: no score, never 100 by default.
+- **Checked calls** are calls with a result other than unchecked or not graded (the
+  agent spoke fewer than 10 words and nothing was found), counted as the Calls page
+  counts them. No checked call: no score, never 100 by default.
 - **Archived issues** are hidden on every call (2026-11-14), so archiving lifts the score
   for the whole period and unarchiving lowers it back.
 - **Its change** is against the previous period of the same length.
