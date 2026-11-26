@@ -135,7 +135,8 @@ TOOLS: dict[str, ToolEntry] = {
     # Calls and issues
     "list_calls": ToolEntry(
         "calls_and_issues",
-        "Lists calls, newest first, with their result and what the checks found.",
+        "Lists calls, newest first, with their result and what the checks found. A "
+        "call where the agent said fewer than 10 words is not graded.",
         "calls",
     ),
     "read_calls": ToolEntry(
@@ -146,7 +147,8 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "get_call": ToolEntry(
         "calls_and_issues",
-        "One call in full: every turn and tool call in order, and what was found.",
+        "One call in full: every turn and tool call in order, what was found, and "
+        "whether it is graded.",
         "calls",
     ),
     "get_dashboard": ToolEntry(

@@ -42,11 +42,13 @@
 </div>
 </div>
 </sc-if>
-<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+<div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Calls</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tCalls }}</span></div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--crit)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--crit)">{{ tFailed }}</span></div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--warn)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span><span style="font-size:30px;line-height:36px;font-weight:500;color:var(--warn)">{{ tDegraded }}</span></div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Clean</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tClean }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>Not graded</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tNotGraded }}</span></div>
+<div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px;color:var(--ink2)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"></path><path d="M13.9 21.818a10 10 0 0 1-3.8 0"></path><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"></path><path d="M2.182 13.9a10 10 0 0 1 0-3.8"></path><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"></path><path d="M21.818 10.1a10 10 0 0 1 0 3.8"></path><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"></path><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"></path></svg>Unchecked</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ tUnchecked }}</span></div>
 </div>
 <div ref="{{ filtRef }}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
 <sc-if value="{{ hasIssue }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:36px;padding:0 4px 0 12px;border-radius:8px;border:1px solid var(--ink2);background:var(--wash);font-size:15px;white-space:nowrap"><sc-if value="{{ hasKind }}"><span style="color:var(--ink2)">{{ issueKind }}</span></sc-if><a href="{{ issueHref }}" style="color:var(--ink);text-decoration:none">{{ issueTitle }}</a><button onClick="{{ clearIssue }}" title="Remove" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer" style-hover="color:var(--ink)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button></span></sc-if>
@@ -94,6 +96,8 @@
 <sc-if value="{{ r.isFailed }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></sc-if>
 <sc-if value="{{ r.isDegraded }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
 <sc-if value="{{ r.isClean }}"><span style="color:var(--ink2)">Clean</span></sc-if>
+<sc-if value="{{ r.isNotGraded }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path></svg>Not graded</span></sc-if>
+<sc-if value="{{ r.isUnchecked }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--unch-bg);color:var(--unch);font-size:13px;font-weight:500;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.1 2.182a10 10 0 0 1 3.8 0"></path><path d="M13.9 21.818a10 10 0 0 1-3.8 0"></path><path d="M17.609 3.721a10 10 0 0 1 2.69 2.7"></path><path d="M2.182 13.9a10 10 0 0 1 0-3.8"></path><path d="M20.279 17.609a10 10 0 0 1-2.7 2.69"></path><path d="M21.818 10.1a10 10 0 0 1 0 3.8"></path><path d="M3.721 6.391a10 10 0 0 1 2.7-2.69"></path><path d="M6.391 20.279a10 10 0 0 1-2.69-2.7"></path></svg>Unchecked</span></sc-if>
 </span>
 <sc-if value="{{ r.showMoment }}"><span style="color:var(--ink2);white-space:nowrap">{{ r.at }}<span style="color:var(--ink3)">{{ r.times }}</span></span></sc-if>
 <sc-if value="{{ r.showFind }}"><span style="display:flex;align-items:center;gap:8px;min-width:0">
@@ -122,8 +126,6 @@ class Component extends DCLogic {
   };
   static M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   static AGENTS = { insurance:'Insurance renewals', restaurant:'Restaurant reservations', car:'Car service booking', clinic:'Clinic after-hours', dental:'Dental reception' };
-  // [calls, failed, degraded] over the last 30 days, real calls only
-  static TOTALS = { insurance:[96,14,31], restaurant:[488,6,58], car:[310,11,71], clinic:[160,3,24], dental:[230,3,28] };
   static SCALE = { 'Last 7 days':0.24, 'Last 30 days':1, 'Last 90 days':2.9 };
   static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
   static CAT_ORDER = ['greet','collect','book','resched','price','objection','transfer','compliance','flow','end','fast','tools','speech','other'];
@@ -137,7 +139,9 @@ class Component extends DCLogic {
   static FIXED = [
     { id:'C-20481', m:0, agent:'insurance', last4:'4821', dur:298, result:'failed', find:'Transfer to the renewals team dropped the call', cat:'transfer', src:'real' },
     { id:'S-0915', m:2, agent:'insurance', last4:'0100', dur:110, result:'failed', find:'Quoted $712, above the $668 in the quote lookup', cat:'price', src:'sim' },
+    { id:'C-20492', m:6, agent:'insurance', last4:'3318', dur:4, result:'notgraded', src:'real' },
     { id:'C-20470', m:11, agent:'restaurant', last4:'1187', dur:50, result:'clean', src:'real' },
+    { id:'C-20490', m:15, agent:'dental', last4:'6042', dur:6, result:'failed', find:'Caller lookup returned an error', cat:'tools', src:'real' },
     { id:'C-20477', m:24, agent:'car', last4:'7390', dur:94, result:'degraded', find:'Confirmation text was not sent', cat:'tools', src:'real' },
     { id:'C-20466', m:-86, agent:'car', last4:'5316', dur:134, result:'failed', find:'Booking tool returned an error', cat:'tools', src:'real' }
   ];
@@ -148,19 +152,34 @@ class Component extends DCLogic {
     const C = Component;
     let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
     const pick = ['restaurant','restaurant','restaurant','car','car','dental','dental','insurance','insurance','clinic'];
+    // real calls besides FIXED, so the last 30 days add up to 120: 6 failed, 14 degraded, 52 clean, 46 not graded, 2 unchecked
+    const bag = [['failed',3],['degraded',13],['clean',51],['notgraded',45],['unchecked',2]].flatMap(([r, k]) => Array(k).fill(r));
+    for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    const ids = new Set(C.FIXED.map(f => f.id));
     const rows = C.FIXED.filter(f => f.m <= 24); let m = 24, n = 20476;
-    for (let i = 0; i < 110; i++) {
-      m += 5 + Math.floor(rnd() * 20);
-      const agent = pick[Math.floor(rnd() * pick.length)];
-      const src = i % 17 === 5 ? 'sim' : i % 29 === 11 ? 'test' : 'real';
-      const r = rnd(), pool = C.FIND[agent];
-      let result = 'clean', f = null;
-      if (r < 0.07) { result = 'failed'; const cs = pool.filter(p => p[2] === 'crit'); f = cs[i % cs.length]; }
-      else if (r < 0.27) { result = 'degraded'; const w = pool.filter(p => p[2] === 'warn'); f = w[Math.floor(rnd() * w.length)]; }
-      rows.push({ id: (src === 'real' ? 'C-' : src === 'sim' ? 'S-' : 'T-') + (n--), m, agent, last4: String(1000 + Math.floor(rnd() * 9000)), dur: 40 + Math.floor(rnd() * 380), result, find: f ? f[1] : '', cat: f ? f[0] : null, src });
-    }
+    const push = (result, src, i) => {
+      m += 60 + Math.floor(rnd() * 560);
+      const agent = pick[Math.floor(rnd() * pick.length)], pool = C.FIND[agent];
+      let f = null;
+      if (result === 'failed') { const cs = pool.filter(p => p[2] === 'crit'); f = cs[i % cs.length]; }
+      else if (result === 'degraded') { const w = pool.filter(p => p[2] === 'warn'); f = w[Math.floor(rnd() * w.length)]; }
+      let id; do { id = (src === 'real' ? 'C-' : src === 'sim' ? 'S-' : 'T-') + (n--); } while (ids.has(id));
+      rows.push({ id, m, agent, last4: String(1000 + Math.floor(rnd() * 9000)), dur: result === 'notgraded' ? 3 + Math.floor(rnd() * 22) : 40 + Math.floor(rnd() * 380), result, find: f ? f[1] : '', cat: f ? f[0] : null, src });
+    };
+    bag.forEach((result, i) => {
+      push(result, 'real', i);
+      if (i % 17 === 5) { const r = rnd(); push(r < 0.1 ? 'failed' : r < 0.35 ? 'degraded' : 'clean', 'sim', i); }
+      else if (i % 29 === 11) push('clean', 'test', i);
+    });
     rows.sort((a, b) => a.m - b.m);
     return rows;
+  })();
+  // [calls, failed, degraded, not graded, unchecked] over the last 30 days, real calls only
+  static TOTALS = (() => {
+    const t = {};
+    Object.keys(Component.AGENTS).forEach(a => { t[a] = [0,0,0,0,0]; });
+    Component.ROWS.forEach(r => { if (r.src !== 'real') return; const a = t[r.agent]; a[0]++; const k = { failed:1, degraded:2, notgraded:3, unchecked:4 }[r.result]; if (k) a[k]++; });
+    return t;
   })();
   constructor(props) {
     super(props);
@@ -203,7 +222,7 @@ class Component extends DCLogic {
     }
     const verSel = vlist && newest.includes(+this.props.version) ? +this.props.version : null;
     const vShare = verSel ? W[newest.indexOf(verSel)] || 0.1 : 1;
-    const tot = (iss ? iss[2] : (agentSel ? [C.TOTALS[agentSel]] : Object.values(C.TOTALS)).reduce((a, t) => [a[0] + t[0], a[1] + t[1], a[2] + t[2]], [0, 0, 0])).map(v => v * vShare);
+    const tot = (iss ? [iss[2]] : agentSel ? [C.TOTALS[agentSel]] : Object.values(C.TOTALS)).reduce((a, t) => a.map((v, j) => v + (t[j] || 0)), [0, 0, 0, 0, 0]).map(v => v * vShare);
     const k = C.SCALE[period] || 1, sc = v => Math.round(v * k);
     const fmt = v => v.toLocaleString('en-US');
     const q = st.q.trim(), qd = q.replace(/\D/g, ''), ql = q.toLowerCase();
@@ -225,7 +244,7 @@ class Component extends DCLogic {
     const showVer = !!vlist;
     const cols = showAgent ? '128px 200px 88px 72px 104px minmax(0,1fr)' : showVer ? '128px 56px 88px 72px 104px minmax(0,1fr)' : '128px 88px 72px 104px minmax(0,1fr)';
     const rowStyle = { display:'grid', gridTemplateColumns:cols, gap:16, alignItems:'center', minHeight:44, padding:'0 24px', borderTop:'1px solid var(--border)', color:'var(--ink)', textDecoration:'none', cursor:'pointer' };
-    const fallback = { failed:'C-20481', degraded:'C-20477', clean:'C-20470' };
+    const fallback = { failed:'C-20481', degraded:'C-20477', clean:'C-20470', notgraded:'C-20492', unchecked:'C-20470' };
     const href = r => 'Connexity Call.dc.html?call=' + (C.FIXED.some(f => f.id === r.id) ? r.id : r.src === 'sim' ? 'S-0915' : r.find === 'Booking tool returned an error' ? 'C-20466' : fallback[r.result]);
     const byIssue = !!(iss && !iss[3]);
     const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
@@ -233,7 +252,7 @@ class Component extends DCLogic {
     const rows = list.slice(0, st.shown).map(r => { const [at, times] = moment(r); return {
       href: href(r) + (byIssue ? '&t=' + at : ''), showMoment: byIssue, showFind: !byIssue, at: 'at ' + mmss(at), times: times > 1 ? ` · ${times} times` : '', rowStyle, showAgent, showVer, ver: verOf[r.id] || '', time: this.timeLabel(r.m), agent: C.AGENTS[r.agent], caller: '•••• ' + r.last4,
       dur: Math.floor(r.dur / 60) + ':' + String(r.dur % 60).padStart(2, '0'),
-      isFailed: r.result === 'failed', isDegraded: r.result === 'degraded', isClean: r.result === 'clean',
+      isFailed: r.result === 'failed', isDegraded: r.result === 'degraded', isClean: r.result === 'clean', isNotGraded: r.result === 'notgraded', isUnchecked: r.result === 'unchecked',
       hasSrc: r.src !== 'real', srcLabel: r.src === 'sim' ? 'Simulated' : 'Test', find: r.find
     }; });
     const btn = active => ({ display:'flex', alignItems:'center', gap:6, height:36, padding:'0 10px 0 12px', borderRadius:8, border:'1px solid ' + (active ? 'var(--ink2)' : 'var(--bc)'), background: active ? 'var(--wash)' : 'transparent', color:'var(--ink)', fontSize:15, cursor:'pointer', whiteSpace:'nowrap' });
@@ -247,7 +266,8 @@ class Component extends DCLogic {
     const srcDefault = srcOn.length === 1 && srcOn[0] === 'real';
     const filters = [];
     if (showAgent) filters.push(mk('agent', st.agentF ? C.AGENTS[st.agentF] : 'All agents', [['', 'All agents'], ...Object.entries(C.AGENTS)], v => v === st.agentF, v => this.setState({ agentF:v, shown:25 }), !!st.agentF));
-    filters.push(mk('result', st.resultF ? { failed:'Failed', degraded:'Degraded', clean:'Clean' }[st.resultF] : 'Any result', [['', 'Any result'], ['failed', 'Failed'], ['degraded', 'Degraded'], ['clean', 'Clean']], v => v === st.resultF, v => this.setState({ resultF:v, shown:25 }), !!st.resultF));
+    const resNames = { failed:'Failed', degraded:'Degraded', clean:'Clean', notgraded:'Not graded', unchecked:'Unchecked' };
+    filters.push(mk('result', st.resultF ? resNames[st.resultF] : 'Any result', [['', 'Any result'], ...Object.entries(resNames)], v => v === st.resultF, v => this.setState({ resultF:v, shown:25 }), !!st.resultF));
     filters.push(mk('cat', st.catF ? C.CATS[st.catF] : 'Any category', [['', 'Any category'], ...C.CAT_ORDER.map(c => [c, C.CATS[c]])], v => v === st.catF, v => this.setState({ catF:v, shown:25 }), !!st.catF));
     filters.push(mk('src', srcDefault ? 'Real calls' : srcOn.map(s => srcNames[s]).join(', '), Object.entries(srcNames), v => !!st.src[v],
       v => this.setState(s => { const next = { ...s.src, [v]: !s.src[v] }; return Object.values(next).some(Boolean) ? { src: next, shown:25 } : null; }), !srcDefault, true));
@@ -262,7 +282,8 @@ class Component extends DCLogic {
       period, periodOpen: st.periodOpen,
       togglePeriod: () => this.setState(s => ({ periodOpen: !s.periodOpen })),
       periods: ['Last 7 days','Last 30 days','Last 90 days'].map(l => ({ label:l, current: l === period, pick: () => this.setState({ period:l, periodOpen:false }) })),
-      tCalls: fmt(sc(tot[0])), tFailed: fmt(sc(tot[1])), tDegraded: fmt(sc(tot[2])), tClean: fmt(sc(tot[0]) - sc(tot[1]) - sc(tot[2])),
+      tCalls: fmt(sc(tot[0])), tFailed: fmt(sc(tot[1])), tDegraded: fmt(sc(tot[2])), tNotGraded: fmt(sc(tot[3])), tUnchecked: fmt(sc(tot[4])),
+      tClean: fmt(sc(tot[0]) - sc(tot[1]) - sc(tot[2]) - sc(tot[3]) - sc(tot[4])),
       q: st.q, onQ: e => this.setState({ q: e.target.value, shown:25 }),
       filters, anyFilter,
       hasIssue: !!iss, hasKind: !!(iss && iss[3]), showMoment: byIssue, showFind: !byIssue, issueKind: iss && iss[3] ? iss[3] : 'Issue', issueTitle: iss ? (iss[4] || iss[1]) : '', issueHref: (iss && iss[3] ? 'Connexity Incident.dc.html?incident=' : 'Connexity Issue.dc.html?issue=') + (st.issue || ''),

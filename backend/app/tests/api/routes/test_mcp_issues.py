@@ -24,6 +24,9 @@ from app.services.mappings.retell import retell_call_to_trace
 from app.tests.utils.retell_payloads import invocation, result, retell_call, speech
 from app.tests.utils.utils import random_email, random_lower_string
 
+# Ten words or more, so a call with nothing found is clean, not "not graded"
+# (`app/services/grading.py`).
+GREETING = "Hello, thanks for calling the front desk, how can I help?"
 API = settings.API_V1_STR
 MCP_URL = "https://mcp.example.com/mcp"
 ISSUER = "https://backend.example.com"
@@ -111,7 +114,7 @@ def _call(
     payload = retell_call(
         f"call_{uuid.uuid4().hex[:8]}",
         agent_id=agent.platform_agent_id or "",
-        timeline=[speech("agent", "Hello", 0.5)] + [e for b in bookings for e in b],
+        timeline=[speech("agent", GREETING, 0.5)] + [e for b in bookings for e in b],
         start_ms=int(time.time() * 1000 - days_ago * DAY_MS),
         **({"agent_version": version} if version is not None else {}),
     )

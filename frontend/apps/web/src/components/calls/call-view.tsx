@@ -8,6 +8,8 @@ import {
   ArrowLeft,
   ChevronRight,
   CircleCheck,
+  CircleMinus,
+  Info,
   OctagonAlert,
   Pause,
   Play,
@@ -52,6 +54,13 @@ const ResultLabel: FC<{ result: CallScreenPublic['result'] }> = ({ result }) => 
       <span className="inline-flex h-[22px] items-center gap-1 rounded-md bg-warning-bg px-2 text-label font-medium text-warning">
         <TriangleAlert className="size-3" aria-hidden />
         Degraded
+      </span>
+    );
+  if (result === 'not_graded')
+    return (
+      <span className="inline-flex h-[22px] items-center gap-1 rounded-md bg-unchecked-bg px-2 text-label font-medium text-unchecked">
+        <CircleMinus className="size-3.5" aria-hidden />
+        Not graded
       </span>
     );
   return (
@@ -369,6 +378,16 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
           </span>
         )}
       </div>
+
+      {!sim && call.graded === false && (
+        <div className="-mt-3 flex items-start gap-1.5 pl-[30px] text-label text-ink-secondary">
+          <Info className="mt-0.5 size-3.5 flex-none text-ink-muted" aria-hidden />
+          <span className="text-pretty">
+            Not graded: {call.not_graded_reason}. It isn’t judged against the spec and doesn’t count
+            in the score.
+          </span>
+        </div>
+      )}
 
       {sim && <SimulatedRules sim={sim} turnOf={turnOf} onTurn={pick} />}
 

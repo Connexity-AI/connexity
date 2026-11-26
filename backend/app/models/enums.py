@@ -249,6 +249,9 @@ class CallCheckStatus(StrEnum):
     FAILED = "failed"
     DEGRADED = "degraded"
     CLEAN = "clean"
+    # Checked and nothing found, but the agent spoke too few words to grade the call
+    # (`app/services/grading.py`): it does not count in the score.
+    NOT_GRADED = "not_graded"
     # No check ran on the call: never checked, or every check was skipped, broke or off.
     UNCHECKED = "unchecked"
 

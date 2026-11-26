@@ -11,6 +11,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.models.enums import CallCheckStatus, CheckKind, RuleOutcome
+from app.services.grading import GRADING_MIN_AGENT_WORDS
 
 
 class KeyValue(BaseModel):
@@ -91,6 +92,19 @@ class CallScreenPublic(BaseModel):
         default=None, description="The caller's last four digits; never the number"
     )
     result: CallCheckStatus
+    graded: bool = Field(
+        default=True,
+        description=f"False when the agent spoke fewer than {GRADING_MIN_AGENT_WORDS} words: "
+        "the call is never "
+        "judged against the spec, and with nothing found it does not count in the score",
+    )
+    not_graded_reason: str | None = Field(
+        default=None, description="Why the call is not graded; none when it is"
+    )
+    agent_words: int | None = Field(
+        default=None,
+        description="How many words the agent spoke; none on a simulated call",
+    )
     version: str | None = None
     has_recording: bool
     entries: list[CallScreenEntry]

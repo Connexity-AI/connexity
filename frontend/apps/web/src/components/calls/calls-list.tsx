@@ -5,7 +5,7 @@ import type { CallCheckStatus } from '@/client/types.gen';
 import type { FC } from 'react';
 
 const PERIODS = ['7d', '30d', '90d'] as const;
-const RESULTS = ['failed', 'degraded', 'clean', 'unchecked'] as const;
+const RESULTS = ['failed', 'degraded', 'clean', 'not_graded', 'unchecked'] as const;
 const PAGE = 25;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

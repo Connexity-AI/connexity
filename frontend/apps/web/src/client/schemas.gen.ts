@@ -1772,7 +1772,7 @@ export const CallCheckPublicSchema = {
 
 export const CallCheckStatusSchema = {
   type: 'string',
-  enum: ['failed', 'degraded', 'clean', 'unchecked'],
+  enum: ['failed', 'degraded', 'clean', 'not_graded', 'unchecked'],
   title: 'CallCheckStatus',
 } as const;
 
@@ -2105,7 +2105,7 @@ export const CallPublicSchema = {
     check_status: {
       $ref: '#/components/schemas/CallCheckStatus',
       description:
-        'failed: a finding from a check set to fail the call; degraded: other findings; clean: checked, nothing found; unchecked: no check ran',
+        'failed: a finding from a check set to fail the call; degraded: other findings; clean: checked, nothing found; not_graded: checked, nothing found, and the agent spoke fewer than 10 words; unchecked: no check ran',
       default: 'unchecked',
     },
     created_at: {
@@ -2377,6 +2377,37 @@ export const CallScreenPublicSchema = {
     result: {
       $ref: '#/components/schemas/CallCheckStatus',
     },
+    graded: {
+      type: 'boolean',
+      title: 'Graded',
+      description:
+        'False when the agent spoke fewer than 10 words: the call is never judged against the spec, and with nothing found it does not count in the score',
+      default: true,
+    },
+    not_graded_reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Not Graded Reason',
+      description: 'Why the call is not graded; none when it is',
+    },
+    agent_words: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Words',
+      description: 'How many words the agent spoke; none on a simulated call',
+    },
     version: {
       anyOf: [
         {
@@ -2451,13 +2482,19 @@ export const CallTilesPublicSchema = {
       type: 'integer',
       title: 'Clean',
     },
+    not_graded: {
+      type: 'integer',
+      title: 'Not Graded',
+      description:
+        'Checked, nothing found, and the agent spoke fewer than 10 words: not counted in the score',
+    },
     unchecked: {
       type: 'integer',
       title: 'Unchecked',
     },
   },
   type: 'object',
-  required: ['calls', 'failed', 'degraded', 'clean', 'unchecked'],
+  required: ['calls', 'failed', 'degraded', 'clean', 'not_graded', 'unchecked'],
   title: 'CallTilesPublic',
 } as const;
 

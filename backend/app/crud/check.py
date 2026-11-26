@@ -24,6 +24,7 @@ from app.models.enums import (
     TraceSource,
 )
 from app.models.user import User
+from app.services.grading import is_graded
 
 # Who a decision Connexity makes on its own is recorded as.
 CONNEXITY = "Connexity"
@@ -372,7 +373,8 @@ def get_call_checks(*, session: Session, call: Call) -> list[CallCheck]:
 def call_check_statuses(
     *, session: Session, call_ids: list[uuid.UUID]
 ) -> dict[uuid.UUID, CallCheckStatus]:
-    """Failed, degraded, clean or unchecked for each call, read from what is stored.
+    """Failed, degraded, clean, not graded or unchecked for each call, read from what
+    is stored.
 
     Every finding counts, including one found by a check added after the call: "its
     still an issue" (Dmytro, 2026-11-13), except those of an archived issue. Findings stay marked retroactive, for anything
@@ -398,6 +400,11 @@ def call_check_statuses(
             .distinct()
         ).all()
     )
+    words = dict(
+        session.exec(
+            select(Call.id, Call.agent_words).where(col(Call.id).in_(call_ids))
+        ).all()
+    )
     statuses: dict[uuid.UUID, CallCheckStatus] = {}
     for call_id in call_ids:
         if call_id in found:
@@ -405,7 +412,12 @@ def call_check_statuses(
                 CallCheckStatus.FAILED if found[call_id] else CallCheckStatus.DEGRADED
             )
         elif call_id in ran:
-            statuses[call_id] = CallCheckStatus.CLEAN
+            # Nothing found on a call the agent barely spoke on is not a pass.
+            statuses[call_id] = (
+                CallCheckStatus.CLEAN
+                if is_graded(words.get(call_id))
+                else CallCheckStatus.NOT_GRADED
+            )
         else:
             statuses[call_id] = CallCheckStatus.UNCHECKED
     return statuses

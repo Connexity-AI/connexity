@@ -13,7 +13,7 @@ from sqlalchemy import and_, func
 from sqlalchemy.sql.elements import ColumnElement
 from sqlmodel import Session, col, select
 
-from app.crud.call_list import _counting
+from app.crud.call_list import _counting, short_call
 from app.crud.check import shown_finding
 from app.models.call import Call
 from app.models.category import Category
@@ -134,7 +134,8 @@ def checks_that_ran(
     end: datetime,
     agent_id: uuid.UUID | None = None,
 ) -> set[str]:
-    """The check types that ran on at least one call in the window."""
+    """The check types that ran on at least one graded call in the window: a call the
+    agent barely spoke on proves no area healthy (`app/services/grading.py`)."""
     return set(
         session.exec(
             select(CallCheck.check_type)
@@ -142,6 +143,7 @@ def checks_that_ran(
             .where(
                 *_window(company_id, start, end, agent_id),
                 CallCheck.outcome == CheckOutcome.RAN,
+                ~short_call(),
             )
             .distinct()
         ).all()

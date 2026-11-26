@@ -18,6 +18,7 @@ from app.services.mappings.retell import retell_call_to_trace
 from app.tests.api.routes.test_issues_list import _signed_in
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
     FULL,
+    GREETING,
     _agent,
     _booking,
     _headers,
@@ -42,7 +43,7 @@ def _call(
     payload = retell_call(
         f"call_{uuid.uuid4().hex[:8]}",
         agent_id=agent.platform_agent_id or "",
-        timeline=[speech("agent", "Hello", 0.5)] + [e for b in bookings for e in b],
+        timeline=[speech("agent", GREETING, 0.5)] + [e for b in bookings for e in b],
         start_ms=int(time.time() * 1000 - days_ago * DAY_MS),
         agent_version=version,
         from_number=caller,

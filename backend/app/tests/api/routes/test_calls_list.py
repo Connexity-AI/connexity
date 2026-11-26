@@ -4,7 +4,7 @@ import json
 import time
 import uuid
 from collections.abc import Generator
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -16,6 +16,7 @@ from app import crud
 from app.core import encryption, security
 from app.core.config import settings
 from app.core.encryption import encrypt, key_fingerprint, mask_key
+from app.crud.score import result_counts_by_agent
 from app.models import Agent, Call, User, UserCreate
 from app.models.enums import IntegrationProvider, Platform
 from app.models.integration import Integration
@@ -36,6 +37,8 @@ FULL = {
     "postalCode": "07700",
     "startTime": "2026-10-23T12:00:00-04:00",
 }
+# Enough for the call to be graded: ten words or more (`app/services/grading.py`).
+GREETING = "Hello, thanks for calling the front desk, how can I help?"
 
 
 @pytest.fixture(autouse=True)
@@ -102,8 +105,12 @@ def _call(
     minutes_ago: float,
     booking: dict[str, Any] | None = None,
     retell_id: str | None = None,
+    agent_line: str = GREETING,
+    caller_line: str | None = None,
 ) -> Call:
-    timeline = [speech("agent", "Hello", 0.5)]
+    timeline = [speech("agent", agent_line, 0.5)]
+    if caller_line is not None:
+        timeline.append(speech("user", caller_line, 0.8))
     if booking is not None:
         timeline += [
             invocation("t1", "schedule_appointment", json.dumps(booking), time_sec=1.0),
@@ -196,6 +203,7 @@ def test_calls_newest_first_with_the_caller_as_four_digits(
         "failed": 1,
         "degraded": 0,
         "clean": 2,
+        "not_graded": 0,
         "unchecked": 0,
     }
 
@@ -311,3 +319,111 @@ def test_the_web_page_lists_the_open_workspaces_calls(
         "booking",
     ]
     assert body["has_more"] is False
+
+
+def test_a_call_the_agent_barely_spoke_on_is_not_graded(
+    client: TestClient, db: Session
+) -> None:
+    """Under 10 agent words with nothing found: not graded, not clean, and out of the
+    score. Caller words do not count. A real failure on a short call still counts."""
+    user = _person(db)
+    desk = _agent(db, user.company_id, user.id, "Front desk")
+    short = _call(
+        db,
+        desk,
+        caller="+17325550001",
+        minutes_ago=5,
+        agent_line="Hi, this is Sam from",
+        caller_line=" ".join(["word"] * 50),
+    )
+    ten = _call(
+        db,
+        desk,
+        caller="+17325550002",
+        minutes_ago=6,
+        agent_line="one two three four five six seven eight nine ten",
+    )
+    failed = _call(
+        db,
+        desk,
+        caller="+17325550003",
+        minutes_ago=7,
+        agent_line="Booking that now",
+        booking=FULL | {"postalCode": "00000"},
+    )
+    assert (short.agent_words, ten.agent_words, failed.agent_words) == (5, 10, 3)
+
+    body = _calls(client, user)
+    results = {row["id"]: row["result"] for row in body["data"]["calls"]}
+    assert results == {
+        str(short.id): "not_graded",
+        str(ten.id): "clean",
+        str(failed.id): "failed",
+    }
+    assert body["data"]["tiles"] == {
+        "calls": 3,
+        "failed": 1,
+        "degraded": 0,
+        "clean": 1,
+        "not_graded": 1,
+        "unchecked": 0,
+    }
+    assert any("not_graded" in rule for rule in body["rules"])
+
+    only = _calls(client, user, result="not_graded")["data"]["calls"]
+    assert [row["id"] for row in only] == [str(short.id)]
+    clean = _calls(client, user, result="clean")["data"]["calls"]
+    assert [row["id"] for row in clean] == [str(ten.id)]
+
+    # The score counts the clean and the failed call, not the short one.
+    counts = result_counts_by_agent(
+        session=db,
+        company_id=user.company_id,
+        start=datetime.now(UTC) - timedelta(days=1),
+        end=datetime.now(UTC) + timedelta(minutes=1),
+    )
+    assert counts[desk.id] == (1, 0, 1)
+
+    shown = client.get(
+        f"{API}/mcp/workspaces/{user.company_id}/calls/{short.id}",
+        headers=_headers(user),
+    ).json()
+    assert shown["data"]["result"] == "not_graded"
+    assert shown["data"]["graded"] is False
+    assert shown["data"]["agent_words"] == 5
+    assert shown["data"]["not_graded_reason"] == "the agent spoke fewer than 10 words"
+    assert any("`graded` is false" in rule for rule in shown["rules"])
+
+    # The failure stands, and the call still says it was not judged against the spec.
+    broke = client.get(
+        f"{API}/mcp/workspaces/{user.company_id}/calls/{failed.id}",
+        headers=_headers(user),
+    ).json()["data"]
+    assert (broke["result"], broke["graded"]) == ("failed", False)
+    graded = client.get(
+        f"{API}/mcp/workspaces/{user.company_id}/calls/{ten.id}",
+        headers=_headers(user),
+    ).json()["data"]
+    assert (graded["result"], graded["graded"], graded["not_graded_reason"]) == (
+        "clean",
+        True,
+        None,
+    )
+
+
+def test_storing_the_trace_again_recounts_the_agent_words(db: Session) -> None:
+    user = _person(db)
+    desk = _agent(db, user.company_id, user.id, "Front desk")
+    retell_id = f"call_{uuid.uuid4().hex[:10]}"
+    first = _call(
+        db,
+        desk,
+        caller="+17325550004",
+        minutes_ago=3,
+        retell_id=retell_id,
+        agent_line="Hi there",
+    )
+    assert first.agent_words == 2
+    again = _call(db, desk, caller="+17325550004", minutes_ago=3, retell_id=retell_id)
+    assert again.id == first.id
+    assert again.agent_words == len(GREETING.split())
