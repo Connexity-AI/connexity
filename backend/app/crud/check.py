@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any, NamedTuple
 
-from sqlalchemy import ColumnElement, and_, exists, tuple_
+from sqlalchemy import ColumnElement, and_, delete, exists, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, col, func, select
@@ -194,8 +194,11 @@ def issues_of_findings(*, session: Session, call: Call) -> list[Issue]:
     )
 
 
-def _identity(finding: Finding) -> tuple[str, tuple[str, ...]]:
-    return finding.check_type, tuple(finding.event_keys)
+def _identity(finding: Finding) -> tuple[str, str | None, tuple[str, ...]]:
+    # A finding on the call as a whole (the spec check) points at no event; its key
+    # tells it apart.
+    key = None if finding.event_keys else finding.key
+    return finding.check_type, key, tuple(finding.event_keys)
 
 
 def lock_call(*, session: Session, call_id: uuid.UUID) -> Call:
@@ -223,12 +226,15 @@ def _issues_for(
     call: Call,
     identities: set[tuple[str, str]],
     categories: Mapping[str, str],
+    by_identity: Mapping[tuple[str, str], str] | None = None,
 ) -> dict[tuple[str, str], Issue]:
     """The agent's issues for ``identities`` (check type, key), created where missing.
 
-    A new issue takes its check's category (``categories``: check type to category
-    key); a check with none, or one not in the table, gets "Other".
+    A new issue takes the category ``by_identity`` gives it, else its check's
+    (``categories``: check type to category key); a check with none, or one not in the
+    table, gets "Other".
     """
+    by_identity = by_identity or {}
     if not identities:
         return {}
     session.execute(
@@ -240,7 +246,11 @@ def _issues_for(
                     "company_id": call.company_id,
                     "agent_id": call.agent_id,
                     "check_type": check_type,
-                    "category_id": _category_id(categories.get(check_type, OTHER)),
+                    "category_id": _category_id(
+                        by_identity.get(
+                            (check_type, key), categories.get(check_type, OTHER)
+                        )
+                    ),
                     "key": key,
                     "state": IssueState.OPEN,
                 }
@@ -266,6 +276,8 @@ def replace_findings(
     findings: list[Finding],
     runs: list[CallCheck],
     categories: Mapping[str, str] | None = None,
+    issue_categories: Mapping[tuple[str, str], str] | None = None,
+    subjects: Mapping[tuple[str, str], str] | None = None,
 ) -> int:
     """Leave ``call`` with exactly ``findings`` for the checks in ``check_types``.
 
@@ -275,7 +287,9 @@ def replace_findings(
     was first raised and the effect it had do not change.
 
     Each finding joins the issue for its agent, check type and key, created if it does
-    not exist. A resolved issue reopens when a finding is first stored on a
+    not exist, in its check's category (``categories``) or the one ``issue_categories``
+    gives for that check type and key. An issue in ``subjects`` is named after it, as
+    its newest added finding says. A resolved issue reopens when a finding is first stored on a
     call that started after it was resolved.
 
     ``runs`` replace what each of those checks was recorded as doing on this call. The
@@ -295,6 +309,7 @@ def replace_findings(
         call,
         {(finding.check_type, finding.key or "") for finding in findings},
         categories or {},
+        issue_categories or {},
     )
     started = call.started_at.replace(tzinfo=UTC)
     mark_fixes_live(session=session, call=call)
@@ -316,6 +331,10 @@ def replace_findings(
         finding.issue_id = issue.id
         session.add(finding)
         added[issue.id] = issue
+        subject = (subjects or {}).get((finding.check_type, finding.key or ""))
+        if subject is not None and issue.subject != subject:
+            issue.subject = subject
+            session.add(issue)
         since = fix_counts_from(issue)
         if (
             issue.state is IssueState.RESOLVED
@@ -421,6 +440,35 @@ def call_check_statuses(
         else:
             statuses[call_id] = CallCheckStatus.UNCHECKED
     return statuses
+
+
+def forget_skipped_runs(
+    *,
+    session: Session,
+    agent_id: uuid.UUID,
+    check_type: str,
+    since: datetime,
+) -> int:
+    """Forget that ``check_type`` skipped the agent's calls that started since
+    ``since``, so the next pass checks them again (an agent's first spec judges its
+    recent calls once). Does not commit.
+
+    Returns:
+        How many calls will be checked again.
+    """
+    calls = select(Call.id).where(
+        Call.agent_id == agent_id,
+        col(Call.started_at) >= since,
+        col(Call.deleted_at).is_(None),
+    )
+    result = session.execute(
+        delete(CallCheck).where(
+            col(CallCheck.check_type) == check_type,
+            col(CallCheck.outcome) == CheckOutcome.SKIPPED,
+            col(CallCheck.call_id).in_(calls),
+        )
+    )
+    return int(result.rowcount or 0)  # type: ignore[attr-defined]
 
 
 def record_checks_broke(

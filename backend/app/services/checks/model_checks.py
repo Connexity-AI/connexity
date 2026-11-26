@@ -18,6 +18,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from pydantic import JsonValue
 from sqlmodel import Session
 
 from app import crud
@@ -95,15 +96,20 @@ async def answer_model_checks(
         )
         if missing_key(checks[check_type].provider) is None
     ]
-    jobs: list[tuple[Call, ModelCheck, Trace]] = []
+    jobs: list[tuple[Call, ModelCheck, Trace, JsonValue]] = []
     for call, check in waiting:
         trace = crud.get_trace(session=session, call=call)
         if trace is not None:
-            jobs.append((call, check, trace))
+            # Read before asking, while this pass holds the session: what the check
+            # needs beyond the trace (the spec check: the rules and the call's inputs).
+            prepared = check.prepare(session, call) if check.prepare else None
+            jobs.append((call, check, trace, prepared))
 
     limiter = asyncio.Semaphore(settings.MODEL_CHECK_CONCURRENCY)
 
-    async def ask(check: ModelCheck, trace: Trace) -> ModelReply | BaseException | None:
+    async def ask(
+        check: ModelCheck, trace: Trace, prepared: JsonValue
+    ) -> ModelReply | BaseException | None:
         nonlocal spent
         async with limiter:
             if spent >= budget:
@@ -114,7 +120,7 @@ async def answer_model_checks(
                 return None
             try:
                 # Never past the pass's deadline: the pull answers inside its request.
-                reply = await asyncio.wait_for(check.ask(trace), timeout=left)
+                reply = await asyncio.wait_for(check.ask(trace, prepared), timeout=left)
             except TimeoutError:
                 # Out of time, not a failure: the call waits for the next pass.
                 return None
@@ -123,9 +129,11 @@ async def answer_model_checks(
             spent += reply.cost_usd
             return reply
 
-    replies = await asyncio.gather(*(ask(check, trace) for _, check, trace in jobs))
+    replies = await asyncio.gather(
+        *(ask(check, trace, prepared) for _, check, trace, prepared in jobs)
+    )
 
-    for (call, check, _), reply in zip(jobs, replies, strict=True):
+    for (call, check, _, _), reply in zip(jobs, replies, strict=True):
         if reply is None:
             result.left += 1
             continue

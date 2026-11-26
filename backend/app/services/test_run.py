@@ -36,7 +36,7 @@ from app.crud.scenario import (
     scenarios_by_rule,
     set_by_name,
 )
-from app.crud.spec import latest_spec, rules_of_specs
+from app.crud.spec import latest_spec, rules_of_specs, version_number
 from app.crud.test_run import (
     alive_at,
     calls_of_runs,
@@ -1604,10 +1604,6 @@ class VersionUnderTest:
     results: VersionResultsPublic
     full_run: Run | None
     marks: dict[str, RuleMark]
-
-
-def version_number(text: str | None) -> tuple[int, str]:
-    return (int(text), "") if text and text.isdigit() else (-1, text or "")
 
 
 def _now(version: str | None, content: str | None) -> dict[str, str]:

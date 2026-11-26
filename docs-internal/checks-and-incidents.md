@@ -233,7 +233,7 @@ rate and no outcome dashboard.
 - **Every finding says its kind,** shown as `found_by`: `code_based`, `classifier` or
   `judge`. A model finding's detail names the model.
 
-**How a spec rule is checked (105.14; the spec check itself is 105.15).**
+**How a spec rule is checked (105.14).**
 
 - **Each rule says how:** `classifier`, `classifier_then_llm` (the classifier raises,
   the LLM step confirms or dismisses, 105.16) or `llm`. The assistant sets it for now
@@ -254,6 +254,33 @@ rate and no outcome dashboard.
   one call, with a fingerprint over all but the values.
 - **Accepted weakness:** a strange call on a `classifier` rule is not verified.
   Marking false positives will reduce it later.
+
+**The spec check (built in 105.15, `plans/2026-11-26-spec-check.md`).**
+
+- **One model check, `spec_rule_broken`**, a classifier. It asks one yes or no question
+  per rule in at most two requests: rules with no inputs with the call alone, and rules
+  with inputs with the union of their short inputs (Decided, Dmytro 2026-11-26: "Two
+  requests"). In the lab, two requests moved the other rules' answers no more than the
+  classifier's own noise, at $0.21 per 1,000 observed minutes.
+- **Bar:** 0.8 (Decided, Dmytro 2026-11-26). Every probability is stored with the rule's
+  fingerprint, so a new bar needs no new model request.
+- **`classifier_then_llm` flags are held** (Decided, Dmytro 2026-11-26): judged and
+  stored, no finding until the LLM step confirms one. `llm` rules wait for 105.16.
+- **Which calls:** real, graded (105.11), on an agent version a spec covers
+  (`crud.spec_covering`). A check may say from the database whether it judges a call
+  (`Check.applies`); a call it skips is recorded as skipped with the reason.
+- **Judged once** (Decided, Dmytro 2026-11-26: "New calls only. In future we will have
+  a way to rejudge - but explicitely only"). A later change to a rule judges the calls
+  after it. From the check's release on, except that an agent's first spec written
+  after the release judges its last 30 days once (Decided, Dmytro 2026-11-26: "First
+  spec, 30 days"). Those findings are retroactive and count for nothing.
+- **A finding on the whole call.** The classifier gives no moment and no reason
+  (Decided, Dmytro 2026-11-26: "fine for now, we give reasoning only when we can"). The
+  finding points at no event (`Check.whole_call`) and its key, the rule's, tells it
+  apart. The screens and MCP say "no moment in the call" and give the probability.
+- **One issue per rule,** keyed by the rule's key, in the rule's category, named after
+  the rule (`issue.subject`). A critical rule's finding fails the call; any other only
+  flags it (`Raised.flags_only`). Set to Flags, nothing fails; Off, nothing runs.
 
 **Adding a check.** Dmytro names it in the Issue library. Then:
 

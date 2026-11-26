@@ -49,6 +49,8 @@ class WorstFinding(NamedTuple):
     key: str | None
     category: str
     critical: bool
+    # Its issue's subject: a broken spec rule's text.
+    subject: str | None = None
 
 
 class CallRow(NamedTuple):
@@ -199,6 +201,7 @@ def _worst(
             Finding.key,
             Category.name,
             Finding.effect,
+            Issue.subject,
         )
         .join(Issue, col(Issue.id) == col(Finding.issue_id))
         .join(Category, col(Category.id) == col(Issue.category_id))
@@ -211,13 +214,14 @@ def _worst(
         )
     ).all()
     worst: dict[uuid.UUID, WorstFinding] = {}
-    for call_id, check_type, key, category, effect in rows:
+    for call_id, check_type, key, category, effect, subject in rows:
         if call_id not in worst:
             worst[call_id] = WorstFinding(
                 check_type=check_type,
                 key=key,
                 category=category,
                 critical=effect == FindingEffect.FAILS,
+                subject=subject,
             )
     return worst
 

@@ -56,7 +56,7 @@ SCHEMA: dict[str, object] = {
 }
 
 
-async def _ask(trace: Trace) -> ModelReply:
+async def _ask(trace: Trace, _prepared: JsonValue = None) -> ModelReply:
     return await ask_judge(
         provider=ModelProvider.ANTHROPIC,
         model=MODEL,

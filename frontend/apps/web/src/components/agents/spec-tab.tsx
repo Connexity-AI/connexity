@@ -44,7 +44,7 @@ const monthDay = (iso: string) => {
   return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
 };
 
-const answered = (by?: string | null, at?: string | null) =>
+export const answered = (by?: string | null, at?: string | null) =>
   ['answered', by ? `by ${by}` : null, at ? `on ${monthDay(at)}` : null].filter(Boolean).join(' ');
 
 const source = (rule: SpecRulePublic) => {

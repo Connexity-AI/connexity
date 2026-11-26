@@ -19,10 +19,13 @@ issue type's default (Dmytro, 2026-11-17).
 
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import StrEnum
 
 from pydantic import JsonValue
+from sqlmodel import Session
 
+from app.models.call import Call
 from app.models.enums import CheckKind, CheckMode, TraceCapability
 from app.models.execution import Execution
 from app.models.trace import Trace
@@ -58,12 +61,34 @@ class CheckInput:
 class Raised:
     """A finding as a check reports it, before it is stored."""
 
-    # Ids of the trace events it points at. At least one.
+    # Ids of the trace events it points at. At least one, unless the check judges the
+    # call as a whole (``Check.whole_call``): then none, and ``key`` tells findings
+    # apart.
     event_ids: tuple[str, ...]
     # The one thing that says what broke, for grouping into an issue.
     key: str | None = None
     # Small and structured. Never what a party said, a tool's arguments or its result.
     detail: dict[str, JsonValue] | None = None
+    # The category key of the issue it joins, when it differs by finding (a spec rule's
+    # category); the check's own otherwise.
+    category: str | None = None
+    # What its issue is named after, when the check's title does not say it (a spec
+    # rule's text).
+    subject: str | None = None
+    # Never fails the call, whatever the check is set to (a spec rule not marked
+    # critical).
+    flags_only: bool = False
+
+
+@dataclass(frozen=True)
+class Applies:
+    """Whether a check judges one call, from what only the database knows."""
+
+    # Why the call is skipped; None when the check judges it.
+    skip: str | None = None
+    # Findings on a call that started before this are retroactive: shown, counted for
+    # nothing. None: the check's release.
+    counts_from: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -85,6 +110,12 @@ class Check:
     kind: CheckKind = CheckKind.CODE_BASED
     # What each key of a finding's ``detail`` means, for the assistant (``get_issue``).
     detail_fields: Mapping[str, str] = field(default_factory=dict)
+    # Its findings point at no event: it judges the call as a whole.
+    whole_call: bool = False
+    # Reads the database to say whether it judges a call at all (the spec check needs
+    # the agent's spec), given when the check was released. None: every call with what
+    # ``needs`` asks for.
+    applies: Callable[[Session, Call, datetime], Applies] | None = None
 
 
 class ModelProvider(StrEnum):
@@ -114,7 +145,11 @@ class ModelCheck(Check):
     provider: ModelProvider
     # Pinned. A new model is a new version of the check.
     model: str
-    ask: Callable[[Trace], Awaitable[ModelReply]]
+    # Called with the trace and what ``prepare`` read for the call (None without it).
+    ask: Callable[[Trace, JsonValue], Awaitable[ModelReply]]
+    # Reads what ``ask`` needs beyond the trace, before it is called (the spec check:
+    # the rules and the call's inputs). Never what was said.
+    prepare: Callable[[Session, Call], JsonValue] | None = None
 
     def __post_init__(self) -> None:
         if self.kind is CheckKind.CODE_BASED:

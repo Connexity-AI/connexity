@@ -75,6 +75,27 @@ in Connexity's first review came from a rule that left one of these out:
 Both are kept by key like `critical`: a kept rule you pass without them keeps its own.
 `get_spec` counts the rules still on the default (`classifier_on_call`); look at each.
 
+A rule that depends on facts written in the prompt itself, such as the claims the agent
+may make, is `llm`. The classifier never sees the prompt, so it would flag the agent for
+saying something the prompt allows.
+
+### How the rules are judged on real calls
+
+- Every real call where the agent said 10 words or more is judged against the spec
+  covering its agent version.
+- A `classifier` rule broken with a probability of 0.8 or above is a finding of the
+  issue "Spec rule broken", one issue per rule. The finding has no moment and no reason:
+  read the call against the rule to find where.
+- A `classifier_then_llm` rule is judged too, but its flags wait for the LLM step,
+  which is not built yet (`held_for_llm`). An `llm` rule is not judged yet
+  (`llm_only`).
+- A broken critical rule fails the call; any other rule only flags it.
+- A call is judged once. A rule you change judges the calls after the change, not
+  those before. The agent's first spec judges its last 30 days once, and those
+  findings count for nothing in the score.
+- A finding that looks wrong usually means the rule is unclear: raise a clarification
+  on it (`rule_key`), as below.
+
 ## What is not a rule: a question for the person
 
 A rule comes only from the prompt. The only way to change a rule is to change the

@@ -17,6 +17,7 @@ import {
 import { cn } from '@workspace/ui/lib/utils';
 
 import { archiveIssueAction } from '@/actions/issues';
+import { answered } from '@/components/agents/spec-tab';
 import { clock, parseTime, timeLabel } from '@/components/calls/format';
 import { lastSeen } from '@/components/issues/issues-view';
 import { isErrorApiResult } from '@/utils/api';
@@ -386,6 +387,21 @@ export const IssueView: FC<Props> = ({ issue }) => {
         </div>
         {issue.state !== 'archived' && <ArchiveButton issueId={issue.id} />}
       </div>
+      {issue.whole_call && (
+        <div className="-mt-3 ml-[30px] flex flex-col gap-1">
+          <span className="text-label text-ink-secondary">
+            Spec rule broken · {issue.category.label}
+          </span>
+          {(issue.clarifications ?? []).map((c) => (
+            <div key={c.id} className="flex flex-wrap gap-x-2 text-label">
+              <span className="text-pretty text-ink-secondary">Clarified: {c.sentence}</span>
+              <span className="text-ink-muted">
+                {answered(c.answered_by ?? (c.assistant ? 'your assistant' : null), c.answered_at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       {archived && (
         <p className="-mt-3 ml-[30px] text-body text-ink-secondary text-pretty">
           Archived by {who(archived.by, archived.assistant)}, {dayLabel(archived.at)} ·{' '}
@@ -406,6 +422,11 @@ export const IssueView: FC<Props> = ({ issue }) => {
         />
         <Tile label="Last seen" value={lastSeen(issue.tiles.last_seen_at)} />
       </div>
+      {issue.whole_call && (
+        <p className="m-0 text-label text-ink-muted text-pretty">
+          Found by a classifier that reads the whole call. It gives no moment or reason.
+        </p>
+      )}
 
       <Card
         title="Progress"
@@ -470,14 +491,14 @@ export const IssueView: FC<Props> = ({ issue }) => {
           <span>Caller</span>
           <span className="text-right">Duration</span>
           <span>Result</span>
-          <span>Moment</span>
+          <span>{issue.whole_call ? 'Probability' : 'Moment'}</span>
           <span />
         </div>
         {issue.affected_calls.map((call) => (
           <Link
             key={call.call_id}
-            href={UrlGenerator.call(call.call_id, call.moment.at_seconds)}
-            title="Open the call at this moment"
+            href={UrlGenerator.call(call.call_id, call.moment?.at_seconds)}
+            title={call.moment ? 'Open the call at this moment' : 'Open the call'}
             className="grid min-h-11 grid-cols-[136px_96px_72px_104px_minmax(0,1fr)_16px] items-center gap-4 border-t border-hairline px-6 text-body text-ink no-underline hover:bg-wash"
           >
             <span className="whitespace-nowrap">{timeLabel(call.started_at)}</span>
@@ -507,9 +528,17 @@ export const IssueView: FC<Props> = ({ issue }) => {
               {call.result === 'unchecked' && <span className="text-ink-secondary">Unchecked</span>}
             </span>
             <span className="whitespace-nowrap text-ink-secondary">
-              at {clock(call.moment.at_seconds)}
-              {call.moment.times > 1 && (
-                <span className="text-ink-muted"> · {call.moment.times} times</span>
+              {call.moment ? (
+                <>
+                  at {clock(call.moment.at_seconds)}
+                  {call.moment.times > 1 && (
+                    <span className="text-ink-muted"> · {call.moment.times} times</span>
+                  )}
+                </>
+              ) : call.probability != null ? (
+                call.probability.toFixed(2)
+              ) : (
+                ''
               )}
             </span>
             <span className="flex text-ink-muted">

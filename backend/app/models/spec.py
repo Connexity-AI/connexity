@@ -256,6 +256,16 @@ class SpecCountsPublic(BaseModel):
         description="Rules that are classifier checks on the call alone, the default: "
         "check each one's type and inputs are right",
     )
+    held_for_llm: int = Field(
+        default=0,
+        description="Rules typed classifier_then_llm: the spec check judges them on "
+        "real calls but shows no flag until the LLM step confirms it (not built yet)",
+    )
+    llm_only: int = Field(
+        default=0,
+        description="Rules typed llm: not judged on real calls until the LLM step is "
+        "built",
+    )
 
 
 class KnownInputPublic(BaseModel):

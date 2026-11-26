@@ -95,7 +95,7 @@
 <div style="padding-bottom:8px">
 <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="0">
 <a href="{{ r.href }}" title="Open the issue" style="{{ r.rowStyle }}" style-hover="background:var(--wash);opacity:1">
-<span style="padding:10px 0;text-wrap:pretty">{{ r.title }}</span>
+<span style="display:flex;flex-direction:column;padding:10px 0"><span style="text-wrap:pretty">{{ r.title }}</span><sc-if value="{{ r.isSpec }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">Spec rule broken</span></sc-if></span>
 <sc-if value="{{ r.showAgent }}"><span style="font-size:13px;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.agent }}</span></sc-if>
 <span style="display:flex">
 <sc-if value="{{ r.isCrit }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Critical</span></sc-if>
@@ -125,7 +125,7 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;transfer&quot;,&quot;book&quot;,&quot;fast&quot;,&quot;price&quot;,&quot;tools&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;embedded&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;insurance&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;period&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;&quot;,&quot;flow&quot;,&quot;transfer&quot;,&quot;book&quot;,&quot;fast&quot;,&quot;price&quot;,&quot;tools&quot;],&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;embedded&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;agent&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;insurance&quot;,&quot;car&quot;,&quot;restaurant&quot;,&quot;clinic&quot;,&quot;dental&quot;],&quot;default&quot;:&quot;insurance&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;period&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
@@ -139,11 +139,15 @@ class Component extends DCLogic {
   static DAYS = { 'Last 7 days':7, 'Last 30 days':30, 'Last 90 days':90 };
   static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
   static CAT_ORDER = ['greet','collect','book','resched','price','objection','transfer','compliance','flow','end','fast','tools','speech','other'];
-  static DETAIL = ['I-1042','I-1053','I-0988','I-1043'];
+  static DETAIL = ['I-1042','I-1053','I-0988','I-1043','I-1098','I-1099'];
   // open incidents: [id, title, agents, calls failed, since, still failing or stopped text]
   static INCIDENTS = [['INC-0412','Booking tool failing',['car','restaurant','clinic','dental'],31,'since 09:12',null],['INC-0411','Quote lookup timing out',['insurance'],6,'since 10:05','Stopped at 10:41']];
-  // [id, category, agent, title, c|w, calls in 30 days, o open | r reopened | d resolved | k known, milestone, minutes since last seen, resolved in version]
+  // [id, category, agent, title, c|w, calls in 30 days, o open | r reopened | d resolved | k known, milestone, minutes since last seen, resolved in version, archived by, 'spec' when the title is a broken spec rule]
   static I = [
+    ['I-1098','flow','car','Ask one question at a time','w',7,'o',75,45,null,null,'spec'],
+    ['I-1096','flow','restaurant','Repeated the booking details twice','w',9,'o',75,110],
+    ['I-1097','flow','dental','Put the caller on hold without asking','w',4,'o',75,980],
+    ['I-1099','book','car','Book only after the address and zip code are provided','c',3,'o',64,120,null,null,'spec'],
     ['I-1037','transfer','insurance','Transfer to the renewals team dropped the call','c',31,'r',62,18],
     ['I-1051','transfer','restaurant','Transfer to the front desk dropped the call','c',14,'o',62,95],
     ['I-1048','transfer','clinic','Urgent symptom not passed to the on-call doctor','c',5,'o',62,610],
@@ -290,7 +294,7 @@ class Component extends DCLogic {
           const n2 = sc(x[5]);
           return {
             href: 'Connexity Issue.dc.html?issue=' + (C.DETAIL.includes(x[0]) ? x[0] : fallback(x)),
-            rowStyle, showAgent, title: x[3], agent: C.AGENTS[x[2]], isCrit: x[4] === 'c', isWarn: x[4] === 'w',
+            rowStyle, showAgent, title: x[3], isSpec: x[11] === 'spec', agent: C.AGENTS[x[2]], isCrit: x[4] === 'c', isWarn: x[4] === 'w',
             calls: n2 + (n2 === 1 ? ' call' : ' calls'), pct: pct(n2),
             isOpen: x[6] === 'o', isReop: x[6] === 'r', isRes: x[6] === 'd', isKnown: x[6] === 'k', resText: 'Resolved in version ' + x[9], knownText: 'Archived by ' + (x[10] || ''),
             milestone: x[7] ? 'Milestone ' + x[7] : '\u2014', seen: this.seen(x[8])

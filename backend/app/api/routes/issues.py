@@ -41,7 +41,7 @@ def _public(
         id=issue.id,
         agent_id=issue.agent_id,
         check_type=issue.check_type,
-        title=check.title if check else "",
+        title=issue.subject or (check.title if check else ""),
         category=CategoryPublic(
             key=category.key,
             name=category.name,

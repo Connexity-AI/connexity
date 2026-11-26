@@ -234,6 +234,12 @@ class CallFinding(BaseModel):
     severity: str
     found_by: str
     entry_index: int | None = None
+    issue_id: str | None = None
+    probability: float | None = Field(
+        default=None,
+        description="A broken spec rule: the classifier's probability; it has no "
+        "moment in the call",
+    )
 
 
 class CallDetail(BaseModel):
@@ -737,13 +743,28 @@ class IssueMark(BaseModel):
     label: str
 
 
+class RuleClarification(BaseModel):
+    id: str
+    sentence: str
+    question: str
+    answer: str
+    answered_by: str | None = None
+    assistant: str | None = None
+    answered_at: str | None = None
+
+
 class IssueAffectedCall(BaseModel):
     call_id: str
     started_at: str
     caller_last_four: str | None = None
     duration_seconds: int | None = None
     result: str
-    moment: IssueMoment
+    moment: IssueMoment | None = Field(
+        default=None, description="None for a broken spec rule: it has no moment"
+    )
+    probability: float | None = Field(
+        default=None, description="A broken spec rule: the classifier's probability"
+    )
 
 
 class IssueHistoryLine(BaseModel):
@@ -816,6 +837,15 @@ class IssuePage(BaseModel):
     since_version: IssueSinceVersion | None = None
     findings_all_time: int = 0
     calls_all_time: int = 0
+    whole_call: bool = Field(
+        default=False,
+        description="A broken spec rule: its findings judge the whole call, with no "
+        "moment and no reason",
+    )
+    clarifications: list[RuleClarification] = Field(
+        default_factory=list,
+        description="A broken spec rule: the clarifications in force on the rule",
+    )
 
 
 ListIssuesResult = Answer[Issues]
@@ -868,16 +898,6 @@ ReadCallsResult = Answer[ReadCalls]
 GetCallResult = Answer[CallDetail]
 
 
-class RuleClarification(BaseModel):
-    id: str
-    sentence: str
-    question: str
-    answer: str
-    answered_by: str | None = None
-    assistant: str | None = None
-    answered_at: str | None = None
-
-
 class SpecRule(BaseModel):
     key: str
     text: str
@@ -921,6 +941,8 @@ class SpecCounts(BaseModel):
     in_conflict: int = 0
     critical: int = 0
     classifier_on_call: int = 0
+    held_for_llm: int = 0
+    llm_only: int = 0
 
 
 class KnownInput(BaseModel):

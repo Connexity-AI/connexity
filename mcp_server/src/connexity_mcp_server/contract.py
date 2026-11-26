@@ -147,8 +147,8 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "get_call": ToolEntry(
         "calls_and_issues",
-        "One call in full: every turn and tool call in order, what was found, and "
-        "whether it is graded.",
+        "One call in full: every turn and tool call in order, what was found (a broken "
+        "spec rule with its probability, no moment), and whether it is graded.",
         "calls",
     ),
     "get_dashboard": ToolEntry(
@@ -163,7 +163,7 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "get_issue": ToolEntry(
         "calls_and_issues",
-        "Everything about one issue: the check behind it, its size, versions and history, and whether it stopped since a version went live.",
+        "Everything about one issue: the check behind it, its size, versions and history, and whether it stopped since a version went live. A broken spec rule carries the rule's clarifications.",
         "issues",
     ),
     "mark_issue_fixed": ToolEntry(
@@ -202,7 +202,8 @@ TOOLS: dict[str, ToolEntry] = {
     "get_spec": ToolEntry(
         "agents_and_spec",
         "The agent's spec: what it must do, as plain rules from its prompt, each with "
-        "your clarifications, how it is checked and the call inputs it needs.",
+        "your clarifications, how it is checked on real calls and the call inputs it "
+        "needs.",
         "spec",
     ),
     "write_spec": ToolEntry(

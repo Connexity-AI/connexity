@@ -1550,6 +1550,18 @@ export type CallScreenFinding = {
    * The timeline entry it sits on
    */
   entry_index?: number | null;
+  /**
+   * Issue Id
+   *
+   * The issue it joins
+   */
+  issue_id?: string | null;
+  /**
+   * Probability
+   *
+   * For a broken spec rule: the classifier's probability. Such a finding judges the whole call and has no moment in it
+   */
+  probability?: number | null;
 };
 
 /**
@@ -3288,7 +3300,16 @@ export type IssueAffectedCallPublic = {
    */
   duration_seconds?: number | null;
   result: CallCheckStatus;
-  moment: IssueMomentPublic;
+  /**
+   * Where it first happened in the call; none for a finding on the whole call (a broken spec rule)
+   */
+  moment?: IssueMomentPublic | null;
+  /**
+   * Probability
+   *
+   * For a broken spec rule: the classifier's probability on this call
+   */
+  probability?: number | null;
 };
 
 /**
@@ -3719,6 +3740,18 @@ export type IssuePagePublic = {
    * Decisions about it, newest first, ending with when it was opened
    */
   history: Array<IssueHistoryPublic>;
+  /**
+   * Whole Call
+   *
+   * Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)
+   */
+  whole_call?: boolean;
+  /**
+   * Clarifications
+   *
+   * For a broken spec rule: the clarifications in force on the rule
+   */
+  clarifications?: Array<RuleClarificationPublic>;
 };
 
 /**
@@ -5905,6 +5938,18 @@ export type McpIssue = {
    * Decisions about it, newest first, ending with when it was opened
    */
   history: Array<IssueHistoryPublic>;
+  /**
+   * Whole Call
+   *
+   * Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)
+   */
+  whole_call?: boolean;
+  /**
+   * Clarifications
+   *
+   * For a broken spec rule: the clarifications in force on the rule
+   */
+  clarifications?: Array<RuleClarificationPublic>;
   /**
    * None when the check has since been removed
    */
@@ -8543,6 +8588,18 @@ export type SpecCountsPublic = {
    * Rules that are classifier checks on the call alone, the default: check each one's type and inputs are right
    */
   classifier_on_call?: number;
+  /**
+   * Held For Llm
+   *
+   * Rules typed classifier_then_llm: the spec check judges them on real calls but shows no flag until the LLM step confirms it (not built yet)
+   */
+  held_for_llm?: number;
+  /**
+   * Llm Only
+   *
+   * Rules typed llm: not judged on real calls until the LLM step is built
+   */
+  llm_only?: number;
 };
 
 /**

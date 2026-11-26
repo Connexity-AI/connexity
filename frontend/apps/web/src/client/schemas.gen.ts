@@ -2325,6 +2325,32 @@ export const CallScreenFindingSchema = {
       title: 'Entry Index',
       description: 'The timeline entry it sits on',
     },
+    issue_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Issue Id',
+      description: 'The issue it joins',
+    },
+    probability: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Probability',
+      description:
+        "For a broken spec rule: the classifier's probability. Such a finding judges the whole call and has no moment in it",
+    },
   },
   type: 'object',
   required: ['id', 'at_seconds', 'text', 'category', 'severity', 'found_by'],
@@ -4699,11 +4725,32 @@ export const IssueAffectedCallPublicSchema = {
       $ref: '#/components/schemas/CallCheckStatus',
     },
     moment: {
-      $ref: '#/components/schemas/IssueMomentPublic',
+      anyOf: [
+        {
+          $ref: '#/components/schemas/IssueMomentPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'Where it first happened in the call; none for a finding on the whole call (a broken spec rule)',
+    },
+    probability: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Probability',
+      description: "For a broken spec rule: the classifier's probability on this call",
     },
   },
   type: 'object',
-  required: ['call_id', 'started_at', 'result', 'moment'],
+  required: ['call_id', 'started_at', 'result'],
   title: 'IssueAffectedCallPublic',
 } as const;
 
@@ -5338,6 +5385,21 @@ export const IssuePagePublicSchema = {
       type: 'array',
       title: 'History',
       description: 'Decisions about it, newest first, ending with when it was opened',
+    },
+    whole_call: {
+      type: 'boolean',
+      title: 'Whole Call',
+      description:
+        'Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)',
+      default: false,
+    },
+    clarifications: {
+      items: {
+        $ref: '#/components/schemas/RuleClarificationPublic',
+      },
+      type: 'array',
+      title: 'Clarifications',
+      description: 'For a broken spec rule: the clarifications in force on the rule',
     },
   },
   type: 'object',
@@ -8502,6 +8564,21 @@ export const McpIssueSchema = {
       type: 'array',
       title: 'History',
       description: 'Decisions about it, newest first, ending with when it was opened',
+    },
+    whole_call: {
+      type: 'boolean',
+      title: 'Whole Call',
+      description:
+        'Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)',
+      default: false,
+    },
+    clarifications: {
+      items: {
+        $ref: '#/components/schemas/RuleClarificationPublic',
+      },
+      type: 'array',
+      title: 'Clarifications',
+      description: 'For a broken spec rule: the clarifications in force on the rule',
     },
     check: {
       anyOf: [
@@ -12196,6 +12273,19 @@ export const SpecCountsPublicSchema = {
       title: 'Classifier On Call',
       description:
         "Rules that are classifier checks on the call alone, the default: check each one's type and inputs are right",
+      default: 0,
+    },
+    held_for_llm: {
+      type: 'integer',
+      title: 'Held For Llm',
+      description:
+        'Rules typed classifier_then_llm: the spec check judges them on real calls but shows no flag until the LLM step confirms it (not built yet)',
+      default: 0,
+    },
+    llm_only: {
+      type: 'integer',
+      title: 'Llm Only',
+      description: 'Rules typed llm: not judged on real calls until the LLM step is built',
       default: 0,
     },
   },

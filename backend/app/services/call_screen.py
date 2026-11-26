@@ -36,6 +36,7 @@ from app.models.test_run import RuleVerdict, SimulatedFinding
 from app.models.trace import ToolCallEvent, Trace, UtteranceEvent
 from app.services.checks.registry import get_check
 from app.services.grading import NOT_GRADED_REASON, is_graded
+from app.services.issue_list import issue_title
 from app.services.test_run import default_fake_calls, edited_runs, trace_of
 
 MASK = "••••"
@@ -161,9 +162,10 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
     }
     findings: list[CallScreenFinding] = []
     for row in crud.get_findings(session=session, call=call, shown_only=True):
-        check = get_check(row.check_type)
-        title = check.title if check else row.check_type
         issue = issues.get(row.issue_id)
+        detail = row.detail or {}
+        subject = detail.get("rule_text") or (issue.subject if issue else None)
+        probability = detail.get("probability") if not row.event_keys else None
         # Its moment is the last event it points at: for two bookings of one slot, the
         # second booking is where it went wrong.
         indexes = [index_of[e] for e in row.event_keys if e in index_of]
@@ -173,17 +175,32 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
             CallScreenFinding(
                 id=row.id,
                 at_seconds=at,
-                text=f"{title}: {row.key}" if row.key else title,
+                text=issue_title(
+                    row.check_type,
+                    row.key,
+                    subject if isinstance(subject, str) else None,
+                ),
                 category=categories[issue.category_id].name if issue else "Other",
                 severity="critical" if row.effect == FindingEffect.FAILS else "warning",
                 found_by=row.kind,
                 entry_index=index,
+                issue_id=row.issue_id,
+                probability=float(probability)
+                if isinstance(probability, int | float)
+                else None,
             )
         )
         for key in row.event_keys:
             if key in index_of:
                 entries[index_of[key]].finding_ids.append(row.id)
-    findings.sort(key=lambda f: (f.severity != "critical", f.at_seconds))
+    # Within a severity, findings at a moment first; one on the whole call has none.
+    findings.sort(
+        key=lambda f: (
+            f.severity != "critical",
+            f.probability is not None,
+            f.at_seconds,
+        )
+    )
 
     duration = None
     if call.ended_at is not None:

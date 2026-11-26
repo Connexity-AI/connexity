@@ -4,7 +4,7 @@
 import re
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Literal, NamedTuple
 
 from sqlmodel import Session, col, select
@@ -53,9 +53,10 @@ from app.models.spec import (
     SpecWrittenPublic,
 )
 from app.models.user import User
+from app.services.checks.model.spec_rule import FIRST_SPEC_DAYS, SPEC_CHECK_TYPE
 from app.services.fingerprint import SECRET_NAME
 from app.services.rule_context import INPUT_DAYS, long_inputs
-from app.services.test_run import RuleMark, version_number, version_tested
+from app.services.test_run import RuleMark, version_tested
 
 MAX_RULES = 500
 type RuleChange = Literal["kept", "added", "dropped"]
@@ -182,21 +183,11 @@ def rule_clarifications_public(
 
 
 def spec_in_force(*, session: Session, agent: Agent, agent_version: str) -> int | None:
-    """The spec version in force for an agent version: the newest one written for it
-    or an earlier one (a spec stays in force until the next is written)."""
-    wanted = version_number(agent_version)[0]
-    best: tuple[int, int] | None = None
-    for spec, _count in crud.spec_versions(session=session, agent_id=agent.id):
-        written = version_number(spec.agent_version)[0]
-        if spec.agent_version == agent_version:
-            written = max(written, wanted)
-        elif not (wanted >= 0 and 0 <= written <= wanted):
-            continue
-        # The spec written for the highest such agent version, newest spec first.
-        key = (written, spec.version)
-        if best is None or key > best:
-            best = key
-    return best[1] if best else None
+    """The spec version in force for an agent version (``crud.spec_covering``)."""
+    spec = crud.spec_covering(
+        session=session, agent_id=agent.id, agent_version=agent_version
+    )
+    return spec.version if spec else None
 
 
 def spec_answer(
@@ -354,6 +345,10 @@ def spec_answer(
             classifier_on_call=sum(
                 1 for r in rules if r.check is SpecCheckType.CLASSIFIER and not r.inputs
             ),
+            held_for_llm=sum(
+                1 for r in rules if r.check is SpecCheckType.CLASSIFIER_THEN_LLM
+            ),
+            llm_only=sum(1 for r in rules if r.check is SpecCheckType.LLM),
         )
         if earlier is not None:
             kept = sum(1 for r in rules if old_text.get(r.key) == r.text)
@@ -612,6 +607,17 @@ def write_agent_spec(
         assistant_name=assistant_name,
         closes=closes,
     )
+    if before is None:
+        # The agent's first spec judges its last 30 days once (Decided, Dmytro
+        # 2026-11-26: "First spec, 30 days"): the spec check skipped those calls for
+        # want of a spec, and the next pass checks them again.
+        crud.forget_skipped_runs(
+            session=session,
+            agent_id=agent.id,
+            check_type=SPEC_CHECK_TYPE,
+            since=spec.created_at - timedelta(days=FIRST_SPEC_DAYS),
+        )
+        session.commit()
     kept = sum(1 for d in drafts if d.key is not None and d.key in previous_keys)
     closed_old = {g for gap, _ in closes for g in [gap.id] if g in answered}
     answer = spec_answer(session=session, agent=agent)
