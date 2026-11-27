@@ -11,7 +11,7 @@ from typing import NamedTuple
 
 from sqlmodel import Session, col, func, select
 
-from app.crud.check import version_reaches
+from app.crud.check import counted_finding, version_reaches
 from app.models.call import Call, CallComponent, CallEvent
 from app.models.check import DecisionRecord, Finding, Issue
 from app.models.enums import DecisionKind, TraceSource
@@ -47,7 +47,9 @@ def issue_moments(
         return {}
     findings = session.exec(
         select(Finding.call_id, Finding.event_keys).where(
-            Finding.issue_id == issue_id, col(Finding.call_id).in_(call_ids)
+            Finding.issue_id == issue_id,
+            counted_finding(),
+            col(Finding.call_id).in_(call_ids),
         )
     ).all()
     keys = {key for _, event_keys in findings for key in event_keys}
@@ -91,7 +93,11 @@ def issue_spec_findings(
     seen: dict[uuid.UUID, SpecSeen] = {}
     for call_id, detail in session.exec(
         select(Finding.call_id, Finding.detail)
-        .where(Finding.issue_id == issue_id, col(Finding.call_id).in_(call_ids))
+        .where(
+            Finding.issue_id == issue_id,
+            counted_finding(),
+            col(Finding.call_id).in_(call_ids),
+        )
         .order_by(col(Finding.created_at))
     ).all():
         value = (detail or {}).get("probability")
@@ -111,7 +117,7 @@ def issue_spec_findings(
 def newest_finding(*, session: Session, issue_id: uuid.UUID) -> Finding | None:
     return session.exec(
         select(Finding)
-        .where(Finding.issue_id == issue_id)
+        .where(Finding.issue_id == issue_id, counted_finding())
         .order_by(col(Finding.created_at).desc(), col(Finding.id).desc())
         .limit(1)
     ).first()
@@ -126,7 +132,9 @@ def issue_calls(
             select(Call)
             .where(
                 col(Call.id).in_(
-                    select(Finding.call_id).where(Finding.issue_id == issue_id)
+                    select(Finding.call_id).where(
+                        Finding.issue_id == issue_id, counted_finding()
+                    )
                 ),
                 col(Call.deleted_at).is_(None),
                 col(Call.started_at) >= _naive(since),
@@ -147,6 +155,7 @@ def issue_calls_per_day(
         .join(Finding, col(Finding.call_id) == col(Call.id))
         .where(
             Finding.issue_id == issue_id,
+            counted_finding(),
             col(Call.deleted_at).is_(None),
             col(Call.started_at) >= _naive(since),
         )
@@ -174,6 +183,7 @@ def issue_calls_between(
         .join(Call, col(Call.id) == col(Finding.call_id))
         .where(
             Finding.issue_id == issue_id,
+            counted_finding(),
             col(Call.deleted_at).is_(None),
             col(Call.started_at) >= _naive(start),
             col(Call.started_at) < _naive(end),
@@ -223,7 +233,7 @@ def first_finding_call(*, session: Session, issue_id: uuid.UUID) -> Call | None:
     return session.exec(
         select(Call)
         .join(Finding, col(Finding.call_id) == col(Call.id))
-        .where(Finding.issue_id == issue_id)
+        .where(Finding.issue_id == issue_id, counted_finding())
         .order_by(col(Call.started_at), col(Call.id))
         .limit(1)
     ).first()
@@ -236,7 +246,9 @@ def issue_decisions(*, session: Session, issue: Issue) -> list[DecisionRecord]:
             select(DecisionRecord)
             .where(
                 DecisionRecord.agent_id == issue.agent_id,
-                DecisionRecord.kind == DecisionKind.ISSUE_STATE,
+                col(DecisionRecord.kind).in_(
+                    (DecisionKind.ISSUE_STATE, DecisionKind.FINDINGS_COUNTED)
+                ),
                 DecisionRecord.subject == str(issue.id),
             )
             .order_by(
@@ -261,6 +273,7 @@ def issue_calls_per_version(
         .join(Finding, col(Finding.call_id) == col(Call.id))
         .where(
             Finding.issue_id == issue_id,
+            counted_finding(),
             col(Call.deleted_at).is_(None),
             col(Call.started_at) >= _naive(since),
         )
@@ -293,7 +306,11 @@ def issue_findings_on_calls(
         return found
     for finding in session.exec(
         select(Finding)
-        .where(Finding.issue_id == issue_id, col(Finding.call_id).in_(call_ids))
+        .where(
+            Finding.issue_id == issue_id,
+            counted_finding(),
+            col(Finding.call_id).in_(call_ids),
+        )
         .order_by(col(Finding.created_at))
     ).all():
         found[finding.call_id].append(finding)
@@ -344,7 +361,11 @@ def issue_since_version(
     on_them = (
         *real,
         col(Call.agent_version).in_(names),
-        col(Call.id).in_(select(Finding.call_id).where(Finding.issue_id == issue.id)),
+        col(Call.id).in_(
+            select(Finding.call_id).where(
+                Finding.issue_id == issue.id, counted_finding()
+            )
+        ),
     )
     last = session.exec(
         select(Call.id, Call.started_at)

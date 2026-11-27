@@ -446,17 +446,24 @@ def _run(check_input: CheckInput) -> list[Raised]:
                 continue
             detail |= {"probability": score, "model": str(answer.get("model") or "")}
         elif isinstance(verdict, dict):
-            # Confirmed or judged by the LLM step; a flag it dismissed raises nothing.
-            if verdict.get("outcome") != RuleOutcome.FAILED.value:
+            # Confirmed or judged by the LLM step. A flag it dismissed raises nothing,
+            # unless a person brought it back (105.17): then the classifier's flag
+            # stands, without the model's reason, which argued against it.
+            back = verdict.get("brought_back")
+            if verdict.get("outcome") != RuleOutcome.FAILED.value and not back:
                 continue
             event_ids = _moment(verdict, check_input.trace)
-            detail["reason"] = str(verdict.get("reason") or "")
+            if isinstance(back, dict):
+                detail["brought_back_by"] = str(back.get("by") or "")
+            else:
+                detail["reason"] = str(verdict.get("reason") or "")
             if check == SpecCheckType.CLASSIFIER_THEN_LLM.value and score is not None:
                 detail |= {
                     "probability": score,
                     "model": str(answer.get("model") or ""),
-                    "confirmed_by": str(verdict.get("model") or ""),
                 }
+                if not back:
+                    detail["confirmed_by"] = str(verdict.get("model") or "")
             else:
                 detail["model"] = str(verdict.get("model") or "")
                 kind = CheckKind.JUDGE
@@ -505,6 +512,8 @@ SPEC_RULE_BROKEN = ModelCheck(
         "confirmed_by": "The LLM that confirmed the classifier's flag, when one did",
         "reason": "Why the rule was broken, in the LLM's words; none from the "
         "classifier alone",
+        "brought_back_by": "Who brought back a flag the LLM had dismissed; the "
+        "classifier's flag then stands",
         "spec_version": "The spec version the call was judged against",
     },
     whole_call=True,

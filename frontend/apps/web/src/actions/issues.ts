@@ -20,3 +20,18 @@ export const archiveIssueAction = async (
   revalidatePath(`/issues/${issueId}`);
   return result;
 };
+
+/** Undo false-positive marks, or bring back flags the model dismissed: each counts again. */
+export const countAgainAction = async (
+  issueId: string,
+  findingIds: string[],
+  callIds: string[]
+): Promise<ApiResult> => {
+  const apiResponse = await IssuesService.countAgain({
+    path: { issue_id: issueId },
+    body: { finding_ids: findingIds, call_ids: callIds },
+  });
+  const { response: _, ...result } = apiResponse;
+  revalidatePath(`/issues/${issueId}`);
+  return result;
+};

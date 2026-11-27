@@ -22,9 +22,21 @@ from app.models import (
 )
 from app.models.enums import IssueState
 from app.models.issue_list import IssueListPublic, IssuePeriod, IssueStatusFilter
-from app.models.issue_page import IssuePagePublic
+from app.models.issue_page import (
+    CountAgainRequest,
+    CountedAgainPublic,
+    IssuePagePublic,
+    NotCountedPublic,
+)
 from app.services.agent_page import agent_versions
 from app.services.checks.registry import get_check
+from app.services.false_positive import (
+    PAGE,
+    MarkRefused,
+    bring_back,
+    not_counted,
+    undo_marks,
+)
 from app.services.issue_list import IssueFilters, workspace_issues
 from app.services.issue_page import issue_page
 
@@ -140,6 +152,69 @@ def get_issue(
         issue=issue,
         summary=crud.summarise_issue(session=session, issue=issue),
     )
+
+
+@router.get("/issues/{issue_id}/not-counted", response_model=NotCountedPublic)
+def get_not_counted(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    issue_id: uuid.UUID,
+    group: Literal["false_positives", "dismissed"] = Query(),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=PAGE, ge=1, le=100),
+) -> NotCountedPublic:
+    """One group of the issue's "Not counted" list, newest first: findings marked as
+    false positives, or flags the LLM step dismissed. Read only when the list is
+    opened."""
+    issue = crud.get_issue(session=session, issue_id=issue_id, company_id=company_id)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return not_counted(
+        session=session, issue=issue, group=group, offset=offset, limit=limit
+    )
+
+
+@router.post(
+    "/issues/{issue_id}/not-counted/count-again", response_model=CountedAgainPublic
+)
+def count_again(
+    session: SessionDep,
+    company_id: CurrentCompany,
+    current_user: CurrentUser,
+    issue_id: uuid.UUID,
+    body: CountAgainRequest,
+) -> CountedAgainPublic:
+    """Undo marks and bring back dismissed flags: each shows on its call again and
+    counts in the score. Recorded on the issue as the person's."""
+    issue = crud.get_issue(session=session, issue_id=issue_id, company_id=company_id)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    try:
+        undone = (
+            undo_marks(
+                session=session,
+                issue=issue,
+                finding_ids=body.finding_ids,
+                by=current_user,
+                assistant_name=None,
+            ).count
+            if body.finding_ids
+            else 0
+        )
+        back = (
+            bring_back(
+                session=session,
+                issue=issue,
+                call_ids=body.call_ids,
+                by=current_user,
+                assistant_name=None,
+            ).count
+            if body.call_ids
+            else 0
+        )
+    except MarkRefused as refused:
+        raise HTTPException(status_code=422, detail=refused.error) from refused
+    return CountedAgainPublic(undone=undone, brought_back=back)
 
 
 @router.put("/issues/{issue_id}/state", response_model=IssuePublic)

@@ -153,8 +153,19 @@ def list_decision_records(
     )
 
 
+def counted_finding() -> ColumnElement[bool]:
+    """The finding is not marked as a false positive (105.17).
+
+    A marked finding is still stored, but it shows on no call and counts in no score,
+    result, size or chart (Decided, 2026-11-25). Every query that shows or counts
+    findings uses this, also the issue page and the issue list, which read findings of
+    archived issues too.
+    """
+    return col(Finding.false_positive_at).is_(None)
+
+
 def shown_finding() -> ColumnElement[bool]:
-    """The finding's issue is not archived.
+    """The finding counts (``counted_finding``) and its issue is not archived.
 
     While an issue is archived its findings are hidden on every call, whatever the
     call's date: they make no call fail or degrade and are never shown, to a person or
@@ -164,8 +175,11 @@ def shown_finding() -> ColumnElement[bool]:
     """
     # An alias, so the check never binds to an `issue` the outer query already joins.
     archived = aliased(Issue)
-    return ~exists().where(
-        archived.id == Finding.issue_id, archived.state == IssueState.ARCHIVED
+    return and_(
+        counted_finding(),
+        ~exists().where(
+            archived.id == Finding.issue_id, archived.state == IssueState.ARCHIVED
+        ),
     )
 
 
@@ -610,7 +624,10 @@ def _summaries(session: Session, issues: list[Issue]) -> list[IssueSummary]:
                 func.max(col(Finding.kind)),
             )
             .join(Call, col(Call.id) == col(Finding.call_id))
-            .where(col(Finding.issue_id).in_([issue.id for issue in issues]))
+            .where(
+                col(Finding.issue_id).in_([issue.id for issue in issues]),
+                counted_finding(),
+            )
             .group_by(col(Finding.issue_id))
         ).all()
     }
@@ -721,7 +738,11 @@ def calls_found_on_version(*, session: Session, issue: Issue, fix_version: str) 
     versions = session.exec(
         select(Call.agent_version, func.count(func.distinct(Call.id)))
         .join(Finding, col(Finding.call_id) == col(Call.id))
-        .where(Finding.issue_id == issue.id, col(Call.agent_version).is_not(None))
+        .where(
+            Finding.issue_id == issue.id,
+            counted_finding(),
+            col(Call.agent_version).is_not(None),
+        )
         .group_by(col(Call.agent_version))
     ).all()
     return sum(n for version, n in versions if version_reaches(version, fix_version))

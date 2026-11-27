@@ -73,6 +73,34 @@ class Finding(SQLModel, table=True):
         sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
         sa_column_kwargs={"server_default": text("now()")},
     )
+    # Marked as a false positive (105.17): shown on no call and counted nowhere, still
+    # stored. Checking the call again keeps the row, so the mark stays while the check
+    # raises the same finding. Undo clears every field.
+    false_positive_at: datetime | None = Field(
+        default=None,
+        sa_type=DateTime(timezone=True),  # type: ignore[call-overload]
+    )
+    false_positive_by: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(ForeignKey("user.id", ondelete="SET NULL"), nullable=True),
+    )
+    # Kept beside the id so the mark still says who after the user is removed.
+    false_positive_by_email: str | None = Field(default=None, max_length=255)
+    # The assistant that marked it for that person ("Claude Code").
+    false_positive_assistant: str | None = Field(default=None, max_length=255)
+    false_positive_reason: str | None = Field(
+        default=None, sa_column=Column("false_positive_reason", Text)
+    )
+    # The answered clarification on the issue's rule that the marking rests on.
+    false_positive_clarification_id: uuid.UUID | None = Field(
+        default=None,
+        sa_column=Column(
+            ForeignKey("clarification.id", ondelete="SET NULL"), nullable=True
+        ),
+    )
+    # Who approved it, as the assistant was told in the conversation, when the
+    # marking needed the person.
+    false_positive_approved_by: str | None = Field(default=None, max_length=255)
 
 
 class Issue(SQLModel, table=True):

@@ -85,6 +85,9 @@
 </sc-if>
 <div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Milestone</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ milestone }}</span></div>
 </div>
+<sc-if value="{{ hasUncounted }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ openUc }}" title="Show what isn’t counted" style="align-self:flex-start;margin-top:-12px;padding:0;border:0;background:transparent;color:var(--ink2);font-size:13px;line-height:18px;text-align:left;text-decoration:underline;text-decoration-color:var(--bc);text-underline-offset:3px;cursor:pointer" style-hover="color:var(--ink)">{{ ucSummary }}</button>
+</sc-if>
 <sc-if value="{{ isSpec }}" hint-placeholder-val="{{ false }}">
 <p style="margin:0;font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ foundLine }}</p>
 </sc-if>
@@ -182,8 +185,50 @@
 </a>
 </sc-if>
 </sc-for>
-<a href="{{ allHref }}" style="display:flex;align-items:center;gap:6px;padding:14px 24px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink2);text-decoration:none" style-hover="color:var(--ink);background:var(--wash);opacity:1">{{ allText }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
+<sc-if value="{{ noCalls }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 24px 20px;border-top:1px solid var(--border);color:var(--ink2)">No calls affected now.</div></sc-if>
+<sc-if value="{{ hasCalls }}" hint-placeholder-val="{{ true }}"><a href="{{ allHref }}" style="display:flex;align-items:center;gap:6px;padding:14px 24px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink2);text-decoration:none" style-hover="color:var(--ink);background:var(--wash);opacity:1">{{ allText }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a></sc-if>
 </div>
+<sc-if value="{{ hasUncounted }}" hint-placeholder-val="{{ false }}">
+<div ref="{{ ucRef }}" style="background:var(--s1);border:1px solid var(--border);border-radius:12px">
+<button onClick="{{ toggleUc }}" aria-expanded="{{ ucOpen }}" style="width:100%;display:flex;align-items:center;gap:12px;padding:20px 24px;border:0;border-radius:12px;background:transparent;color:var(--ink);text-align:left;cursor:pointer">
+<h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Not counted</h2>
+<span style="flex:1;min-width:0;font-size:13px;line-height:18px;color:var(--ink3)">{{ ucSummary }}</span>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{ ucChev }}"><path d="m9 18 6-6-6-6"></path></svg>
+</button>
+<sc-if value="{{ ucOpen }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ ucLoading }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 24px 20px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink3)">Loading…</div></sc-if>
+<sc-if value="{{ ucReady }}" hint-placeholder-val="{{ false }}">
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="0">
+<div style="display:flex;align-items:baseline;gap:8px;padding:16px 24px 8px;border-top:1px solid var(--border)"><h3 style="margin:0;font-size:13px;line-height:18px;font-weight:500">{{ g.title }}</h3><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ g.count }}</span></div>
+<sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="0">
+<div style="display:grid;grid-template-columns:160px minmax(0,1fr) auto;gap:16px;align-items:start;padding:12px 24px;border-top:1px solid var(--border)">
+<div style="display:flex;flex-direction:column;min-width:0"><a href="{{ r.href }}" title="Open the call" style="align-self:flex-start;white-space:nowrap;color:var(--ink)">{{ r.when }}</a><sc-if value="{{ r.hasMo }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ r.mo }}</span></sc-if></div>
+<div style="display:flex;flex-direction:column;min-width:0">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ r.by }}</span>
+<span title="{{ r.why }}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.why }}</span>
+<sc-if value="{{ r.hasRests }}"><span title="{{ r.rests }}" style="font-size:13px;line-height:18px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.rests }}</span></sc-if>
+<sc-if value="{{ r.hasAppr }}"><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ r.appr }}</span></sc-if>
+</div>
+<div data-confirm-pop="1" style="position:relative">
+<button onClick="{{ r.ask }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--bc);background:transparent;color:var(--ink);font-size:13px;white-space:nowrap;cursor:pointer" style-hover="background:var(--wash)">{{ r.act }}</button>
+<sc-if value="{{ r.confirming }}">
+<div style="position:absolute;right:0;top:38px;z-index:20;width:320px;background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:12px">
+<span style="text-wrap:pretty">This finding will show on its call again and count in the score.</span>
+<div style="display:flex;align-items:center;justify-content:flex-end;gap:8px">
+<button onClick="{{ r.cancel }}" style="height:36px;padding:0 12px;border-radius:8px;border:0;background:transparent;color:var(--ink2);font-size:15px;cursor:pointer" style-hover="background:var(--wash);color:var(--ink)">Cancel</button>
+<button onClick="{{ r.doIt }}" style="height:36px;padding:0 14px;border-radius:8px;border:0;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:500;white-space:nowrap;cursor:pointer" style-hover="opacity:.9">{{ r.act }}</button>
+</div>
+</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ g.hasMore }}"><button onClick="{{ g.showAll }}" style="display:flex;width:100%;padding:14px 24px;border:0;border-top:1px solid var(--border);background:transparent;color:var(--ink2);font-size:13px;line-height:18px;text-align:left;cursor:pointer" style-hover="color:var(--ink)">{{ g.more }}</button></sc-if>
+</sc-for>
+</sc-if>
+</sc-if>
+</div>
+</sc-if>
 <sc-if value="{{ isCrit }}" hint-placeholder-val="{{ true }}">
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
 <div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Past incidents</h2><span style="font-size:13px;color:var(--ink3)">{{ pastCount }}</span></div>
@@ -214,14 +259,56 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1104&quot;,&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;,&quot;I-1043&quot;,&quot;I-1098&quot;,&quot;I-1099&quot;],&quot;default&quot;:&quot;I-1104&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1110&quot;,&quot;I-1111&quot;,&quot;I-1112&quot;,&quot;I-1104&quot;,&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;,&quot;I-1043&quot;,&quot;I-1098&quot;,&quot;I-1099&quot;],&quot;default&quot;:&quot;I-1110&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;listState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;closed&quot;,&quot;loading&quot;,&quot;open&quot;],&quot;default&quot;:&quot;closed&quot;,&quot;tsType&quot;:&quot;'closed' | 'loading' | 'open'&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
   // steps: [name, done|current|later, detail, href]; series: 30 days ending 12 Nov; occ: [when, last4, seconds, result, moment s]. spec issues: occ is [when, last4, seconds, result, probability|null, moment s|null, reason|null]; how: classifier (default) | confirmed | llm; clars: [sentence, A|Y, d Mon]
+  // rows (I-1110+): every finding and dismissed flag, computed into the calls list, count and chart. { t, l4, dur, res, p, mo, why, fp:{ by, on, why, rests: clar index, appr }, dis: model's reason }
   static D = {
+    'I-1110': { spec:true, how:'confirmed', cat:'transfer', title:'Whenever the agent tells a caller someone will call them back, notify the technician first', agentId:'car', agent:'Car service booking', sev:'c', status:'o', of:'310', first:'18 Nov', last:'Today 08:52', milestone:'64',
+      clars:[['Telling the caller the technician will call about 30 minutes before the appointment is a notice, not a callback promise','A','27 Nov']],
+      steps:[['Found','done','18 Nov · call •••• 5528','call'],['In the spec','done','Whenever the agent tells a caller someone will call them back, notify the technician first','spec'],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      marks:[], callId:'C-20497', incidents:[],
+      rows:[
+        { t:'2026-11-27 08:52', l4:'7316', dur:142, res:'failed', p:0.92, mo:97, why:'The agent told the caller the service desk would call back about the parts order, and the technician was not notified.' },
+        { t:'2026-11-26 16:20', l4:'4419', dur:118, res:'failed', p:0.88, mo:84, why:'The agent said the technician would call before the visit without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The agent said the technician would call about 30 minutes before the visit. That is a notice, not a callback promise.', rests:0, appr:'Alex' } },
+        { t:'2026-11-26 11:05', l4:'2083', dur:96, res:'failed', p:0.86, mo:71, why:'The agent said the technician would call before arriving without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The technician’s call 30 minutes before arrival is a notice under the clarification, not a callback.', rests:0, appr:'Alex' } },
+        { t:'2026-11-25 14:48', l4:'6650', dur:131, res:'failed', p:0.9, mo:102, why:'The agent said the technician would call ahead without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The agent described the usual heads-up call from the technician 30 minutes before the visit, which is a notice.', rests:0, appr:'Alex' } },
+        { t:'2026-11-24 09:31', l4:'9174', dur:88, res:'failed', p:0.84, mo:63, why:'The agent said the technician would call without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The agent only said the technician calls about 30 minutes before the appointment. No callback was promised.', rests:0, appr:'Alex' } },
+        { t:'2026-11-22 15:12', l4:'3307', dur:109, res:'failed', p:0.87, mo:79, why:'The agent said the technician would phone ahead without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The call the agent mentioned is the technician’s 30-minute notice before the visit, not a callback.', rests:0, appr:'Alex' } },
+        { t:'2026-11-21 10:40', l4:'8846', dur:124, res:'failed', p:0.83, mo:92, why:'The agent said the technician would call before arriving without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The agent told the caller to expect the technician’s call half an hour before arrival. That is a notice.', rests:0, appr:'Alex' } },
+        { t:'2026-11-20 13:26', l4:'1592', dur:101, res:'failed', p:0.89, mo:68, why:'The agent said the technician would call without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The only call mentioned is the technician’s notice about 30 minutes before the appointment.', rests:0, appr:'Alex' } },
+        { t:'2026-11-18 09:58', l4:'5528', dur:115, res:'failed', p:0.91, mo:86, why:'The agent said the technician would phone ahead without notifying the technician.', fp:{ by:'Claude Code', on:'27 Nov', why:'The agent said the technician would phone about 30 minutes before the visit. That is a notice, not a callback promise.', rests:0, appr:'Alex' } },
+        { t:'2026-11-25 10:14', l4:'8061', dur:97, res:'failed', p:0.86, mo:null, dis:'The agent said the technician would ring about 30 minutes before arriving. That is a notice, not a callback promise.' },
+        { t:'2026-11-23 12:37', l4:'4728', dur:83, res:'failed', p:0.81, mo:null, dis:'The caller said they would call the garage back themselves. The agent promised no callback.' }
+      ],
+      history:[['8 findings marked as false positives','Claude Code, approved by Alex','27 Nov','Each rests on the clarification answered on 27 Nov'],['Clarified','Alex','27 Nov','Telling the caller the technician will call about 30 minutes before the appointment is a notice, not a callback promise'],['Marked critical','Connexity','18 Nov','The rule is critical in the spec'],['Opened','Connexity','18 Nov','First seen on call •••• 5528']] },
+    'I-1111': { title:'Tool call failed', agentId:'restaurant', agent:'Restaurant reservations', sev:'w', status:'o', of:'488', first:'19 Nov', last:'Today 10:17', milestone:'70',
+      tip:'The check_table tool fails when the requested time is less than an hour away. Check the time before calling the tool, or offer the next free slot when it fails.',
+      steps:[['Found','done','19 Nov · call •••• 6240','call'],['In the spec','later','Not yet',null],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      marks:[], callId:'C-20470', incidents:[],
+      rows:[
+        { t:'2026-11-27 10:17', l4:'3051', dur:88, res:'degraded', mo:24 },
+        { t:'2026-11-26 19:42', l4:'8817', dur:63, res:'degraded', mo:31 },
+        { t:'2026-11-25 18:05', l4:'1468', dur:41, res:'degraded', mo:19, fp:{ by:'Alex', on:'26 Nov', why:'The caller hung up while the tool was running. The tool itself did not fail.' } },
+        { t:'2026-11-24 12:30', l4:'5902', dur:97, res:'degraded', mo:40 },
+        { t:'2026-11-21 20:11', l4:'7734', dur:72, res:'degraded', mo:28 },
+        { t:'2026-11-19 17:48', l4:'6240', dur:105, res:'degraded', mo:36 }
+      ],
+      history:[['Marked as a false positive','Alex','26 Nov','The caller hung up while the tool was running. The tool itself did not fail.'],['Opened','Connexity','19 Nov','First seen on call •••• 6240']] },
+    'I-1112': { spec:true, cat:'price', title:'Never confirm a price before checking the patient’s insurance', agentId:'dental', agent:'Dental reception', sev:'w', status:'o', of:'240', first:'20 Nov', last:'25 Nov', milestone:'71',
+      clars:[],
+      steps:[['Found','done','20 Nov · call •••• 2391','call'],['In the spec','done','Never confirm a price before checking the patient’s insurance','spec'],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      marks:[], callId:'C-20488', incidents:[],
+      rows:[
+        { t:'2026-11-25 11:02', l4:'9047', dur:132, res:'degraded', p:0.83, fp:{ by:'Sam', on:'26 Nov', why:'The caller is paying for themselves and said so before asking the price.' } },
+        { t:'2026-11-23 15:40', l4:'4175', dur:96, res:'degraded', p:0.79, fp:{ by:'Sam', on:'26 Nov', why:'The agent gave the list price and said insurance could lower it. It did not confirm a final price.' } },
+        { t:'2026-11-20 09:18', l4:'2391', dur:117, res:'degraded', p:0.86, fp:{ by:'Sam', on:'26 Nov', why:'The insurance check ran before the agent confirmed the price.' } }
+      ],
+      history:[['3 findings marked as false positives','Sam','26 Nov','None of the calls broke the rule'],['Opened','Connexity','20 Nov','First seen on call •••• 2391']] },
     'I-1098': { spec:true, cat:'flow', title:'Ask one question at a time', agentId:'car', agent:'Car service booking', sev:'w', status:'o', calls:7, of:'310', first:'5 Nov', last:'45 minutes ago', milestone:'75',
       clars:[['An either/or question is one question','A','26 Nov']],
       steps:[['Found','done','5 Nov · call •••• 6634','call'],['In the spec','done','Ask one question at a time','spec'],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
@@ -277,13 +364,24 @@ class Component extends DCLogic {
   static M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   constructor(props) {
     super(props);
-    this.state = { askOpen:false, reason:'', dur:'spike', accepted:null };
+    this.state = { askOpen:false, reason:'', dur:'spike', accepted:null, ucOpen: props.listState === 'open' || props.listState === 'loading', ucLoading: props.listState === 'loading', back:{}, confirm:null, showAll:{} };
+    this.ucRef = React.createRef();
     this.askRef = React.createRef();
     this.reasonRef = React.createRef();
   }
   componentDidMount() {
-    this.onDoc = e => { if (this.state.askOpen && this.askRef.current && !this.askRef.current.contains(e.target)) this.setState({ askOpen:false }); };
+    this.onDoc = e => {
+      if (this.state.askOpen && this.askRef.current && !this.askRef.current.contains(e.target)) this.setState({ askOpen:false });
+      if (this.state.confirm && !(e.target.closest && e.target.closest('[data-confirm-pop]'))) this.setState({ confirm:null });
+    };
     document.addEventListener('mousedown', this.onDoc);
+  }
+  componentDidUpdate(prev) { const ls = this.props.listState; if (prev.listState !== ls) { clearTimeout(this.loadT); this.loaded = ls === 'open'; this.setState({ ucOpen: ls === 'open' || ls === 'loading', ucLoading: ls === 'loading' }); } }
+  openList() {
+    if (this.loaded) { this.setState({ ucOpen:true, ucLoading:false }); return; }
+    this.setState({ ucOpen:true, ucLoading:true });
+    clearTimeout(this.loadT);
+    this.loadT = setTimeout(() => { this.loaded = true; this.setState({ ucLoading:false }); }, 900);
   }
   componentWillUnmount() { document.removeEventListener('mousedown', this.onDoc); }
   issueId() {
@@ -299,7 +397,15 @@ class Component extends DCLogic {
     const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
     const profile = 'Connexity Agent Profile.dc.html?agent=' + d.agentId;
     const callHref = (t) => 'Connexity Call.dc.html?call=' + d.callId + '&t=' + t;
-    const links = { call: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(d.occ[d.occ.length - 1][4]), spec: profile + '&tab=spec', tests: profile + '&tab=tests', actions: 'Connexity Action items.dc.html' };
+    const whenOf = t => { const [dt, hm] = t.split(' '), [, m, dd] = dt.split('-').map(Number); return (dt === '2026-11-27' ? 'Today' : dt === '2026-11-26' ? 'Yesterday' : dd + ' ' + C.M[m - 1]) + ' ' + hm; };
+    const R = d.rows ? d.rows.map((r, k) => ({ ...r, k, back: !!st.back[id + ':' + k] })).sort((a, b) => a.t < b.t ? 1 : a.t > b.t ? -1 : 0) : null;
+    const live = R ? R.filter(r => (!r.fp && !r.dis) || r.back) : null;
+    const occSrc = R ? live.map(r => d.spec ? [whenOf(r.t), r.l4, r.dur, r.res, r.p, r.mo, r.why] : [whenOf(r.t), r.l4, r.dur, r.res, r.mo, 1]) : d.occ;
+    const firstMo = R ? R[R.length - 1].mo : d.occ[d.occ.length - 1][4];
+    const dayIdx = t => { const [y, m, dd] = t.slice(0, 10).split('-').map(Number); return 29 - Math.round((Date.UTC(2026, 10, 27) - Date.UTC(y, m - 1, dd)) / 864e5); };
+    const series = R ? live.reduce((s, r) => { const i = dayIdx(r.t); if (i >= 0) s[i]++; return s; }, Array(30).fill(0)) : d.series;
+    const calls = R ? live.length : d.calls;
+    const links = { call: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(firstMo), spec: profile + '&tab=spec', tests: profile + '&tab=tests', actions: 'Connexity Action items.dc.html' };
     const steps = d.steps.map(([name, state, detail, link], i) => {
       const next = d.steps[i + 1];
       return {
@@ -309,10 +415,10 @@ class Component extends DCLogic {
         lineStyle: { flex:1, height:2, margin:'0 8px', borderRadius:1, display: next ? 'block' : 'none', background: next && next[1] !== 'later' ? 'var(--ink)' : 'var(--border)' }
       };
     });
-    const max = Math.max(...d.series), yMax = Math.max(2, Math.ceil(max / 2) * 2);
-    const start = new Date(2026, 9, 14);
+    const max = Math.max(...series), yMax = Math.max(2, Math.ceil(max / 2) * 2);
+    const start = R ? new Date(2026, 9, 29) : new Date(2026, 9, 14);
     const barColor = d.sev === 'c' ? 'var(--crit)' : 'var(--warn)';
-    const days = d.series.map((v, i) => {
+    const days = series.map((v, i) => {
       const dt = new Date(start); dt.setDate(start.getDate() + i);
       const date = dt.getDate() + ' ' + C.M[dt.getMonth()];
       return { label: i % 7 === 0 ? date : '', title: `${date}: ${v} ${v === 1 ? 'call' : 'calls'}`,
@@ -323,10 +429,25 @@ class Component extends DCLogic {
       .map(([what, who, when, why, link, dur, plain]) => ({ what, hasLink: !!link, meta: plain ? ` · ${why} · ${when}` : (who ? ` by ${who}, ${when}` : `, ${when}`) + (dur ? ` · ${dur}` : '') + ` · “${why}”` }));
     const noReason = !st.reason.trim();
     const how = d.spec ? (d.how || 'classifier') : null, rich = how === 'confirmed' || how === 'llm';
+    const fpRows = R ? R.filter(r => r.fp && !r.back) : [], disRows = R ? R.filter(r => r.dis && !r.back) : [];
+    const mdy = s => { const [dd, mm] = s.split(' '); return mm + ' ' + dd; };
+    const ucParts = [];
+    if (fpRows.length) ucParts.push(fpRows.length + (fpRows.length === 1 ? ' finding marked as a false positive' : ' findings marked as false positives'));
+    if (disRows.length) ucParts.push(disRows.length + (disRows.length === 1 ? ' flag dismissed by the model' : ' flags dismissed by the model'));
+    const item = (r, act) => { const key = id + ':' + r.k; return { when: whenOf(r.t), href: r.mo != null ? callHref(r.mo) : 'Connexity Call.dc.html?call=' + d.callId, hasMo: r.mo != null, mo: r.mo != null ? 'at ' + mmss(r.mo) : '', act, confirming: st.confirm === key,
+      ask: () => this.setState(s => ({ confirm: s.confirm === key ? null : key })), cancel: () => this.setState({ confirm:null }), doIt: () => this.setState(s => ({ back: { ...s.back, [key]: true }, confirm:null })),
+      ...(r.fp ? { by: 'Marked by ' + r.fp.by + ' on ' + mdy(r.fp.on), why: r.fp.why, hasRests: r.fp.rests != null, rests: r.fp.rests != null ? 'Rests on: Clarified: ' + d.clars[r.fp.rests][0] : '', hasAppr: !!r.fp.appr, appr: r.fp.appr ? 'Approved by ' + r.fp.appr : '' }
+        : { by: 'Dismissed by Claude Haiku 5.5 · flagged by the classifier, ' + r.p.toFixed(2), why: r.dis, hasRests:false, rests:'', hasAppr:false, appr:'' }) }; };
+    const group = (gk, title, rows, act) => { const all = !!st.showAll[id + gk]; return { title, count: String(rows.length), show: rows.length > 0, rows: (all ? rows : rows.slice(0, 10)).map(r => item(r, act)), hasMore: !all && rows.length > 10, more: 'Show all ' + rows.length, showAll: () => this.setState(s => ({ showAll: { ...s.showAll, [id + gk]: true } })) }; };
     return {
       rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
       title: d.title, agent: d.agent, agentHref: profile + '&tab=issues',
-      isSpec: !!d.spec, notSpec: !d.spec, momentCols: rich, oneCol: !rich,
+      isSpec: !!d.spec, notSpec: !d.spec, momentCols: rich && occSrc.length > 0, oneCol: !rich && occSrc.length > 0, noCalls: occSrc.length === 0, hasCalls: occSrc.length > 0,
+      hasUncounted: ucParts.length > 0, ucSummary: ucParts.join(' · '), ucOpen: st.ucOpen, ucLoading: !!st.ucLoading, ucReady: !st.ucLoading, ucRef: this.ucRef,
+      ucChev: { flex:'none', color:'var(--ink3)', transform: st.ucOpen ? 'rotate(90deg)' : 'none', transition:'transform 120ms' },
+      toggleUc: () => { if (st.ucOpen) this.setState({ ucOpen:false, confirm:null }); else this.openList(); },
+      openUc: () => { this.openList(); setTimeout(() => { const el = this.ucRef.current; if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 24, behavior:'smooth' }); }, 30); },
+      groups: [group('fp', 'Marked as false positives', fpRows, 'Undo'), group('dis', 'Dismissed by the model', disRows, 'Bring back')].filter(g => g.show),
       foundLine: d.spec ? { classifier:'Found by a classifier that reads the whole call. It gives no moment or reason.', confirmed:'Found by a classifier, confirmed by an LLM that gives the moment and the reason.', llm:'Found by an LLM that reads the whole call and gives the moment and the reason.' }[how] : '', typeLine: d.spec ? 'Spec rule broken · ' + C.CATS[d.cat] : '',
       clars: (d.clars || []).map(([t, w, dt]) => { const [dd, mm] = dt.split(' '); return { text: 'Clarified: ' + t, by: 'answered by ' + (w === 'Y' ? 'your assistant' : 'Alex') + ' on ' + mm + ' ' + dd }; }),
       isCrit: d.sev === 'c', isWarn: d.sev === 'w',
@@ -340,17 +461,17 @@ class Component extends DCLogic {
         style: { display:'flex', alignItems:'flex-start', gap:10, padding:'8px 10px', borderRadius:8, cursor:'pointer', border:'1px solid ' + (st.dur === v ? 'var(--bc)' : 'transparent'), background: st.dur === v ? 'var(--wash)' : 'transparent' } })),
       isArchived: status === 'k', archLine: arch ? `Archived by ${arch.who}, ${arch.when} · ${arch.dur} · “${arch.why}”` : '',
       confirmStyle: { height:36, padding:'0 14px', borderRadius:8, border:0, background:'var(--accent)', color:'var(--on-accent)', fontSize:15, fontWeight:500, cursor: noReason ? 'default' : 'pointer', opacity: noReason ? 0.4 : 1 },
-      calls: d.calls, callsOf: d.of, first: d.first, last: d.last, milestone: d.milestone, incidentCount: d.incidents.length + (d.incident ? 1 : 0),
+      calls, callsOf: d.of, first: d.first, last: d.last, milestone: d.milestone, incidentCount: d.incidents.length + (d.incident ? 1 : 0),
       inIncident: !!d.incident, incHref: d.incident ? 'Connexity Incident.dc.html?incident=' + d.incident[0] : '', incText: d.incident ? d.incident[1] : '',
       pastCount: String(d.incidents.length),
       tip: d.tip,
       stopped: status === 'k', stoppedNote: 'Stopped: archived on ' + (arch ? arch.when : ''),
       steps, days, marks, yMax, yMid: yMax / 2,
-      occ: rich ? d.occ.map(([when, last4, dur, res, prob, mo, why]) => ({ rich:true, plain:false, when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded',
+      occ: rich ? occSrc.map(([when, last4, dur, res, prob, mo, why]) => ({ rich:true, plain:false, when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded',
         at: mo != null ? 'at ' + mmss(mo) : '\u2014', reason: why || '', prob: prob != null ? prob.toFixed(2) : '',
         href: mo != null ? callHref(mo) : 'Connexity Call.dc.html?call=' + d.callId, title: mo != null ? 'Open the call at this moment' : 'Open the call' }))
-      : d.occ.map(([when, last4, dur, res, at, times]) => ({ rich:false, plain:true, when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: d.spec ? at.toFixed(2) : 'at ' + mmss(at), times: !d.spec && times > 1 ? ` · ${times} times` : '', href: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(at), title: d.spec ? 'Open the call' : 'Open the call at this moment' })),
-      allText: `All ${d.calls} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id,
+      : occSrc.map(([when, last4, dur, res, at, times]) => ({ rich:false, plain:true, when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: d.spec ? at.toFixed(2) : 'at ' + mmss(at), times: !d.spec && times > 1 ? ` · ${times} times` : '', href: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(at), title: d.spec ? 'Open the call' : 'Open the call at this moment' })),
+      allText: `All ${calls} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id,
       incidents: d.incidents.map(([iid, period, failed, how]) => ({ period, failed, how, href:'Connexity Incident.dc.html?incident=' + iid })),
       history
     };

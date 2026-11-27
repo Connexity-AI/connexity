@@ -32,6 +32,10 @@ from app.crud import scenario as crud_scenario
 from app.crud import test_run as crud_test_run
 from app.crud.call_list import CallFilters
 from app.crud.check import version_reaches
+from app.crud.false_positive import (
+    dismissed_count_for_agent,
+    marked_count_for_check,
+)
 from app.crud.issue_list import calls_by_agent, period_start
 from app.crud.issue_page import (
     issue_calls_per_version,
@@ -104,6 +108,7 @@ from app.models.mcp import (
     McpArchiveIssue,
     McpCallItem,
     McpCalls,
+    McpCheckCounts,
     McpConnection,
     McpConnectVoicePlatform,
     McpEndedTask,
@@ -120,6 +125,7 @@ from app.models.mcp import (
     McpIssueSinceVersion,
     McpIssueVersion,
     McpMarkCritical,
+    McpMarkFalsePositives,
     McpMarkFixed,
     McpNextTask,
     McpPeople,
@@ -139,6 +145,7 @@ from app.models.mcp import (
     McpTaskRef,
     McpTestRuns,
     McpUnarchiveIssue,
+    McpUndoFalsePositives,
     McpWorkspace,
     McpWorkspaceDeletion,
     McpWriteScenarios,
@@ -196,6 +203,22 @@ from app.services.connections import (
     webhook_address,
 )
 from app.services.dashboard import dashboard
+from app.services.false_positive import (
+    PAGE as NOT_COUNTED_PAGE,
+)
+from app.services.false_positive import (
+    Group as NotCountedGroup,
+)
+from app.services.false_positive import (
+    MarkRefused,
+    bring_back,
+    not_counted,
+    undo_marks,
+    why_approval,
+)
+from app.services.false_positive import (
+    mark_false_positives as mark_findings_false,
+)
 from app.services.feedback import DAILY_CAP as FEEDBACK_DAILY_CAP
 from app.services.feedback import (
     FeedbackIn,
@@ -553,6 +576,7 @@ def list_calls(
         for call in calls:
             call.issue_findings = [
                 McpIssueFinding(
+                    id=finding.id,
                     event_ids=list(finding.event_keys),
                     detail=finding.detail,
                     effect=finding.effect,
@@ -851,6 +875,15 @@ SPEC_FINDING_RULE = (
 )
 
 
+FALSE_POSITIVE_RULE = (
+    "A finding marked as a false positive shows on no call and counts in no score "
+    "or size; it stays stored and can be undone. Marking changes nothing for future "
+    "calls. Mark without asking again only when a clarification the person answered "
+    "on the issue's own rule shows the findings are wrong, and name it. Ask the "
+    "person first, and pass `approved` true, when no clarification covers them, the "
+    "check has no spec rule, or the rule is critical; otherwise the marking is refused."
+)
+
 _ISSUE_RULES = [
     "Give the size as 'in N of M calls' (tiles.calls_affected of tiles.calls_total, "
     "the last 30 days), and say how it was found: found_by code_based means "
@@ -862,6 +895,7 @@ _ISSUE_RULES = [
     "(`found_how` confirmed or llm) gives each call's moment, when it named lines, and "
     "its `reason`.",
     SPEC_FINDING_RULE,
+    FALSE_POSITIVE_RULE,
     "Archiving is the person's decision. Before `archive_issue` or `unarchive_issue`, "
     "say which issue, its size and the duration, and wait for the person's yes; put "
     "their words in the reason.",
@@ -935,6 +969,8 @@ def _issue_answer(
     issue: Issue,
     next_steps: list[str],
     since_version: str | None = None,
+    not_counted_group: NotCountedGroup | None = None,
+    offset: int = 0,
 ) -> McpAnswer[McpIssue]:
     since = _since_version(session, issue, since_version)
     # A fix still waiting to go live already says so in its own step.
@@ -969,11 +1005,42 @@ def _issue_answer(
         since_version=since,
         findings_all_time=summary.finding_count,
         calls_all_time=summary.call_count,
+        check_counts=McpCheckCounts(
+            false_positives=marked_count_for_check(
+                session=session, agent_id=issue.agent_id, check_type=issue.check_type
+            ),
+            dismissed=dismissed_count_for_agent(
+                session=session, agent_id=issue.agent_id
+            )
+            if issue.check_type == SPEC_CHECK_TYPE
+            else 0,
+        ),
+        not_counted=not_counted(
+            session=session,
+            issue=issue,
+            group=not_counted_group,
+            offset=offset,
+            limit=NOT_COUNTED_PAGE,
+        )
+        if not_counted_group is not None
+        else None,
     )
     if page.tiles.calls_affected:
         next_steps.append(
             f"Call `list_calls` with issue_id {issue.id} (and a `limit`) for the calls "
             "it was found on, with its findings in each."
+        )
+    if not_counted_group is None and (page.false_positives or page.dismissed):
+        next_steps.append(
+            f"{page.false_positives} of its findings are marked as false positives and "
+            f"{page.dismissed} flags were dismissed by the model: call `get_issue` "
+            "with `not_counted` false_positives or dismissed to read them, and "
+            "`undo_mark_false_positives` if one was wrong."
+        )
+    if detail.not_counted is not None and detail.not_counted.next_offset is not None:
+        next_steps.append(
+            f"More rows: call `get_issue` again with `offset` "
+            f"{detail.not_counted.next_offset}."
         )
     return McpAnswer[McpIssue](
         data=detail, rules=_ISSUE_RULES, next_steps=next_steps, guide=GUIDE_ISSUES
@@ -989,12 +1056,24 @@ def get_issue(
     workspace: McpWorkspaceDep,
     issue_id: uuid.UUID,
     since_version: str | None = Query(default=None, max_length=255),
+    not_counted: NotCountedGroup | None = Query(default=None),
+    offset: int = Query(default=0, ge=0),
 ) -> McpAnswer[McpIssue]:
     issue = _mcp_issue(session, workspace, issue_id)
     next_steps = _fix_steps(issue)
     spec_rule = issue.check_type == SPEC_CHECK_TYPE
     if spec_rule:
         next_steps.extend(_spec_issue_steps(issue))
+    else:
+        next_steps.append(
+            "If a finding looks wrong, read its call, ask the person, and with their "
+            "yes mark it with `mark_false_positives` (`approved` true, their reason)."
+        )
+    next_steps.append(
+        "If the same wrong finding keeps coming back on new calls, marking is not the "
+        "fix: use a clarification on the rule, the check's setting for the agent, or "
+        "archive."
+    )
     if issue.state is not IssueState.ARCHIVED:
         next_steps.append(
             "If the person decides nobody will fix it, ask them, then call "
@@ -1008,7 +1087,7 @@ def get_issue(
             "If the agent's spec does not say whether this behaviour is allowed, raise "
             "a question with `raise_clarifications` and these calls as evidence."
         )
-    return _issue_answer(session, issue, next_steps, since_version)
+    return _issue_answer(session, issue, next_steps, since_version, not_counted, offset)
 
 
 def _spec_issue_steps(issue: Issue) -> list[str]:
@@ -1020,9 +1099,13 @@ def _spec_issue_steps(issue: Issue) -> list[str]:
         "raised alone has no moment or reason: find where yourself. One an LLM "
         "confirmed or found gives its reason and moment: check the reason against "
         "the call.",
-        "If the flags look wrong because the rule is unclear, ask the person: raise a "
-        f"clarification on the rule with `raise_clarifications` and `rule_key` "
-        f"`{issue.key}`, these calls as evidence.",
+        "If the flags look wrong because the rule is unclear, ask the person what the "
+        "rule means: raise a clarification on the rule with `raise_clarifications` "
+        f"and `rule_key` `{issue.key}`, these calls as evidence.",
+        "Once the person has answered it, new calls are judged with it, but old "
+        "findings are not judged again: mark the old wrong ones with "
+        "`mark_false_positives`, naming the clarification (`clarification_id`), "
+        "and work on the findings that are left.",
         "If the rule's check type or inputs are wrong (it has a condition the call "
         "alone cannot settle, or needs a value the agent was given), fix them with "
         "`write_spec`.",
@@ -1111,6 +1194,129 @@ def mark_issue_fixed(
             *_fix_steps(issue),
             "Tell the person it is marked fixed in version "
             f"{body.version}; it reopens by itself if it comes back.",
+            NEXT_TASK,
+        ],
+    )
+
+
+def _mark_refused(refused: MarkRefused) -> HTTPException:
+    return HTTPException(
+        status_code=422,
+        detail=McpErrorDetail(
+            error=refused.error,
+            next_steps=[*refused.steps, "Nothing changed."],
+            guide=GUIDE_ISSUES,
+        ).model_dump(),
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/issues/{issue_id}/false-positives",
+    response_model=McpAnswer[McpIssue],
+)
+def mark_false_positives(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    issue_id: uuid.UUID,
+    body: McpMarkFalsePositives,
+) -> McpAnswer[McpIssue]:
+    issue = _mcp_issue(session, workspace, issue_id)
+    if (
+        body.approved
+        and why_approval(session, issue, body.clarification_id) is not None
+    ):
+        # The person's approval is a decision: only someone who may approve.
+        _require_approver(session, current_user, workspace)
+    try:
+        changed = mark_findings_false(
+            session=session,
+            issue=issue,
+            finding_ids=body.finding_ids,
+            reason=body.reason,
+            clarification_id=body.clarification_id,
+            approved=body.approved,
+            by=current_user,
+            assistant_name=assistant or "your assistant",
+        )
+    except MarkRefused as refused:
+        raise _mark_refused(refused) from refused
+    session.refresh(issue)
+    left = f" {changed.unchanged} were already marked." if changed.unchanged else ""
+    return _issue_answer(
+        session,
+        issue,
+        [
+            f"Marked {changed.count} as false positives: they show on no call and "
+            f"count nowhere.{left} Tell the person, with the reason.",
+            "Work on the findings that are left (`list_calls` with this issue_id).",
+            "If one was wrong, `undo_mark_false_positives` brings it back.",
+            NEXT_TASK,
+        ],
+    )
+
+
+@router.post(
+    "/workspaces/{workspace_id}/issues/{issue_id}/false-positives/undo",
+    response_model=McpAnswer[McpIssue],
+)
+def undo_mark_false_positives(
+    session: SessionDep,
+    workspace: McpWorkspaceDep,
+    current_user: McpCurrentUser,
+    assistant: McpAssistantName,
+    issue_id: uuid.UUID,
+    body: McpUndoFalsePositives,
+) -> McpAnswer[McpIssue]:
+    issue = _mcp_issue(session, workspace, issue_id)
+    if not body.finding_ids and not body.dismissed_call_ids:
+        raise _mark_refused(
+            MarkRefused(
+                "Nothing named",
+                [
+                    "Name marked findings (`finding_ids`) or calls with a dismissed "
+                    "flag (`dismissed_call_ids`), from `get_issue` with `not_counted`."
+                ],
+            )
+        )
+    try:
+        undone = (
+            undo_marks(
+                session=session,
+                issue=issue,
+                finding_ids=body.finding_ids,
+                by=current_user,
+                assistant_name=assistant or "your assistant",
+            )
+            if body.finding_ids
+            else None
+        )
+        back = (
+            bring_back(
+                session=session,
+                issue=issue,
+                call_ids=body.dismissed_call_ids,
+                by=current_user,
+                assistant_name=assistant or "your assistant",
+            )
+            if body.dismissed_call_ids
+            else None
+        )
+    except MarkRefused as refused:
+        raise _mark_refused(refused) from refused
+    session.refresh(issue)
+    said = []
+    if undone is not None:
+        said.append(f"{undone.count} marks undone")
+    if back is not None:
+        said.append(f"{back.count} dismissed flags brought back as findings")
+    return _issue_answer(
+        session,
+        issue,
+        [
+            f"{' and '.join(said).capitalize()}: each shows on its call again and "
+            "counts in the score. Tell the person.",
             NEXT_TASK,
         ],
     )

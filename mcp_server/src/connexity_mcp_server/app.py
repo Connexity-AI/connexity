@@ -158,6 +158,12 @@ from connexity_mcp_server.tools import (
     archive_issue as _archive_issue,
 )
 from connexity_mcp_server.tools import (
+    mark_false_positives as _mark_false_positives,
+)
+from connexity_mcp_server.tools import (
+    undo_mark_false_positives as _undo_mark_false_positives,
+)
+from connexity_mcp_server.tools import (
     unarchive_issue as _unarchive_issue,
 )
 from connexity_mcp_server.tools import (
@@ -530,6 +536,8 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         workspace_id: WorkspaceId,
         issue_id: IssueId,
         since_version: Annotated[str | None, Field(description="An agent version: answer how many real calls ran it or a later one since it went live, and how many have this issue. Omit for the version the issue is fixed in.")] = None,
+        not_counted: Annotated[Literal["false_positives", "dismissed"] | None, Field(description="Also give one page of what the issue does not count: its findings marked as false positives, or (a broken spec rule) the flags the LLM step dismissed. Newest first, 10 a page.")] = None,
+        offset: Annotated[int, Field(ge=0, description="With not_counted: where the page starts, from `not_counted.next_offset`.")] = 0,
     ) -> IssueResult:
         """Everything Connexity has about one issue: the check behind it (what it
         looks for, how it decides, its version, and for a model check the model),
@@ -544,12 +552,61 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         whether it stopped after a fix: the agent's real calls since that version went
         live (on it or a later one) and how many have this issue; for an issue marked
         fixed it is given for the fix's version without asking. For the calls it was
-        found on, with its findings in each, use `list_calls` with the issue_id."""
+        found on, with its findings in each, use `list_calls` with the issue_id.
+        It counts the findings marked as false positives and the flags the model
+        dismissed (`false_positives`, `dismissed`, and `check_counts` for its check
+        on the agent); `not_counted` lists them."""
         return await _get_issue(
             client=backend_client,
             workspace_id=workspace_id,
             issue_id=issue_id,
             since_version=since_version,
+            not_counted=not_counted,
+            offset=offset,
+        )
+
+    @mcp_server.tool(annotations=DECIDES)
+    async def mark_false_positives(
+        workspace_id: WorkspaceId,
+        issue_id: IssueId,
+        finding_ids: Annotated[list[str], Field(min_length=1, max_length=200, description="The issue's findings to mark, from `list_calls` with this issue_id (`issue_findings[].id`) or `get_call`. At most 200.")],
+        reason: Annotated[str, Field(description="Why they are wrong, in one line.")],
+        clarification_id: Annotated[str | None, Field(description="The answered clarification on this issue's rule that shows they are wrong. With it the person need not approve again, unless the rule is critical.")] = None,
+        approved: Annotated[bool, Field(description="The person you act for approved this marking in your conversation. Needed with no clarification, for a check with no spec rule, or for a critical rule.")] = False,
+    ) -> IssueResult:
+        """Mark an issue's findings as false positives, many at once: they show on no
+        call and count in no score or size, stay stored, and can be undone. Nothing
+        changes for future calls. Use it after the person has answered a
+        clarification on the rule: name it, and old findings it shows are wrong are
+        cleared. With no clarification, on a check with no spec rule, or on a
+        critical rule, ask the person first and pass `approved`; otherwise it is
+        refused and nothing is marked."""
+        return await _mark_false_positives(
+            client=backend_client,
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            finding_ids=finding_ids,
+            reason=reason,
+            clarification_id=clarification_id,
+            approved=approved,
+        )
+
+    @mcp_server.tool(annotations=CREATES)
+    async def undo_mark_false_positives(
+        workspace_id: WorkspaceId,
+        issue_id: IssueId,
+        finding_ids: Annotated[list[str] | None, Field(max_length=200, description="Marked findings to count again, from `get_issue` with `not_counted` false_positives.")] = None,
+        dismissed_call_ids: Annotated[list[str] | None, Field(max_length=200, description="Calls whose flag the model dismissed on this issue's rule, to bring back as findings, from `get_issue` with `not_counted` dismissed.")] = None,
+    ) -> IssueResult:
+        """Count again what an issue does not count: undo false-positive marks, and
+        bring back flags the LLM step dismissed, which then become findings. Each
+        shows on its call again and counts in the score; tell the person."""
+        return await _undo_mark_false_positives(
+            client=backend_client,
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            finding_ids=finding_ids,
+            dismissed_call_ids=dismissed_call_ids,
         )
 
     @mcp_server.tool(annotations=DECIDES)

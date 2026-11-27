@@ -20,6 +20,7 @@ import { archiveIssueAction } from '@/actions/issues';
 import { answered } from '@/components/agents/spec-tab';
 import { clock, parseTime, timeLabel } from '@/components/calls/format';
 import { lastSeen } from '@/components/issues/issues-view';
+import { NotCounted, notCountedSummary } from '@/components/issues/not-counted';
 import { isErrorApiResult } from '@/utils/api';
 
 import type { IssueHistoryPublic, IssuePagePublic } from '@/client/types.gen';
@@ -86,6 +87,16 @@ const who = (by: string | null | undefined, assistant: string | null | undefined
 /** "by Alex, 9 Nov · until it spikes · 'reason'" */
 const historyMeta = (line: IssueHistoryPublic) => {
   if (line.kind === 'spiked') return ` · ${line.reason ?? ''} · ${dayLabel(line.at)}`;
+  if (
+    line.kind === 'marked_false' ||
+    line.kind === 'counted_again' ||
+    line.kind === 'brought_back'
+  ) {
+    // The assistant marks for the person it acts for; a person in the app acts alone.
+    const person = line.assistant ? `${line.assistant} for ${line.by ?? 'a person'}` : line.by;
+    const reason = line.reason ? ` · “${line.reason}”` : '';
+    return ` by ${person ?? 'a person'}, ${dayLabel(line.at)}${reason}`;
+  }
   // Marking fixed needs no approval; archiving and unarchiving do.
   const person =
     line.kind === 'opened'
@@ -368,6 +379,16 @@ export const IssueView: FC<Props> = ({ issue }) => {
   const foundHow = issue.found_how ?? 'classifier';
   // A broken spec rule an LLM confirmed or judged: each call has a moment and a reason.
   const withReasons = issue.whole_call && foundHow !== 'classifier';
+  const [notCountedOpen, setNotCountedOpen] = useState(false);
+  const notCountedRef = useRef<HTMLElement | null>(null);
+  const uncounted = notCountedSummary(issue);
+  const openNotCounted = () => {
+    setNotCountedOpen(true);
+    setTimeout(
+      () => notCountedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+      30
+    );
+  };
 
   return (
     <div className="flex max-w-[1120px] flex-col gap-6">
@@ -434,6 +455,16 @@ export const IssueView: FC<Props> = ({ issue }) => {
         />
         <Tile label="Last seen" value={lastSeen(issue.tiles.last_seen_at)} />
       </div>
+      {uncounted && (
+        <button
+          type="button"
+          onClick={openNotCounted}
+          title="Show what isn’t counted"
+          className="-mt-3 self-start border-0 bg-transparent p-0 text-left text-label text-ink-secondary underline decoration-border-control underline-offset-[3px] hover:text-ink"
+        >
+          {uncounted}
+        </button>
+      )}
       {issue.whole_call && (
         <p className="m-0 text-label text-ink-muted text-pretty">{FOUND_HOW[foundHow]}</p>
       )}
@@ -585,7 +616,9 @@ export const IssueView: FC<Props> = ({ issue }) => {
         ))}
         {issue.affected_calls.length === 0 && (
           <div className="border-t border-hairline px-6 py-4 text-body text-ink-secondary">
-            None in the last 30 days.
+            {(issue.false_positives ?? 0) > 0
+              ? 'No calls affected now.'
+              : 'None in the last 30 days.'}
           </div>
         )}
         {issue.tiles.calls_affected > 0 && (
@@ -599,6 +632,13 @@ export const IssueView: FC<Props> = ({ issue }) => {
           </Link>
         )}
       </Card>
+
+      <NotCounted
+        issue={issue}
+        open={notCountedOpen}
+        setOpen={setNotCountedOpen}
+        cardRef={notCountedRef}
+      />
 
       <Card title="History" flush>
         {issue.history.map((line) => (

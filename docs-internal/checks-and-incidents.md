@@ -316,6 +316,41 @@ rate and no outcome dashboard.
   lab's token counts, not measured: about $0.05 per 1,000 observed minutes to confirm
   flags, and $0.10 for each `llm` rule.
 
+**False positives and dismissed flags (built in 105.17, `plans/2026-11-27-false-positives.md`).**
+
+- **The path** (Dmytro: "1. Confirm with user 2. Create spec rule clarification 3.
+  decide if keep issue and work on it or mark as false positive"):
+  1. the assistant doubts an issue's findings and reads the calls;
+  2. it asks the person what the rule means;
+  3. it records the answer as a clarification, which judges new calls;
+  4. it marks the old wrong findings, naming the clarification;
+  5. it works on what is left.
+- **A mark is on findings, many at once,** from any check (Decided, Dmytro 2026-11-27).
+  Archive stays the action for a whole issue.
+- **A marked finding counts nowhere:** not on its call, not in a result, score, size or
+  chart (`counted_finding`, inside `shown_finding`). It stays stored, and checking the
+  call again keeps the mark while the check raises the same finding.
+- **Who may mark without asking:** the assistant marks without asking again when an
+  answered clarification on the issue's own rule covers the findings. Otherwise the
+  person approves in the conversation (`approved`): no clarification, a check with no
+  spec rule, or a critical rule. Without it, the marking is refused and nothing
+  changes (Decided, Dmytro 2026-11-27: "Refuse and say why").
+- **Nothing changes for future calls** (Decided, Dmytro 2026-11-27). A wrong finding
+  that keeps coming is fixed by a clarification, the check's setting, or archive.
+- **Dismissed flags:**
+  - A flag the LLM step dismissed is read from the stored answer.
+  - Bringing it back records who did it on that answer, and the call is checked again.
+    The classifier's flag then stands as a finding, without the model's reason
+    (`detail.brought_back_by`).
+  - A dismissed flag is listed only on its rule's issue.
+- **Where it is seen:** the issue page counts both kinds and lists them under "Not
+  counted", loaded only when opened (Decided, Dmytro 2026-11-27). Undo and Bring back
+  are there. MCP has the same list (`get_issue` with `not_counted`) and the same undo
+  (`undo_mark_false_positives`). Every marking, undo and bring-back is a decision on
+  the issue (`findings_counted`), shown in its history.
+- **An issue whose findings are all marked keeps its state** (Decided, Dmytro
+  2026-11-27).
+
 **Adding a check.** Dmytro names it in the Issue library. Then:
 
 1. Pick the kind: code-based if code over the trace can decide it; a classifier if it

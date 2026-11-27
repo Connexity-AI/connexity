@@ -170,6 +170,11 @@ class IssueMoment(BaseModel):
 
 
 class IssueFindingOnCall(BaseModel):
+    id: str | None = Field(
+        default=None,
+        description="The finding, for `mark_false_positives` and "
+        "`undo_mark_false_positives`",
+    )
     event_ids: list[str] = Field(default_factory=list)
     detail: dict[str, Any] | None = None
     effect: str
@@ -836,6 +841,50 @@ class IssueSinceVersion(BaseModel):
     last_call_at: str | None = None
 
 
+class CheckCounts(BaseModel):
+    false_positives: int = 0
+    dismissed: int = 0
+
+
+class NotCountedRow(BaseModel):
+    finding_id: str | None = Field(
+        default=None, description="The marked finding; none for a dismissed flag"
+    )
+    call_id: str
+    started_at: str
+    caller_last_four: str | None = None
+    at_seconds: float | None = Field(
+        default=None, description="Its moment in the call, when it has one"
+    )
+    by: str | None = Field(default=None, description="The person who marked it")
+    assistant: str | None = Field(
+        default=None, description="The assistant that marked it"
+    )
+    at: str | None = Field(default=None, description="When it was marked")
+    reason: str | None = Field(
+        default=None, description="Why it was marked, or the model's reason to dismiss"
+    )
+    clarification: str | None = Field(
+        default=None, description="The clarification the marking rests on"
+    )
+    approved_by: str | None = Field(
+        default=None, description="Who approved it, when the person had to"
+    )
+    model: str | None = Field(default=None, description="The model that dismissed it")
+    probability: float | None = Field(
+        default=None, description="The classifier's probability that raised the flag"
+    )
+
+
+class NotCounted(BaseModel):
+    group: str = Field(description="false_positives or dismissed")
+    total: int
+    rows: list[NotCountedRow] = Field(default_factory=list)
+    next_offset: int | None = Field(
+        default=None, description="Pass as `offset` for the next page"
+    )
+
+
 class IssuePage(BaseModel):
     id: str
     title: str
@@ -876,6 +925,23 @@ class IssuePage(BaseModel):
     clarifications: list[RuleClarification] = Field(
         default_factory=list,
         description="A broken spec rule: the clarifications in force on the rule",
+    )
+    false_positives: int = Field(
+        default=0,
+        description="Its findings marked as false positives, all time: shown on no "
+        "call and counted nowhere",
+    )
+    dismissed: int = Field(
+        default=0,
+        description="A broken spec rule: flags the LLM step dismissed on its rule",
+    )
+    check_counts: CheckCounts | None = Field(
+        default=None,
+        description="For its check on this agent: findings marked false and flags "
+        "dismissed, numbers only",
+    )
+    not_counted: NotCounted | None = Field(
+        default=None, description="With `not_counted`: one page of that group"
     )
 
 

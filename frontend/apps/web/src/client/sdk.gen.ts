@@ -192,9 +192,15 @@ import type {
   InvitesSignUpAndJoinData,
   InvitesSignUpAndJoinErrors,
   InvitesSignUpAndJoinResponses,
+  IssuesCountAgainData,
+  IssuesCountAgainErrors,
+  IssuesCountAgainResponses,
   IssuesGetIssueData,
   IssuesGetIssueErrors,
   IssuesGetIssueResponses,
+  IssuesGetNotCountedData,
+  IssuesGetNotCountedErrors,
+  IssuesGetNotCountedResponses,
   IssuesListAgentIssuesData,
   IssuesListAgentIssuesErrors,
   IssuesListAgentIssuesResponses,
@@ -288,6 +294,9 @@ import type {
   McpMarkCriticalData,
   McpMarkCriticalErrors,
   McpMarkCriticalResponses,
+  McpMarkFalsePositivesData,
+  McpMarkFalsePositivesErrors,
+  McpMarkFalsePositivesResponses,
   McpMarkIssueFixedData,
   McpMarkIssueFixedErrors,
   McpMarkIssueFixedResponses,
@@ -318,6 +327,9 @@ import type {
   McpUnarchiveIssueData,
   McpUnarchiveIssueErrors,
   McpUnarchiveIssueResponses,
+  McpUndoMarkFalsePositivesData,
+  McpUndoMarkFalsePositivesErrors,
+  McpUndoMarkFalsePositivesResponses,
   McpUpdatePersonData,
   McpUpdatePersonErrors,
   McpUpdatePersonResponses,
@@ -2156,6 +2168,48 @@ export class McpService {
   }
 
   /**
+   * Mark False Positives
+   */
+  public static markFalsePositives<ThrowOnError extends boolean = false>(
+    options: Options<McpMarkFalsePositivesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpMarkFalsePositivesResponses,
+      McpMarkFalsePositivesErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/false-positives',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Undo Mark False Positives
+   */
+  public static undoMarkFalsePositives<ThrowOnError extends boolean = false>(
+    options: Options<McpUndoMarkFalsePositivesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      McpUndoMarkFalsePositivesResponses,
+      McpUndoMarkFalsePositivesErrors,
+      ThrowOnError
+    >({
+      security: [{ scheme: 'bearer', type: 'http' }],
+      url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/false-positives/undo',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
    * Archive Issue
    */
   public static archiveIssue<ThrowOnError extends boolean = false>(
@@ -3847,6 +3901,65 @@ export class IssuesService {
       ],
       url: '/api/v1/issues/{issue_id}',
       ...options,
+    });
+  }
+
+  /**
+   * Get Not Counted
+   *
+   * One group of the issue's "Not counted" list, newest first: findings marked as
+   * false positives, or flags the LLM step dismissed. Read only when the list is
+   * opened.
+   */
+  public static getNotCounted<ThrowOnError extends boolean = false>(
+    options: Options<IssuesGetNotCountedData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      IssuesGetNotCountedResponses,
+      IssuesGetNotCountedErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/issues/{issue_id}/not-counted',
+      ...options,
+    });
+  }
+
+  /**
+   * Count Again
+   *
+   * Undo marks and bring back dismissed flags: each shows on its call again and
+   * counts in the score. Recorded on the issue as the person's.
+   */
+  public static countAgain<ThrowOnError extends boolean = false>(
+    options: Options<IssuesCountAgainData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      IssuesCountAgainResponses,
+      IssuesCountAgainErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/issues/{issue_id}/not-counted/count-again',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
   }
 

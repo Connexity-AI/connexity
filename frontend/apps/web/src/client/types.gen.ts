@@ -2352,6 +2352,44 @@ export type ComponentVersionSummary = {
 };
 
 /**
+ * CountAgainRequest
+ *
+ * Undo false-positive marks and bring back flags the model dismissed.
+ */
+export type CountAgainRequest = {
+  /**
+   * Finding Ids
+   *
+   * Marked findings to undo
+   */
+  finding_ids?: Array<string>;
+  /**
+   * Call Ids
+   *
+   * Calls whose dismissed flag on this issue's rule to bring back
+   */
+  call_ids?: Array<string>;
+};
+
+/**
+ * CountedAgainPublic
+ */
+export type CountedAgainPublic = {
+  /**
+   * Undone
+   *
+   * Marks undone
+   */
+  undone: number;
+  /**
+   * Brought Back
+   *
+   * Dismissed flags that became findings
+   */
+  brought_back: number;
+};
+
+/**
  * CoveragePublic
  *
  * Tests written: a rule is covered when at least one active scenario lists it.
@@ -2608,6 +2646,7 @@ export const DecisionKind = {
   CLARIFICATION_PARKED: 'clarification_parked',
   CLARIFICATION_REOPENED: 'clarification_reopened',
   PROMPT_GAP_CLOSED: 'prompt_gap_closed',
+  FINDINGS_COUNTED: 'findings_counted',
 } as const;
 
 /**
@@ -3490,7 +3529,10 @@ export type IssueHistoryPublic = {
     | 'resolved'
     | 'live'
     | 'reopened'
-    | 'changed';
+    | 'changed'
+    | 'marked_false'
+    | 'counted_again'
+    | 'brought_back';
   /**
    * What
    *
@@ -3782,6 +3824,18 @@ export type IssuePagePublic = {
    * A broken spec rule: its findings may judge the whole call, with no moment and no reason
    */
   whole_call?: boolean;
+  /**
+   * False Positives
+   *
+   * Its findings marked as false positives, all time: shown on no call and counted nowhere
+   */
+  false_positives?: number;
+  /**
+   * Dismissed
+   *
+   * For a broken spec rule: flags the LLM step dismissed on its rule, all time; they never became findings
+   */
+  dismissed?: number;
   /**
    * Found How
    *
@@ -5636,6 +5690,26 @@ export type McpCalls = {
 };
 
 /**
+ * McpCheckCounts
+ *
+ * For the issue's check on this agent: numbers only, nothing is suppressed.
+ */
+export type McpCheckCounts = {
+  /**
+   * False Positives
+   *
+   * Its findings marked as false positives
+   */
+  false_positives: number;
+  /**
+   * Dismissed
+   *
+   * For the spec check: flags the LLM step dismissed
+   */
+  dismissed?: number;
+};
+
+/**
  * McpClarificationAnswer
  */
 export type McpClarificationAnswer = {
@@ -5987,6 +6061,18 @@ export type McpIssue = {
    */
   whole_call?: boolean;
   /**
+   * False Positives
+   *
+   * Its findings marked as false positives, all time: shown on no call and counted nowhere
+   */
+  false_positives?: number;
+  /**
+   * Dismissed
+   *
+   * For a broken spec rule: flags the LLM step dismissed on its rule, all time; they never became findings
+   */
+  dismissed?: number;
+  /**
    * Found How
    *
    * For a broken spec rule, from its newest finding: the classifier alone, the classifier confirmed by an LLM, or an LLM alone
@@ -6031,6 +6117,14 @@ export type McpIssue = {
    * Calls it was found on, ever
    */
   calls_all_time: number;
+  /**
+   * For its check on this agent, over every issue: findings marked as false positives and flags dismissed
+   */
+  check_counts?: McpCheckCounts | null;
+  /**
+   * With `not_counted`: one page of that group, newest first
+   */
+  not_counted?: NotCountedPublic | null;
 };
 
 /**
@@ -6095,6 +6189,12 @@ export type McpIssueCheck = {
  * One finding of the filtered issue on a call.
  */
 export type McpIssueFinding = {
+  /**
+   * Id
+   *
+   * The finding, for `mark_false_positives` and `undo_mark_false_positives`
+   */
+  id: string;
   /**
    * Event Ids
    *
@@ -6240,6 +6340,36 @@ export type McpMarkCritical = {
    * Keys of rules whose failure is a Warning
    */
   not_critical?: Array<RuleKey>;
+};
+
+/**
+ * McpMarkFalsePositives
+ */
+export type McpMarkFalsePositives = {
+  /**
+   * Finding Ids
+   *
+   * The issue's findings to mark, from `list_calls` with this issue_id (`issue_findings[].id`) or `get_call`
+   */
+  finding_ids: Array<string>;
+  /**
+   * Reason
+   *
+   * Why they are wrong, in one line
+   */
+  reason: string;
+  /**
+   * Clarification Id
+   *
+   * The answered clarification on this issue's rule that shows they are wrong; with it the person need not approve again, unless the rule is critical
+   */
+  clarification_id?: string | null;
+  /**
+   * Approved
+   *
+   * The person you act for approved this marking in your conversation. Needed with no clarification, for a check with no spec rule, or for a critical rule
+   */
+  approved?: boolean;
 };
 
 /**
@@ -6965,6 +7095,24 @@ export type McpUnarchiveIssue = {
 };
 
 /**
+ * McpUndoFalsePositives
+ */
+export type McpUndoFalsePositives = {
+  /**
+   * Finding Ids
+   *
+   * Marked findings to count again (`not_counted` in `get_issue`)
+   */
+  finding_ids?: Array<string>;
+  /**
+   * Dismissed Call Ids
+   *
+   * Calls whose flag the model dismissed on this issue's rule, to bring back as findings (`not_counted` dismissed in `get_issue`)
+   */
+  dismissed_call_ids?: Array<string>;
+};
+
+/**
  * McpVoicePlatform
  */
 export const McpVoicePlatform = {
@@ -7186,6 +7334,114 @@ export type MoneyPublic = {
    * The included first scan, for an agency with no subscription
    */
   first_scan: FirstScanPublic | null;
+};
+
+/**
+ * NotCountedPublic
+ *
+ * One group of an issue's "Not counted" list, newest first, a page at a time.
+ */
+export type NotCountedPublic = {
+  /**
+   * Group
+   */
+  group: 'false_positives' | 'dismissed';
+  /**
+   * Total
+   */
+  total: number;
+  /**
+   * Rows
+   */
+  rows?: Array<NotCountedRow>;
+  /**
+   * Next Offset
+   *
+   * Pass as `offset` for the next page; none at the end
+   */
+  next_offset?: number | null;
+};
+
+/**
+ * NotCountedRow
+ *
+ * A finding marked as a false positive, or a flag the LLM step dismissed.
+ */
+export type NotCountedRow = {
+  /**
+   * Finding Id
+   *
+   * The marked finding; none for a dismissed flag
+   */
+  finding_id?: string | null;
+  /**
+   * Call Id
+   */
+  call_id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Caller Last Four
+   *
+   * The caller's last four digits; never the number
+   */
+  caller_last_four?: string | null;
+  /**
+   * At Seconds
+   *
+   * Its moment in the call, when it has one
+   */
+  at_seconds?: number | null;
+  /**
+   * By
+   *
+   * The person who marked it
+   */
+  by?: string | null;
+  /**
+   * Assistant
+   *
+   * The assistant that marked it for that person
+   */
+  assistant?: string | null;
+  /**
+   * At
+   *
+   * When it was marked
+   */
+  at?: string | null;
+  /**
+   * Reason
+   *
+   * Why it was marked, or the model's reason to dismiss
+   */
+  reason?: string | null;
+  /**
+   * Clarification
+   *
+   * The clarification the marking rests on
+   */
+  clarification?: string | null;
+  /**
+   * Approved By
+   *
+   * Who approved it, when the person had to
+   */
+  approved_by?: string | null;
+  /**
+   * Model
+   *
+   * The model that dismissed it
+   */
+  model?: string | null;
+  /**
+   * Probability
+   *
+   * The classifier's probability that raised the flag
+   */
+  probability?: number | null;
 };
 
 /**
@@ -14842,6 +15098,14 @@ export type McpGetIssueData = {
      * Since Version
      */
     since_version?: string | null;
+    /**
+     * Not Counted
+     */
+    not_counted?: 'false_positives' | 'dismissed' | null;
+    /**
+     * Offset
+     */
+    offset?: number;
   };
   url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}';
 };
@@ -14946,6 +15210,126 @@ export type McpMarkIssueFixedResponses = {
 
 export type McpMarkIssueFixedResponse =
   McpMarkIssueFixedResponses[keyof McpMarkIssueFixedResponses];
+
+export type McpMarkFalsePositivesData = {
+  body: McpMarkFalsePositives;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/false-positives';
+};
+
+export type McpMarkFalsePositivesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpMarkFalsePositivesError =
+  McpMarkFalsePositivesErrors[keyof McpMarkFalsePositivesErrors];
+
+export type McpMarkFalsePositivesResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpIssue;
+};
+
+export type McpMarkFalsePositivesResponse =
+  McpMarkFalsePositivesResponses[keyof McpMarkFalsePositivesResponses];
+
+export type McpUndoMarkFalsePositivesData = {
+  body: McpUndoFalsePositives;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+    /**
+     * Workspace Id
+     */
+    workspace_id: string;
+  };
+  query?: never;
+  url: '/api/v1/mcp/workspaces/{workspace_id}/issues/{issue_id}/false-positives/undo';
+};
+
+export type McpUndoMarkFalsePositivesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type McpUndoMarkFalsePositivesError =
+  McpUndoMarkFalsePositivesErrors[keyof McpUndoMarkFalsePositivesErrors];
+
+export type McpUndoMarkFalsePositivesResponses = {
+  /**
+   * Successful Response
+   */
+  200: McpAnswerMcpIssue;
+};
+
+export type McpUndoMarkFalsePositivesResponse =
+  McpUndoMarkFalsePositivesResponses[keyof McpUndoMarkFalsePositivesResponses];
 
 export type McpArchiveIssueData = {
   body: McpArchiveIssue;
@@ -19211,6 +19595,128 @@ export type IssuesGetIssueResponses = {
 };
 
 export type IssuesGetIssueResponse = IssuesGetIssueResponses[keyof IssuesGetIssueResponses];
+
+export type IssuesGetNotCountedData = {
+  body?: never;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+  };
+  query: {
+    /**
+     * Group
+     */
+    group: 'false_positives' | 'dismissed';
+    /**
+     * Offset
+     */
+    offset?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/issues/{issue_id}/not-counted';
+};
+
+export type IssuesGetNotCountedErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IssuesGetNotCountedError = IssuesGetNotCountedErrors[keyof IssuesGetNotCountedErrors];
+
+export type IssuesGetNotCountedResponses = {
+  /**
+   * Successful Response
+   */
+  200: NotCountedPublic;
+};
+
+export type IssuesGetNotCountedResponse =
+  IssuesGetNotCountedResponses[keyof IssuesGetNotCountedResponses];
+
+export type IssuesCountAgainData = {
+  body: CountAgainRequest;
+  path: {
+    /**
+     * Issue Id
+     */
+    issue_id: string;
+  };
+  query?: never;
+  url: '/api/v1/issues/{issue_id}/not-counted/count-again';
+};
+
+export type IssuesCountAgainErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type IssuesCountAgainError = IssuesCountAgainErrors[keyof IssuesCountAgainErrors];
+
+export type IssuesCountAgainResponses = {
+  /**
+   * Successful Response
+   */
+  200: CountedAgainPublic;
+};
+
+export type IssuesCountAgainResponse = IssuesCountAgainResponses[keyof IssuesCountAgainResponses];
 
 export type IssuesSetIssueStateData = {
   body: IssueStateUpdate;

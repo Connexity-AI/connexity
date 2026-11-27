@@ -13,6 +13,7 @@ from sqlmodel import Session, col, select
 from app import crud
 from app.crud.check import CONNEXITY, IssueSummary
 from app.crud.clarification import clarifications_in_force
+from app.crud.false_positive import any_finding_fails, dismissed_count, marked_count
 from app.crud.issue_page import (
     agent_calls_since,
     agent_version_starts,
@@ -29,7 +30,7 @@ from app.models.agent import Agent
 from app.models.call import Call
 from app.models.call_list import CallFilterOption, IssueMomentPublic
 from app.models.check import DecisionRecord, Finding, Issue
-from app.models.enums import CallCheckStatus, CheckKind, IssueState
+from app.models.enums import CallCheckStatus, CheckKind, DecisionKind, IssueState
 from app.models.issue_page import (
     ArchiveDuration,
     IssueAffectedCallPublic,
@@ -72,10 +73,32 @@ def _people(session: Session, records: list[DecisionRecord]) -> dict[str, str]:
     }
 
 
+def _counted_line(record: DecisionRecord) -> tuple[str, str]:
+    """A marking, its undo, or bringing back dismissed flags, in the history."""
+    count = int((record.detail or {}).get("count") or 0)
+    if record.new_value == "false_positive":
+        return "marked_false", (
+            "1 finding marked as a false positive"
+            if count == 1
+            else f"{count} findings marked as false positives"
+        )
+    if record.new_value == "brought_back":
+        return "brought_back", (
+            "1 flag the model dismissed brought back"
+            if count == 1
+            else f"{count} flags the model dismissed brought back"
+        )
+    return "counted_again", (
+        "1 false positive undone" if count == 1 else f"{count} false positives undone"
+    )
+
+
 def _history_line(record: DecisionRecord, by: str) -> IssueHistoryPublic:
     old, new = record.old_value, record.new_value
     connexity = record.decided_by is None and record.decided_by_email == CONNEXITY
-    if new == IssueState.ARCHIVED.value:
+    if record.kind is DecisionKind.FINDINGS_COUNTED:
+        kind, what = _counted_line(record)
+    elif new == IssueState.ARCHIVED.value:
         kind, what = "archived", "Archived"
     elif old == IssueState.ARCHIVED.value and connexity:
         kind, what = "spiked", "Came back: it spiked"
@@ -225,7 +248,14 @@ def issue_page(
         agent_id=issue.agent_id,
         agent_name=agent.name if agent else "",
         category=CallFilterOption(value=category.key, label=category.name),
-        severity="critical" if summary.critical else "warning",
+        # With every finding marked, none is counted: the severity stays the issue's.
+        severity="critical"
+        if summary.critical
+        or (
+            summary.finding_count == 0
+            and any_finding_fails(session=session, issue_id=issue.id)
+        )
+        else "warning",
         found_by=kind or _kind_of(issue.check_type),
         state=issue.state,
         resolved_version=issue.resolved_version,
@@ -278,6 +308,10 @@ def issue_page(
         history=history,
         whole_call=whole_call,
         found_how=_found_how(newest) if whole_call else None,
+        # Counts only: the rows load when the list is opened (Decided, Dmytro
+        # 2026-11-27).
+        false_positives=marked_count(session=session, issue_id=issue.id),
+        dismissed=dismissed_count(session=session, issue=issue),
         clarifications=clarifications,
     )
 

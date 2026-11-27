@@ -108,6 +108,25 @@ would flag the agent for saying something the prompt allows.
 - A finding that looks wrong usually means the rule is unclear: raise a clarification
   on it (`rule_key`), as below.
 
+### A finding that looks wrong
+
+When a spec issue's findings look wrong because its rule is unclear:
+
+1. Read some of the flagged calls (`list_calls` with the issue_id) against the rule.
+2. Ask the person what the rule means: raise a clarification on it (`rule_key`).
+3. Once they answer, new calls are judged with it. Old calls are not judged again.
+4. Mark the old findings the answer shows are wrong with `mark_false_positives`,
+   naming the clarification (`clarification_id`) and the reason. You need not ask
+   again, unless the rule is critical: then the person approves (`approved`).
+5. Work on the findings that are left.
+
+A marked finding shows on no call and counts nowhere; it stays stored and
+`undo_mark_false_positives` brings it back. Marking changes nothing for future calls:
+if the same wrong finding keeps coming, the fix is the clarification, the check's
+setting for the agent, or archive. The issue lists what it does not count, including
+flags the LLM step dismissed, which can be brought back (`get_issue` with
+`not_counted`).
+
 ## What is not a rule: a question for the person
 
 A rule comes only from the prompt. The only way to change a rule is to change the
