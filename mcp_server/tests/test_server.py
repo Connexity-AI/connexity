@@ -42,6 +42,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "list_tasks",
         "list_workspaces",
         "mark_critical_rules",
+        "mark_false_positives",
         "mark_issue_fixed",
         "move_task",
         "prepare_workspace_deletion",
@@ -52,6 +53,7 @@ async def test_server_lists_only_the_workspace_tools() -> None:
         "scan_calls",
         "send_feedback",
         "unarchive_issue",
+        "undo_mark_false_positives",
         "update_person",
         "write_scenario_set",
         "write_scenarios",
@@ -110,7 +112,13 @@ async def test_tools_say_whether_they_change_anything() -> None:
     assert tools["raise_clarifications"] is not None
     assert tools["raise_clarifications"].readOnlyHint is False
     assert tools["raise_clarifications"].destructiveHint is False
-    for name in ("archive_issue", "unarchive_issue", "answer_clarifications"):
+    for name in (
+        "archive_issue",
+        "unarchive_issue",
+        "answer_clarifications",
+        "mark_false_positives",
+        "undo_mark_false_positives",
+    ):
         assert tools[name] is not None
         assert tools[name].readOnlyHint is False
         assert tools[name].destructiveHint is False

@@ -216,6 +216,9 @@ class DecisionKind(StrEnum):
     CLARIFICATION_REOPENED = "clarification_reopened"
     # A spec written from a prompt that covers an answered prompt gap closed it.
     PROMPT_GAP_CLOSED = "prompt_gap_closed"
+    # Findings of an issue marked as false positives, the mark undone, or a flag the
+    # LLM step dismissed brought back (105.17). The subject is the issue's id.
+    FINDINGS_COUNTED = "findings_counted"
 
 
 class CheckOutcome(StrEnum):

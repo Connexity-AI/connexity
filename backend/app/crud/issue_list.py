@@ -12,6 +12,7 @@ from sqlalchemy import ColumnElement
 from sqlmodel import Session, col, func, select
 
 from app.crud.call_list import PERIODS
+from app.crud.check import counted_finding
 from app.models.call import Call
 from app.models.check import Finding, Issue
 from app.models.enums import IssueState
@@ -51,7 +52,11 @@ def calls_affected_by_issue(
     rows = session.exec(
         select(Finding.issue_id, func.count(func.distinct(col(Finding.call_id))))
         .join(Call, col(Call.id) == col(Finding.call_id))
-        .where(col(Finding.issue_id).in_(issue_ids), *_in_period(since, version))
+        .where(
+            col(Finding.issue_id).in_(issue_ids),
+            counted_finding(),
+            *_in_period(since, version),
+        )
         .group_by(col(Finding.issue_id))
     ).all()
     return dict(rows)
@@ -68,7 +73,7 @@ def calls_affected_by_category(
         select(Issue.category_id, func.count(func.distinct(col(Finding.call_id))))
         .join(Finding, col(Finding.issue_id) == col(Issue.id))
         .join(Call, col(Call.id) == col(Finding.call_id))
-        .where(col(Issue.id).in_(issue_ids), *_in_period(since))
+        .where(col(Issue.id).in_(issue_ids), counted_finding(), *_in_period(since))
         .group_by(col(Issue.category_id))
     ).all()
     return dict(rows)
@@ -107,6 +112,7 @@ def calls_with_live_issues(
         .where(
             Issue.company_id == company_id,
             col(Issue.state).in_(LIVE_STATES),
+            counted_finding(),
             *_in_period(since, version),
         )
     )

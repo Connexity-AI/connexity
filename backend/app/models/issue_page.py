@@ -98,6 +98,9 @@ class IssueHistoryPublic(BaseModel):
         "live",
         "reopened",
         "changed",
+        "marked_false",
+        "counted_again",
+        "brought_back",
     ]
     what: str = Field(description="'Archived', 'Came back: it spiked'")
     by: str | None = Field(
@@ -140,6 +143,16 @@ class IssuePagePublic(BaseModel):
         description="A broken spec rule: its findings may judge the whole call, with "
         "no moment and no reason",
     )
+    false_positives: int = Field(
+        default=0,
+        description="Its findings marked as false positives, all time: shown on no call "
+        "and counted nowhere",
+    )
+    dismissed: int = Field(
+        default=0,
+        description="For a broken spec rule: flags the LLM step dismissed on its rule, "
+        "all time; they never became findings",
+    )
     found_how: Literal["classifier", "confirmed", "llm"] | None = Field(
         default=None,
         description="For a broken spec rule, from its newest finding: the classifier "
@@ -149,3 +162,66 @@ class IssuePagePublic(BaseModel):
         default_factory=list,
         description="For a broken spec rule: the clarifications in force on the rule",
     )
+
+
+class NotCountedRow(BaseModel):
+    """A finding marked as a false positive, or a flag the LLM step dismissed."""
+
+    finding_id: uuid.UUID | None = Field(
+        default=None, description="The marked finding; none for a dismissed flag"
+    )
+    call_id: uuid.UUID
+    started_at: datetime
+    caller_last_four: str | None = Field(
+        default=None, description="The caller's last four digits; never the number"
+    )
+    at_seconds: float | None = Field(
+        default=None, description="Its moment in the call, when it has one"
+    )
+    by: str | None = Field(default=None, description="The person who marked it")
+    assistant: str | None = Field(
+        default=None, description="The assistant that marked it for that person"
+    )
+    at: datetime | None = Field(default=None, description="When it was marked")
+    reason: str | None = Field(
+        default=None, description="Why it was marked, or the model's reason to dismiss"
+    )
+    clarification: str | None = Field(
+        default=None, description="The clarification the marking rests on"
+    )
+    approved_by: str | None = Field(
+        default=None, description="Who approved it, when the person had to"
+    )
+    model: str | None = Field(default=None, description="The model that dismissed it")
+    probability: float | None = Field(
+        default=None, description="The classifier's probability that raised the flag"
+    )
+
+
+class NotCountedPublic(BaseModel):
+    """One group of an issue's "Not counted" list, newest first, a page at a time."""
+
+    group: Literal["false_positives", "dismissed"]
+    total: int
+    rows: list[NotCountedRow] = Field(default_factory=list)
+    next_offset: int | None = Field(
+        default=None, description="Pass as `offset` for the next page; none at the end"
+    )
+
+
+class CountAgainRequest(BaseModel):
+    """Undo false-positive marks and bring back flags the model dismissed."""
+
+    finding_ids: list[uuid.UUID] = Field(
+        default_factory=list, max_length=200, description="Marked findings to undo"
+    )
+    call_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        max_length=200,
+        description="Calls whose dismissed flag on this issue's rule to bring back",
+    )
+
+
+class CountedAgainPublic(BaseModel):
+    undone: int = Field(description="Marks undone")
+    brought_back: int = Field(description="Dismissed flags that became findings")

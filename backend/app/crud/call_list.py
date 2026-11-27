@@ -17,7 +17,7 @@ from typing import NamedTuple
 from sqlalchemy import ColumnElement, String, and_, case, cast, exists, func, or_
 from sqlmodel import Session, col, select
 
-from app.crud.check import shown_finding
+from app.crud.check import counted_finding, shown_finding
 from app.models.agent import Agent
 from app.models.call import Call
 from app.models.category import Category
@@ -150,7 +150,9 @@ def _where(
     if filters.issue_id is not None:
         conditions.append(
             exists().where(
-                Finding.call_id == Call.id, Finding.issue_id == filters.issue_id
+                Finding.call_id == Call.id,
+                Finding.issue_id == filters.issue_id,
+                counted_finding(),
             )
         )
     if with_result and filters.result is not None:

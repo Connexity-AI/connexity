@@ -282,10 +282,54 @@ async def get_issue(
     workspace_id: str,
     issue_id: str,
     since_version: str | None = None,
+    not_counted: str | None = None,
+    offset: int = 0,
 ) -> IssueResult:
     return IssueResult.model_validate(
         await client.get_issue(
-            workspace_id=workspace_id, issue_id=issue_id, since_version=since_version
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            since_version=since_version,
+            not_counted=not_counted,
+            offset=offset,
+        )
+    )
+
+
+async def mark_false_positives(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    issue_id: str,
+    finding_ids: list[str],
+    reason: str,
+    clarification_id: str | None = None,
+    approved: bool = False,
+) -> IssueResult:
+    return IssueResult.model_validate(
+        await client.mark_false_positives(
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            finding_ids=finding_ids,
+            reason=reason,
+            clarification_id=clarification_id,
+            approved=approved,
+        )
+    )
+
+
+async def undo_mark_false_positives(
+    client: ConnexityBackendClient,
+    workspace_id: str,
+    issue_id: str,
+    finding_ids: list[str] | None = None,
+    dismissed_call_ids: list[str] | None = None,
+) -> IssueResult:
+    return IssueResult.model_validate(
+        await client.undo_mark_false_positives(
+            workspace_id=workspace_id,
+            issue_id=issue_id,
+            finding_ids=finding_ids or [],
+            dismissed_call_ids=dismissed_call_ids or [],
         )
     )
 

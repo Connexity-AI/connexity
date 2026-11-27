@@ -246,6 +246,8 @@ def get_call_trace(
         findings=[
             _finding_public(row)
             for row in crud.get_findings(session=session, call=call)
+            # A false positive shows on no call (105.17).
+            if row.false_positive_at is None
         ],
         checks=[
             _call_check_public(row)

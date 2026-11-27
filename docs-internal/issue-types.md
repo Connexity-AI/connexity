@@ -18,6 +18,12 @@ decision record).
 
 Checks are a library: a check is added only when Dmytro names it.
 
+**False positives (105.17):** a finding of any type can be marked as a false positive,
+many at once, and the mark undone. A marked finding shows on no call and counts in no
+score; it is listed on its issue's page under "Not counted". A spec rule's issue also
+lists the flags the LLM step dismissed there, which can be brought back. How it works
+is in [`checks-and-incidents.md`](./checks-and-incidents.md).
+
 | Type | Title | Found by | Category | Default | Key |
 |---|---|---|---|---|---|
 | `tool_call_failed` | Tool call failed | Code-based | Tools and integrations | Critical | The tool's name |

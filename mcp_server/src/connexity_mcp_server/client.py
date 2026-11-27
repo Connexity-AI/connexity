@@ -242,12 +242,60 @@ class ConnexityBackendClient:
         )
 
     async def get_issue(
-        self, *, workspace_id: str, issue_id: str, since_version: str | None = None
+        self,
+        *,
+        workspace_id: str,
+        issue_id: str,
+        since_version: str | None = None,
+        not_counted: str | None = None,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {}
+        if since_version:
+            params["since_version"] = since_version
+        if not_counted:
+            params["not_counted"] = not_counted
+            params["offset"] = offset
+        return await self._request_json(
+            "GET", self._issue_path(workspace_id, issue_id), params=params or None
+        )
+
+    async def mark_false_positives(
+        self,
+        *,
+        workspace_id: str,
+        issue_id: str,
+        finding_ids: list[str],
+        reason: str,
+        clarification_id: str | None,
+        approved: bool,
     ) -> dict[str, Any]:
         return await self._request_json(
-            "GET",
-            self._issue_path(workspace_id, issue_id),
-            params={"since_version": since_version} if since_version else None,
+            "POST",
+            f"{self._issue_path(workspace_id, issue_id)}/false-positives",
+            json={
+                "finding_ids": finding_ids,
+                "reason": reason,
+                "clarification_id": clarification_id,
+                "approved": approved,
+            },
+        )
+
+    async def undo_mark_false_positives(
+        self,
+        *,
+        workspace_id: str,
+        issue_id: str,
+        finding_ids: list[str],
+        dismissed_call_ids: list[str],
+    ) -> dict[str, Any]:
+        return await self._request_json(
+            "POST",
+            f"{self._issue_path(workspace_id, issue_id)}/false-positives/undo",
+            json={
+                "finding_ids": finding_ids,
+                "dismissed_call_ids": dismissed_call_ids,
+            },
         )
 
     async def archive_issue(

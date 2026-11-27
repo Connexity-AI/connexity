@@ -135,8 +135,9 @@ TOOLS: dict[str, ToolEntry] = {
     # Calls and issues
     "list_calls": ToolEntry(
         "calls_and_issues",
-        "Lists calls, newest first, with their result and what the checks found. A "
-        "call where the agent said fewer than 10 words is not graded.",
+        "Lists calls, newest first, with their result and what the checks found, "
+        "and with an issue its findings with their ids. A call where the agent said "
+        "fewer than 10 words is not graded.",
         "calls",
     ),
     "read_calls": ToolEntry(
@@ -164,12 +165,22 @@ TOOLS: dict[str, ToolEntry] = {
     ),
     "get_issue": ToolEntry(
         "calls_and_issues",
-        "Everything about one issue: the check behind it, its size, versions and history, and whether it stopped since a version went live. A broken spec rule carries the rule's clarifications and how it was found.",
+        "Everything about one issue: the check behind it, its size, versions and history, and whether it stopped since a version went live. A broken spec rule carries the rule's clarifications and how it was found. It counts what it does not count, and lists it on request.",
         "issues",
     ),
     "mark_issue_fixed": ToolEntry(
         "calls_and_issues",
         "Marks an issue fixed in a version; it reopens if it happens again.",
+        "issues",
+    ),
+    "mark_false_positives": ToolEntry(
+        "calls_and_issues",
+        "Marks an issue's findings as false positives, many at once, so they count nowhere; the person approves unless a clarification covers them.",
+        "issues",
+    ),
+    "undo_mark_false_positives": ToolEntry(
+        "calls_and_issues",
+        "Counts marked findings again, and brings back flags the model dismissed.",
         "issues",
     ),
     "archive_issue": ToolEntry(

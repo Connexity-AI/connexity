@@ -38,7 +38,7 @@ from app.models.enums import (
     TaskKind,
 )
 from app.models.issue_list import IssueListItemPublic, IssueTilesPublic
-from app.models.issue_page import IssuePagePublic
+from app.models.issue_page import IssuePagePublic, NotCountedPublic
 from app.models.scenario import ScenarioPublic
 from app.models.score import ScorePublic
 from app.models.spec import SpecState
@@ -584,6 +584,15 @@ class McpIssueSinceVersion(BaseModel):
     )
 
 
+class McpCheckCounts(BaseModel):
+    """For the issue's check on this agent: numbers only, nothing is suppressed."""
+
+    false_positives: int = Field(description="Its findings marked as false positives")
+    dismissed: int = Field(
+        default=0, description="For the spec check: flags the LLM step dismissed"
+    )
+
+
 class McpIssue(IssuePagePublic):
     """Everything Connexity has about one issue. The calls themselves come from
     `list_calls` with the issue's id."""
@@ -605,6 +614,15 @@ class McpIssue(IssuePagePublic):
     )
     findings_all_time: int = Field(description="Findings of this issue, ever")
     calls_all_time: int = Field(description="Calls it was found on, ever")
+    check_counts: McpCheckCounts | None = Field(
+        default=None,
+        description="For its check on this agent, over every issue: findings marked "
+        "as false positives and flags dismissed",
+    )
+    not_counted: NotCountedPublic | None = Field(
+        default=None,
+        description="With `not_counted`: one page of that group, newest first",
+    )
 
 
 class McpMarkFixed(BaseModel):
@@ -614,6 +632,44 @@ class McpMarkFixed(BaseModel):
     note: Annotated[
         str | None, StringConstraints(strip_whitespace=True, max_length=2000)
     ] = Field(default=None, description="What was changed, in a sentence")
+
+
+class McpMarkFalsePositives(BaseModel):
+    finding_ids: list[uuid.UUID] = Field(
+        min_length=1,
+        max_length=200,
+        description="The issue's findings to mark, from `list_calls` with this "
+        "issue_id (`issue_findings[].id`) or `get_call`",
+    )
+    reason: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)
+    ] = Field(description="Why they are wrong, in one line")
+    clarification_id: uuid.UUID | None = Field(
+        default=None,
+        description="The answered clarification on this issue's rule that shows they "
+        "are wrong; with it the person need not approve again, unless the rule is "
+        "critical",
+    )
+    approved: bool = Field(
+        default=False,
+        description="The person you act for approved this marking in your "
+        "conversation. Needed with no clarification, for a check with no spec rule, "
+        "or for a critical rule",
+    )
+
+
+class McpUndoFalsePositives(BaseModel):
+    finding_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        max_length=200,
+        description="Marked findings to count again (`not_counted` in `get_issue`)",
+    )
+    dismissed_call_ids: list[uuid.UUID] = Field(
+        default_factory=list,
+        max_length=200,
+        description="Calls whose flag the model dismissed on this issue's rule, to "
+        "bring back as findings (`not_counted` dismissed in `get_issue`)",
+    )
 
 
 class McpUnarchiveIssue(BaseModel):
@@ -630,6 +686,10 @@ class McpIssues(BaseModel):
 class McpIssueFinding(BaseModel):
     """One finding of the filtered issue on a call."""
 
+    id: uuid.UUID = Field(
+        description="The finding, for `mark_false_positives` and "
+        "`undo_mark_false_positives`"
+    )
     event_ids: list[str] = Field(
         description="The call's timeline events it points at; `get_call` shows them"
     )

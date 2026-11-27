@@ -3422,6 +3422,52 @@ export const ComponentVersionSummarySchema = {
   title: 'ComponentVersionSummary',
 } as const;
 
+export const CountAgainRequestSchema = {
+  properties: {
+    finding_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 200,
+      title: 'Finding Ids',
+      description: 'Marked findings to undo',
+    },
+    call_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 200,
+      title: 'Call Ids',
+      description: "Calls whose dismissed flag on this issue's rule to bring back",
+    },
+  },
+  type: 'object',
+  title: 'CountAgainRequest',
+  description: 'Undo false-positive marks and bring back flags the model dismissed.',
+} as const;
+
+export const CountedAgainPublicSchema = {
+  properties: {
+    undone: {
+      type: 'integer',
+      title: 'Undone',
+      description: 'Marks undone',
+    },
+    brought_back: {
+      type: 'integer',
+      title: 'Brought Back',
+      description: 'Dismissed flags that became findings',
+    },
+  },
+  type: 'object',
+  required: ['undone', 'brought_back'],
+  title: 'CountedAgainPublic',
+} as const;
+
 export const CoveragePublicSchema = {
   properties: {
     rules: {
@@ -3792,6 +3838,7 @@ export const DecisionKindSchema = {
     'clarification_parked',
     'clarification_reopened',
     'prompt_gap_closed',
+    'findings_counted',
   ],
   title: 'DecisionKind',
 } as const;
@@ -5021,6 +5068,9 @@ export const IssueHistoryPublicSchema = {
         'live',
         'reopened',
         'changed',
+        'marked_false',
+        'counted_again',
+        'brought_back',
       ],
       title: 'Kind',
     },
@@ -5454,6 +5504,20 @@ export const IssuePagePublicSchema = {
       description:
         'A broken spec rule: its findings may judge the whole call, with no moment and no reason',
       default: false,
+    },
+    false_positives: {
+      type: 'integer',
+      title: 'False Positives',
+      description:
+        'Its findings marked as false positives, all time: shown on no call and counted nowhere',
+      default: 0,
+    },
+    dismissed: {
+      type: 'integer',
+      title: 'Dismissed',
+      description:
+        'For a broken spec rule: flags the LLM step dismissed on its rule, all time; they never became findings',
+      default: 0,
     },
     found_how: {
       anyOf: [
@@ -8132,6 +8196,26 @@ export const McpCallsSchema = {
   title: 'McpCalls',
 } as const;
 
+export const McpCheckCountsSchema = {
+  properties: {
+    false_positives: {
+      type: 'integer',
+      title: 'False Positives',
+      description: 'Its findings marked as false positives',
+    },
+    dismissed: {
+      type: 'integer',
+      title: 'Dismissed',
+      description: 'For the spec check: flags the LLM step dismissed',
+      default: 0,
+    },
+  },
+  type: 'object',
+  required: ['false_positives'],
+  title: 'McpCheckCounts',
+  description: "For the issue's check on this agent: numbers only, nothing is suppressed.",
+} as const;
+
 export const McpClarificationAnswerSchema = {
   properties: {
     label: {
@@ -8648,6 +8732,20 @@ export const McpIssueSchema = {
         'A broken spec rule: its findings may judge the whole call, with no moment and no reason',
       default: false,
     },
+    false_positives: {
+      type: 'integer',
+      title: 'False Positives',
+      description:
+        'Its findings marked as false positives, all time: shown on no call and counted nowhere',
+      default: 0,
+    },
+    dismissed: {
+      type: 'integer',
+      title: 'Dismissed',
+      description:
+        'For a broken spec rule: flags the LLM step dismissed on its rule, all time; they never became findings',
+      default: 0,
+    },
     found_how: {
       anyOf: [
         {
@@ -8732,6 +8830,29 @@ export const McpIssueSchema = {
       type: 'integer',
       title: 'Calls All Time',
       description: 'Calls it was found on, ever',
+    },
+    check_counts: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/McpCheckCounts',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'For its check on this agent, over every issue: findings marked as false positives and flags dismissed',
+    },
+    not_counted: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/NotCountedPublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'With `not_counted`: one page of that group, newest first',
     },
   },
   type: 'object',
@@ -8833,6 +8954,12 @@ export const McpIssueCheckSchema = {
 
 export const McpIssueFindingSchema = {
   properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'The finding, for `mark_false_positives` and `undo_mark_false_positives`',
+    },
     event_ids: {
       items: {
         type: 'string',
@@ -8866,7 +8993,7 @@ export const McpIssueFindingSchema = {
     },
   },
   type: 'object',
-  required: ['event_ids', 'effect', 'check_version'],
+  required: ['id', 'event_ids', 'effect', 'check_version'],
   title: 'McpIssueFinding',
   description: 'One finding of the filtered issue on a call.',
 } as const;
@@ -9037,6 +9164,54 @@ export const McpMarkCriticalSchema = {
   },
   type: 'object',
   title: 'McpMarkCritical',
+} as const;
+
+export const McpMarkFalsePositivesSchema = {
+  properties: {
+    finding_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 200,
+      minItems: 1,
+      title: 'Finding Ids',
+      description:
+        "The issue's findings to mark, from `list_calls` with this issue_id (`issue_findings[].id`) or `get_call`",
+    },
+    reason: {
+      type: 'string',
+      maxLength: 1000,
+      minLength: 1,
+      title: 'Reason',
+      description: 'Why they are wrong, in one line',
+    },
+    clarification_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Clarification Id',
+      description:
+        "The answered clarification on this issue's rule that shows they are wrong; with it the person need not approve again, unless the rule is critical",
+    },
+    approved: {
+      type: 'boolean',
+      title: 'Approved',
+      description:
+        'The person you act for approved this marking in your conversation. Needed with no clarification, for a check with no spec rule, or for a critical rule',
+      default: false,
+    },
+  },
+  type: 'object',
+  required: ['finding_ids', 'reason'],
+  title: 'McpMarkFalsePositives',
 } as const;
 
 export const McpMarkFixedSchema = {
@@ -10157,6 +10332,34 @@ export const McpUnarchiveIssueSchema = {
   title: 'McpUnarchiveIssue',
 } as const;
 
+export const McpUndoFalsePositivesSchema = {
+  properties: {
+    finding_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 200,
+      title: 'Finding Ids',
+      description: 'Marked findings to count again (`not_counted` in `get_issue`)',
+    },
+    dismissed_call_ids: {
+      items: {
+        type: 'string',
+        format: 'uuid',
+      },
+      type: 'array',
+      maxItems: 200,
+      title: 'Dismissed Call Ids',
+      description:
+        "Calls whose flag the model dismissed on this issue's rule, to bring back as findings (`not_counted` dismissed in `get_issue`)",
+    },
+  },
+  type: 'object',
+  title: 'McpUndoFalsePositives',
+} as const;
+
 export const McpVoicePlatformSchema = {
   type: 'string',
   enum: ['retell', 'vapi', 'elevenlabs'],
@@ -10467,6 +10670,196 @@ export const MoneyPublicSchema = {
   ],
   title: 'MoneyPublic',
   description: 'What an agency has left, in dollars.',
+} as const;
+
+export const NotCountedPublicSchema = {
+  properties: {
+    group: {
+      type: 'string',
+      enum: ['false_positives', 'dismissed'],
+      title: 'Group',
+    },
+    total: {
+      type: 'integer',
+      title: 'Total',
+    },
+    rows: {
+      items: {
+        $ref: '#/components/schemas/NotCountedRow',
+      },
+      type: 'array',
+      title: 'Rows',
+    },
+    next_offset: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Next Offset',
+      description: 'Pass as `offset` for the next page; none at the end',
+    },
+  },
+  type: 'object',
+  required: ['group', 'total'],
+  title: 'NotCountedPublic',
+  description: 'One group of an issue\'s "Not counted" list, newest first, a page at a time.',
+} as const;
+
+export const NotCountedRowSchema = {
+  properties: {
+    finding_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Finding Id',
+      description: 'The marked finding; none for a dismissed flag',
+    },
+    call_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Call Id',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    caller_last_four: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Caller Last Four',
+      description: "The caller's last four digits; never the number",
+    },
+    at_seconds: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'At Seconds',
+      description: 'Its moment in the call, when it has one',
+    },
+    by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'By',
+      description: 'The person who marked it',
+    },
+    assistant: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Assistant',
+      description: 'The assistant that marked it for that person',
+    },
+    at: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'date-time',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'At',
+      description: 'When it was marked',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+      description: "Why it was marked, or the model's reason to dismiss",
+    },
+    clarification: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Clarification',
+      description: 'The clarification the marking rests on',
+    },
+    approved_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Approved By',
+      description: 'Who approved it, when the person had to',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'The model that dismissed it',
+    },
+    probability: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Probability',
+      description: "The classifier's probability that raised the flag",
+    },
+  },
+  type: 'object',
+  required: ['call_id', 'started_at'],
+  title: 'NotCountedRow',
+  description: 'A finding marked as a false positive, or a flag the LLM step dismissed.',
 } as const;
 
 export const OAuthClientRegistrationRequestSchema = {
