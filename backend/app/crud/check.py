@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import Mapping
+from collections.abc import Set as AbstractSet
 from datetime import UTC, datetime, timedelta
 from typing import Any, NamedTuple
 
@@ -194,10 +195,13 @@ def issues_of_findings(*, session: Session, call: Call) -> list[Issue]:
     )
 
 
-def _identity(finding: Finding) -> tuple[str, str | None, tuple[str, ...]]:
-    # A finding on the call as a whole (the spec check) points at no event; its key
-    # tells it apart.
-    key = None if finding.event_keys else finding.key
+def _identity(
+    finding: Finding, keyed: AbstractSet[str] = frozenset()
+) -> tuple[str, str | None, tuple[str, ...]]:
+    # A finding on the call as a whole (the spec check) points at no event, and a
+    # spec finding at a moment may share its events with another rule's: the key
+    # tells them apart.
+    key = finding.key if not finding.event_keys or finding.check_type in keyed else None
     return finding.check_type, key, tuple(finding.event_keys)
 
 
@@ -278,6 +282,7 @@ def replace_findings(
     categories: Mapping[str, str] | None = None,
     issue_categories: Mapping[tuple[str, str], str] | None = None,
     subjects: Mapping[tuple[str, str], str] | None = None,
+    keyed: set[str] | None = None,
 ) -> int:
     """Leave ``call`` with exactly ``findings`` for the checks in ``check_types``.
 
@@ -298,12 +303,13 @@ def replace_findings(
     Returns:
         How many findings the call now has from the checks in ``check_types``.
     """
+    keyed = keyed or set()
     stored = {
-        _identity(row): row
+        _identity(row, keyed): row
         for row in get_findings(session=session, call=call)
         if row.check_type in check_types
     }
-    wanted = {_identity(finding): finding for finding in findings}
+    wanted = {_identity(finding, keyed): finding for finding in findings}
     issues = _issues_for(
         session,
         call,

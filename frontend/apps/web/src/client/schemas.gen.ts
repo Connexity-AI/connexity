@@ -2348,8 +2348,58 @@ export const CallScreenFindingSchema = {
         },
       ],
       title: 'Probability',
+      description: 'For a broken spec rule the classifier found: its probability',
+    },
+    whole_call: {
+      type: 'boolean',
+      title: 'Whole Call',
       description:
-        "For a broken spec rule: the classifier's probability. Such a finding judges the whole call and has no moment in it",
+        'A broken spec rule with no moment in the call: the classifier found it alone, or the LLM named no line',
+      default: false,
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+      description: 'For a broken spec rule an LLM confirmed or found: why, in its words',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'For a broken spec rule: the model that found it',
+    },
+    confirmed_by: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Confirmed By',
+      description: "For a broken spec rule: the LLM that confirmed the classifier's flag",
+    },
+    entry_indexes: {
+      items: {
+        type: 'integer',
+      },
+      type: 'array',
+      title: 'Entry Indexes',
+      description: 'Every timeline entry it rests on; its moment is the last',
     },
   },
   type: 'object',
@@ -4734,7 +4784,7 @@ export const IssueAffectedCallPublicSchema = {
         },
       ],
       description:
-        'Where it first happened in the call; none for a finding on the whole call (a broken spec rule)',
+        'Where it first happened in the call; none for a broken spec rule with no moment (found by the classifier alone, or the LLM named no line)',
     },
     probability: {
       anyOf: [
@@ -4746,7 +4796,19 @@ export const IssueAffectedCallPublicSchema = {
         },
       ],
       title: 'Probability',
-      description: "For a broken spec rule: the classifier's probability on this call",
+      description: 'For a broken spec rule the classifier found: its probability on this call',
+    },
+    reason: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Reason',
+      description: 'For a broken spec rule an LLM confirmed or found: why, in its words',
     },
   },
   type: 'object',
@@ -5390,8 +5452,22 @@ export const IssuePagePublicSchema = {
       type: 'boolean',
       title: 'Whole Call',
       description:
-        'Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)',
+        'A broken spec rule: its findings may judge the whole call, with no moment and no reason',
       default: false,
+    },
+    found_how: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['classifier', 'confirmed', 'llm'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Found How',
+      description:
+        'For a broken spec rule, from its newest finding: the classifier alone, the classifier confirmed by an LLM, or an LLM alone',
     },
     clarifications: {
       items: {
@@ -8569,8 +8645,22 @@ export const McpIssueSchema = {
       type: 'boolean',
       title: 'Whole Call',
       description:
-        'Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)',
+        'A broken spec rule: its findings may judge the whole call, with no moment and no reason',
       default: false,
+    },
+    found_how: {
+      anyOf: [
+        {
+          type: 'string',
+          enum: ['classifier', 'confirmed', 'llm'],
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Found How',
+      description:
+        'For a broken spec rule, from its newest finding: the classifier alone, the classifier confirmed by an LLM, or an LLM alone',
     },
     clarifications: {
       items: {
@@ -12275,17 +12365,18 @@ export const SpecCountsPublicSchema = {
         "Rules that are classifier checks on the call alone, the default: check each one's type and inputs are right",
       default: 0,
     },
-    held_for_llm: {
+    confirmed_by_llm: {
       type: 'integer',
-      title: 'Held For Llm',
+      title: 'Confirmed By Llm',
       description:
-        'Rules typed classifier_then_llm: the spec check judges them on real calls but shows no flag until the LLM step confirms it (not built yet)',
+        'Rules typed classifier_then_llm: on real calls the classifier flags them and an LLM confirms each flag, one request per flag',
       default: 0,
     },
-    llm_only: {
+    judged_by_llm: {
       type: 'integer',
-      title: 'Llm Only',
-      description: 'Rules typed llm: not judged on real calls until the LLM step is built',
+      title: 'Judged By Llm',
+      description:
+        'Rules typed llm: an LLM judges each on every judged real call, one request per rule and call',
       default: 0,
     },
   },

@@ -73,12 +73,18 @@ class IssueAffectedCallPublic(BaseModel):
     result: CallCheckStatus
     moment: IssueMomentPublic | None = Field(
         default=None,
-        description="Where it first happened in the call; none for a finding on the "
-        "whole call (a broken spec rule)",
+        description="Where it first happened in the call; none for a broken spec rule "
+        "with no moment (found by the classifier alone, or the LLM named no line)",
     )
     probability: float | None = Field(
         default=None,
-        description="For a broken spec rule: the classifier's probability on this call",
+        description="For a broken spec rule the classifier found: its probability on "
+        "this call",
+    )
+    reason: str | None = Field(
+        default=None,
+        description="For a broken spec rule an LLM confirmed or found: why, in its "
+        "words",
     )
 
 
@@ -131,8 +137,13 @@ class IssuePagePublic(BaseModel):
     )
     whole_call: bool = Field(
         default=False,
-        description="Its findings judge the whole call, with no moment and no reason "
-        "(a broken spec rule, found by a classifier)",
+        description="A broken spec rule: its findings may judge the whole call, with "
+        "no moment and no reason",
+    )
+    found_how: Literal["classifier", "confirmed", "llm"] | None = Field(
+        default=None,
+        description="For a broken spec rule, from its newest finding: the classifier "
+        "alone, the classifier confirmed by an LLM, or an LLM alone",
     )
     clarifications: list[RuleClarificationPublic] = Field(
         default_factory=list,

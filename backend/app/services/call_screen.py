@@ -34,6 +34,7 @@ from app.models.test_case import TestCase
 from app.models.test_case_result import TestCaseResult
 from app.models.test_run import RuleVerdict, SimulatedFinding
 from app.models.trace import ToolCallEvent, Trace, UtteranceEvent
+from app.services.checks.model.spec_rule import SPEC_CHECK_TYPE
 from app.services.checks.registry import get_check
 from app.services.grading import NOT_GRADED_REASON, is_graded
 from app.services.issue_list import issue_title
@@ -67,6 +68,10 @@ def _text(value: JsonValue) -> str:
     if isinstance(value, str):
         return value
     return json.dumps(value, ensure_ascii=False)
+
+
+def _said(value: JsonValue) -> str | None:
+    return value if isinstance(value, str) and value else None
 
 
 def _pairs(value: JsonValue) -> list[KeyValue]:
@@ -165,7 +170,8 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
         issue = issues.get(row.issue_id)
         detail = row.detail or {}
         subject = detail.get("rule_text") or (issue.subject if issue else None)
-        probability = detail.get("probability") if not row.event_keys else None
+        probability = detail.get("probability")
+        spec = row.check_type == SPEC_CHECK_TYPE
         # Its moment is the last event it points at: for two bookings of one slot, the
         # second booking is where it went wrong.
         indexes = [index_of[e] for e in row.event_keys if e in index_of]
@@ -188,6 +194,11 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
                 probability=float(probability)
                 if isinstance(probability, int | float)
                 else None,
+                whole_call=spec and not indexes,
+                reason=_said(detail.get("reason")) if spec else None,
+                model=_said(detail.get("model")) if spec else None,
+                confirmed_by=_said(detail.get("confirmed_by")) if spec else None,
+                entry_indexes=sorted(indexes),
             )
         )
         for key in row.event_keys:
@@ -197,7 +208,7 @@ def call_screen(*, session: Session, call: Call) -> CallScreenPublic | None:
     findings.sort(
         key=lambda f: (
             f.severity != "critical",
-            f.probability is not None,
+            f.whole_call,
             f.at_seconds,
         )
     )

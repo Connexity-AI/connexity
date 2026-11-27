@@ -47,20 +47,26 @@ in Connexity's first review came from a rule that left one of these out:
    part left in the prompt.
 3. **Say where a boundary lies when the prompt does.** "No turn longer than 50 words",
    "a callback within 2 minutes", with the number the prompt gives.
-4. **Raise a clarification, not a guess, when the prompt leaves it open.** If you are
+4. **Copy into the rule any list or number from the prompt it rests on.** No check
+   reads the prompt: everything is judged from the spec. Not "only make the claims the
+   prompt allows", but "only claim these facts about the clinic: open since 1998,
+   three locations, same-day emergency visits".
+5. **Raise a clarification, not a guess, when the prompt leaves it open.** If you are
    not sure the rule covers a case, ask the person (see below). Never write the
    boundary yourself.
-5. **Choose each rule's check type** (`check`):
+6. **Choose each rule's check type** (`check`):
    - `classifier`: the call alone settles it plainly, such as a word said or not, a turn
      too long, or a question asked. The cheapest, and the default.
    - `classifier_then_llm`: the rule has a condition or depends on the kind of call
      ("unless", "only if", "on a first call", a call screener, a voicemail). A smarter
      model confirms each flag the classifier raises.
    - `llm`: the rule needs long text or the call history. Only the LLM step reads it.
+     Each `llm` rule is one more model request on every judged call, so use it only
+     when the classifier truly cannot judge the rule.
    - Code checks are Connexity's own; they are not a type you choose.
    - A strange call on a `classifier` rule is not verified. That is accepted for now,
      so when a rule's flags may be unusual, prefer `classifier_then_llm`.
-6. **Name the inputs the rule needs** (`inputs`), and only those. `get_spec` lists the
+7. **Name the inputs the rule needs** (`inputs`), and only those. `get_spec` lists the
    agent's `known_inputs`: the names its calls carry, never their values.
    - A rule about "a first call" names the input that says which attempt it is.
    - A rule about a number the agent quotes names the input it comes from.
@@ -76,19 +82,25 @@ Both are kept by key like `critical`: a kept rule you pass without them keeps it
 `get_spec` counts the rules still on the default (`classifier_on_call`); look at each.
 
 A rule that depends on facts written in the prompt itself, such as the claims the agent
-may make, is `llm`. The classifier never sees the prompt, so it would flag the agent for
-saying something the prompt allows.
+may make, carries those facts (item 4). No check sees the prompt, so without them it
+would flag the agent for saying something the prompt allows.
 
 ### How the rules are judged on real calls
 
 - Every real call where the agent said 10 words or more is judged against the spec
   covering its agent version.
 - A `classifier` rule broken with a probability of 0.8 or above is a finding of the
-  issue "Spec rule broken", one issue per rule. The finding has no moment and no reason:
-  read the call against the rule to find where.
-- A `classifier_then_llm` rule is judged too, but its flags wait for the LLM step,
-  which is not built yet (`held_for_llm`). An `llm` rule is not judged yet
-  (`llm_only`).
+  issue "Spec rule broken", one issue per rule. The classifier gives no moment and no
+  reason: read the call against the rule to find where.
+- A `classifier_then_llm` rule is judged by the classifier too. Each flag at 0.8 or
+  above goes to an LLM, which confirms or dismisses it (`confirmed_by_llm`). A
+  dismissed flag raises nothing.
+- An `llm` rule is judged by the LLM alone, on every judged call (`judged_by_llm`).
+- The LLM gets one rule per request: the whole call, the inputs that rule names (long
+  ones too) and the rule with its clarifications. Never the prompt, another rule or
+  the classifier's score.
+- A finding from the LLM has its reason and, when the LLM named lines, the moment.
+  Check the reason against the call before you act on it.
 - A broken critical rule fails the call; any other rule only flags it.
 - A call is judged once. A rule you change judges the calls after the change, not
   those before. The agent's first spec judges its last 30 days once, and those

@@ -197,6 +197,11 @@ class Settings(BaseSettings):
     MODEL_CHECK_MAX_ATTEMPTS: int = 3
     # Model calls asked about at once in one model-check pass.
     MODEL_CHECK_CONCURRENCY: int = 4
+    # The LLM step of the spec check (105.16): it confirms classifier flags and judges
+    # "LLM only" rules, one rule per request. Start with the smaller model (Dmytro,
+    # 2026-11-27); changing it judges new calls only.
+    SPEC_LLM_MODEL: str = "claude-haiku-5-5"
+    SPEC_LLM_PROVIDER: str = "anthropic"
 
     # The simulated caller and the judge of a run of scenarios, on Connexity's own
     # Anthropic key (Dmytro, 2026-11-18: Claude, the model the judge checks use).

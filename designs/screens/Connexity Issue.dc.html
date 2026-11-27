@@ -86,7 +86,7 @@
 <div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Milestone</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ milestone }}</span></div>
 </div>
 <sc-if value="{{ isSpec }}" hint-placeholder-val="{{ false }}">
-<p style="margin:0;font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Found by a classifier that reads the whole call. It gives no moment or reason.</p>
+<p style="margin:0;font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">{{ foundLine }}</p>
 </sc-if>
 <sc-if value="{{ notSpec }}" hint-placeholder-val="{{ true }}">
 <div style="display:flex;gap:14px;padding:16px 20px;border-radius:12px;border:1px solid var(--border)">
@@ -143,10 +143,32 @@
 </div>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
 <div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Affected calls</h2><span style="font-size:13px;color:var(--ink3)">Latest first</span></div>
+<sc-if value="{{ oneCol }}" hint-placeholder-val="{{ true }}">
 <div style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)">
 <span>Time</span><span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><sc-if value="{{ notSpec }}" hint-placeholder-val="{{ true }}"><span>Moment</span></sc-if><sc-if value="{{ isSpec }}" hint-placeholder-val="{{ false }}"><span>Probability</span></sc-if><span></span>
 </div>
+</sc-if>
+<sc-if value="{{ momentCols }}" hint-placeholder-val="{{ false }}">
+<div style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 88px 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)">
+<span>Time</span><span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><span>Moment</span><span style="text-align:right">Probability</span><span></span>
+</div>
+</sc-if>
 <sc-for list="{{ occ }}" as="o" hint-placeholder-count="6">
+<sc-if value="{{ o.rich }}">
+<a href="{{ o.href }}" title="{{ o.title }}" style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 88px 16px;gap:16px;align-items:center;min-height:56px;padding:8px 24px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<span style="white-space:nowrap">{{ o.when }}</span>
+<span style="color:var(--ink2);white-space:nowrap">{{ o.caller }}</span>
+<span style="color:var(--ink2);text-align:right">{{ o.dur }}</span>
+<span style="display:flex">
+<sc-if value="{{ o.isFailed }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--crit-bg);color:var(--crit);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg>Failed</span></sc-if>
+<sc-if value="{{ o.isDegraded }}"><span style="display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px;font-weight:500"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>Degraded</span></sc-if>
+</span>
+<span style="display:flex;flex-direction:column;min-width:0"><span style="color:var(--ink2);white-space:nowrap">{{ o.at }}</span><span title="{{ o.reason }}" style="font-size:13px;line-height:18px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.reason }}</span></span>
+<span style="color:var(--ink2);text-align:right">{{ o.prob }}</span>
+<span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
+</a>
+</sc-if>
+<sc-if value="{{ o.plain }}">
 <a href="{{ o.href }}" title="{{ o.title }}" style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
 <span style="white-space:nowrap">{{ o.when }}</span>
 <span style="color:var(--ink2);white-space:nowrap">{{ o.caller }}</span>
@@ -158,6 +180,7 @@
 <span style="color:var(--ink2);white-space:nowrap">{{ o.at }}<span style="color:var(--ink3)">{{ o.times }}</span></span>
 <span style="display:flex;color:var(--ink3)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></span>
 </a>
+</sc-if>
 </sc-for>
 <a href="{{ allHref }}" style="display:flex;align-items:center;gap:6px;padding:14px 24px;border-top:1px solid var(--border);font-size:13px;line-height:18px;color:var(--ink2);text-decoration:none" style-hover="color:var(--ink);background:var(--wash);opacity:1">{{ allText }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg></a>
 </div>
@@ -191,13 +214,13 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;,&quot;I-1043&quot;,&quot;I-1098&quot;,&quot;I-1099&quot;],&quot;default&quot;:&quot;I-1042&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1104&quot;,&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;,&quot;I-1043&quot;,&quot;I-1098&quot;,&quot;I-1099&quot;],&quot;default&quot;:&quot;I-1104&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
-  // steps: [name, done|current|later, detail, href]; series: 30 days ending 12 Nov; occ: [when, last4, seconds, result, moment s]. spec issues: occ moment is the classifier probability; clars: [sentence, A|Y, d Mon]
+  // steps: [name, done|current|later, detail, href]; series: 30 days ending 12 Nov; occ: [when, last4, seconds, result, moment s]. spec issues: occ is [when, last4, seconds, result, probability|null, moment s|null, reason|null]; how: classifier (default) | confirmed | llm; clars: [sentence, A|Y, d Mon]
   static D = {
     'I-1098': { spec:true, cat:'flow', title:'Ask one question at a time', agentId:'car', agent:'Car service booking', sev:'w', status:'o', calls:7, of:'310', first:'5 Nov', last:'45 minutes ago', milestone:'75',
       clars:[['An either/or question is one question','A','26 Nov']],
@@ -206,6 +229,13 @@ class Component extends DCLogic {
       occ:[['Today 10:02','2817',118,'degraded',0.91],['Yesterday 16:44','5093',142,'degraded',0.84],['10 Nov 11:20','7741',96,'degraded',0.94],['9 Nov 14:05','3368',131,'degraded',0.81],['8 Nov 09:47','9120',104,'degraded',0.88],['6 Nov 15:12','4405',157,'degraded',0.86],['5 Nov 10:38','6634',122,'degraded',0.92]],
       callId:'C-20477', incidents:[],
       history:[['Opened','Connexity','5 Nov','First seen on call •••• 6634']] },
+    'I-1104': { spec:true, how:'llm', cat:'greet', title:'On a first call, never say the form was just filled out', agentId:'dental', agent:'Dental reception', sev:'w', status:'o', calls:5, of:'240', first:'7 Nov', last:'1 hour ago', milestone:'71',
+      clars:[],
+      steps:[['Found','done','7 Nov · call •••• 3092','call'],['In the spec','done','On a first call, never say the form was just filled out','spec'],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,1,2], marks:[],
+      occ:[['Today 11:46','3820',74,'degraded',null,38,'The caller said it was their first time calling, and the agent replied that it could see the form they had just filled out.'],['Today 09:05','6157',91,'degraded',null,22,'The agent opened with \u201cThanks for filling out our form just now\u201d before the caller had said why they were calling.'],['10 Nov 15:31','2486',66,'degraded',null,null,'The agent told the caller their form had just come through, but the caller had not filled out a form.'],['9 Nov 12:10','7703',108,'degraded',null,47,'Asked how it had the caller\u2019s details, the agent said they came from the form the caller had just filled out.'],['7 Nov 16:22','3092',83,'degraded',null,15,'The agent greeted a first-time caller by saying it had received the form they just filled out.']],
+      callId:'C-20488', incidents:[],
+      history:[['Opened','Connexity','7 Nov','First seen on call •••• 3092']] },
     'I-1099': { spec:true, cat:'book', title:'Book only after the address and zip code are provided', agentId:'car', agent:'Car service booking', sev:'c', status:'o', calls:3, of:'310', first:'10 Nov', last:'2 hours ago', milestone:'64',
       clars:[],
       steps:[['Found','done','10 Nov · call •••• 8804','call'],['In the spec','done','Book only after the address and zip code are provided','spec'],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
@@ -292,10 +322,12 @@ class Component extends DCLogic {
     const history = (st.accepted ? [['Archived', 'you', st.accepted.when, st.accepted.why, false, st.accepted.dur]] : []).concat(d.history)
       .map(([what, who, when, why, link, dur, plain]) => ({ what, hasLink: !!link, meta: plain ? ` · ${why} · ${when}` : (who ? ` by ${who}, ${when}` : `, ${when}`) + (dur ? ` · ${dur}` : '') + ` · “${why}”` }));
     const noReason = !st.reason.trim();
+    const how = d.spec ? (d.how || 'classifier') : null, rich = how === 'confirmed' || how === 'llm';
     return {
       rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
       title: d.title, agent: d.agent, agentHref: profile + '&tab=issues',
-      isSpec: !!d.spec, notSpec: !d.spec, typeLine: d.spec ? 'Spec rule broken · ' + C.CATS[d.cat] : '',
+      isSpec: !!d.spec, notSpec: !d.spec, momentCols: rich, oneCol: !rich,
+      foundLine: d.spec ? { classifier:'Found by a classifier that reads the whole call. It gives no moment or reason.', confirmed:'Found by a classifier, confirmed by an LLM that gives the moment and the reason.', llm:'Found by an LLM that reads the whole call and gives the moment and the reason.' }[how] : '', typeLine: d.spec ? 'Spec rule broken · ' + C.CATS[d.cat] : '',
       clars: (d.clars || []).map(([t, w, dt]) => { const [dd, mm] = dt.split(' '); return { text: 'Clarified: ' + t, by: 'answered by ' + (w === 'Y' ? 'your assistant' : 'Alex') + ' on ' + mm + ' ' + dd }; }),
       isCrit: d.sev === 'c', isWarn: d.sev === 'w',
       stOpen: status === 'o', stReop: status === 'r', stRes: status === 'd', stKnown: status === 'k', resText: 'Resolved in version ' + (d.version || ''),
@@ -314,7 +346,10 @@ class Component extends DCLogic {
       tip: d.tip,
       stopped: status === 'k', stoppedNote: 'Stopped: archived on ' + (arch ? arch.when : ''),
       steps, days, marks, yMax, yMid: yMax / 2,
-      occ: d.occ.map(([when, last4, dur, res, at, times]) => ({ when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: d.spec ? at.toFixed(2) : 'at ' + mmss(at), times: !d.spec && times > 1 ? ` · ${times} times` : '', href: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(at), title: d.spec ? 'Open the call' : 'Open the call at this moment' })),
+      occ: rich ? d.occ.map(([when, last4, dur, res, prob, mo, why]) => ({ rich:true, plain:false, when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded',
+        at: mo != null ? 'at ' + mmss(mo) : '\u2014', reason: why || '', prob: prob != null ? prob.toFixed(2) : '',
+        href: mo != null ? callHref(mo) : 'Connexity Call.dc.html?call=' + d.callId, title: mo != null ? 'Open the call at this moment' : 'Open the call' }))
+      : d.occ.map(([when, last4, dur, res, at, times]) => ({ rich:false, plain:true, when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: d.spec ? at.toFixed(2) : 'at ' + mmss(at), times: !d.spec && times > 1 ? ` · ${times} times` : '', href: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(at), title: d.spec ? 'Open the call' : 'Open the call at this moment' })),
       allText: `All ${d.calls} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id,
       incidents: d.incidents.map(([iid, period, failed, how]) => ({ period, failed, how, href:'Connexity Incident.dc.html?incident=' + iid })),
       history

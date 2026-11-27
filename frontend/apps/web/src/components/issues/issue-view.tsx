@@ -39,6 +39,15 @@ const calendarDay = (day: string) => {
   return `${date} ${MONTHS[(month ?? 1) - 1]}`;
 };
 
+const COLUMNS = 'grid-cols-[136px_96px_72px_104px_minmax(0,1fr)_16px]';
+const REASON_COLUMNS = 'grid-cols-[136px_96px_72px_104px_minmax(0,1fr)_88px_16px]';
+
+const FOUND_HOW: Record<NonNullable<IssuePagePublic['found_how']>, string> = {
+  classifier: 'Found by a classifier that reads the whole call. It gives no moment or reason.',
+  confirmed: 'Found by a classifier, confirmed by an LLM that gives the moment and the reason.',
+  llm: 'Found by an LLM that reads the whole call and gives the moment and the reason.',
+};
+
 const DURATIONS = {
   until_spike: 'until it spikes',
   forever: 'forever',
@@ -356,6 +365,9 @@ interface Props {
 export const IssueView: FC<Props> = ({ issue }) => {
   const archived = issue.state === 'archived' ? issue.archive : null;
   const { found, fixed } = issue.chain;
+  const foundHow = issue.found_how ?? 'classifier';
+  // A broken spec rule an LLM confirmed or judged: each call has a moment and a reason.
+  const withReasons = issue.whole_call && foundHow !== 'classifier';
 
   return (
     <div className="flex max-w-[1120px] flex-col gap-6">
@@ -423,9 +435,7 @@ export const IssueView: FC<Props> = ({ issue }) => {
         <Tile label="Last seen" value={lastSeen(issue.tiles.last_seen_at)} />
       </div>
       {issue.whole_call && (
-        <p className="m-0 text-label text-ink-muted text-pretty">
-          Found by a classifier that reads the whole call. It gives no moment or reason.
-        </p>
+        <p className="m-0 text-label text-ink-muted text-pretty">{FOUND_HOW[foundHow]}</p>
       )}
 
       <Card
@@ -486,12 +496,18 @@ export const IssueView: FC<Props> = ({ issue }) => {
         note={<span className="text-label text-ink-muted">Latest first</span>}
         flush
       >
-        <div className="grid h-10 grid-cols-[136px_96px_72px_104px_minmax(0,1fr)_16px] items-center gap-4 border-t border-hairline px-6 text-label text-ink-secondary">
+        <div
+          className={cn(
+            'grid h-10 items-center gap-4 border-t border-hairline px-6 text-label text-ink-secondary',
+            withReasons ? REASON_COLUMNS : COLUMNS
+          )}
+        >
           <span>Time</span>
           <span>Caller</span>
           <span className="text-right">Duration</span>
           <span>Result</span>
-          <span>{issue.whole_call ? 'Probability' : 'Moment'}</span>
+          <span>{issue.whole_call && !withReasons ? 'Probability' : 'Moment'}</span>
+          {withReasons && <span className="text-right">Probability</span>}
           <span />
         </div>
         {issue.affected_calls.map((call) => (
@@ -499,7 +515,10 @@ export const IssueView: FC<Props> = ({ issue }) => {
             key={call.call_id}
             href={UrlGenerator.call(call.call_id, call.moment?.at_seconds)}
             title={call.moment ? 'Open the call at this moment' : 'Open the call'}
-            className="grid min-h-11 grid-cols-[136px_96px_72px_104px_minmax(0,1fr)_16px] items-center gap-4 border-t border-hairline px-6 text-body text-ink no-underline hover:bg-wash"
+            className={cn(
+              'grid items-center gap-4 border-t border-hairline px-6 text-body text-ink no-underline hover:bg-wash',
+              withReasons ? `min-h-14 py-2 ${REASON_COLUMNS}` : `min-h-11 ${COLUMNS}`
+            )}
           >
             <span className="whitespace-nowrap">{timeLabel(call.started_at)}</span>
             <span className="whitespace-nowrap text-ink-secondary">
@@ -527,20 +546,38 @@ export const IssueView: FC<Props> = ({ issue }) => {
               )}
               {call.result === 'unchecked' && <span className="text-ink-secondary">Unchecked</span>}
             </span>
-            <span className="whitespace-nowrap text-ink-secondary">
-              {call.moment ? (
-                <>
-                  at {clock(call.moment.at_seconds)}
-                  {call.moment.times > 1 && (
-                    <span className="text-ink-muted"> · {call.moment.times} times</span>
+            {withReasons ? (
+              <>
+                <span className="flex min-w-0 flex-col">
+                  <span className="whitespace-nowrap text-ink-secondary">
+                    {call.moment ? `at ${clock(call.moment.at_seconds)}` : '—'}
+                  </span>
+                  {call.reason && (
+                    <span title={call.reason} className="truncate text-label text-ink-muted">
+                      {call.reason}
+                    </span>
                   )}
-                </>
-              ) : call.probability != null ? (
-                call.probability.toFixed(2)
-              ) : (
-                ''
-              )}
-            </span>
+                </span>
+                <span className="text-right text-ink-secondary">
+                  {call.probability != null ? call.probability.toFixed(2) : ''}
+                </span>
+              </>
+            ) : (
+              <span className="whitespace-nowrap text-ink-secondary">
+                {call.moment ? (
+                  <>
+                    at {clock(call.moment.at_seconds)}
+                    {call.moment.times > 1 && (
+                      <span className="text-ink-muted"> · {call.moment.times} times</span>
+                    )}
+                  </>
+                ) : call.probability != null ? (
+                  call.probability.toFixed(2)
+                ) : (
+                  ''
+                )}
+              </span>
+            )}
             <span className="flex text-ink-muted">
               <ChevronRight className="size-4" aria-hidden />
             </span>

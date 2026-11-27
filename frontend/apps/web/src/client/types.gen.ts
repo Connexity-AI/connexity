@@ -1559,9 +1559,39 @@ export type CallScreenFinding = {
   /**
    * Probability
    *
-   * For a broken spec rule: the classifier's probability. Such a finding judges the whole call and has no moment in it
+   * For a broken spec rule the classifier found: its probability
    */
   probability?: number | null;
+  /**
+   * Whole Call
+   *
+   * A broken spec rule with no moment in the call: the classifier found it alone, or the LLM named no line
+   */
+  whole_call?: boolean;
+  /**
+   * Reason
+   *
+   * For a broken spec rule an LLM confirmed or found: why, in its words
+   */
+  reason?: string | null;
+  /**
+   * Model
+   *
+   * For a broken spec rule: the model that found it
+   */
+  model?: string | null;
+  /**
+   * Confirmed By
+   *
+   * For a broken spec rule: the LLM that confirmed the classifier's flag
+   */
+  confirmed_by?: string | null;
+  /**
+   * Entry Indexes
+   *
+   * Every timeline entry it rests on; its moment is the last
+   */
+  entry_indexes?: Array<number>;
 };
 
 /**
@@ -3301,15 +3331,21 @@ export type IssueAffectedCallPublic = {
   duration_seconds?: number | null;
   result: CallCheckStatus;
   /**
-   * Where it first happened in the call; none for a finding on the whole call (a broken spec rule)
+   * Where it first happened in the call; none for a broken spec rule with no moment (found by the classifier alone, or the LLM named no line)
    */
   moment?: IssueMomentPublic | null;
   /**
    * Probability
    *
-   * For a broken spec rule: the classifier's probability on this call
+   * For a broken spec rule the classifier found: its probability on this call
    */
   probability?: number | null;
+  /**
+   * Reason
+   *
+   * For a broken spec rule an LLM confirmed or found: why, in its words
+   */
+  reason?: string | null;
 };
 
 /**
@@ -3743,9 +3779,15 @@ export type IssuePagePublic = {
   /**
    * Whole Call
    *
-   * Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)
+   * A broken spec rule: its findings may judge the whole call, with no moment and no reason
    */
   whole_call?: boolean;
+  /**
+   * Found How
+   *
+   * For a broken spec rule, from its newest finding: the classifier alone, the classifier confirmed by an LLM, or an LLM alone
+   */
+  found_how?: 'classifier' | 'confirmed' | 'llm' | null;
   /**
    * Clarifications
    *
@@ -5941,9 +5983,15 @@ export type McpIssue = {
   /**
    * Whole Call
    *
-   * Its findings judge the whole call, with no moment and no reason (a broken spec rule, found by a classifier)
+   * A broken spec rule: its findings may judge the whole call, with no moment and no reason
    */
   whole_call?: boolean;
+  /**
+   * Found How
+   *
+   * For a broken spec rule, from its newest finding: the classifier alone, the classifier confirmed by an LLM, or an LLM alone
+   */
+  found_how?: 'classifier' | 'confirmed' | 'llm' | null;
   /**
    * Clarifications
    *
@@ -8589,17 +8637,17 @@ export type SpecCountsPublic = {
    */
   classifier_on_call?: number;
   /**
-   * Held For Llm
+   * Confirmed By Llm
    *
-   * Rules typed classifier_then_llm: the spec check judges them on real calls but shows no flag until the LLM step confirms it (not built yet)
+   * Rules typed classifier_then_llm: on real calls the classifier flags them and an LLM confirms each flag, one request per flag
    */
-  held_for_llm?: number;
+  confirmed_by_llm?: number;
   /**
-   * Llm Only
+   * Judged By Llm
    *
-   * Rules typed llm: not judged on real calls until the LLM step is built
+   * Rules typed llm: an LLM judges each on every judged real call, one request per rule and call
    */
-  llm_only?: number;
+  judged_by_llm?: number;
 };
 
 /**

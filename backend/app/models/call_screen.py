@@ -52,8 +52,30 @@ class CallScreenFinding(BaseModel):
     issue_id: uuid.UUID | None = Field(default=None, description="The issue it joins")
     probability: float | None = Field(
         default=None,
-        description="For a broken spec rule: the classifier's probability. Such a "
-        "finding judges the whole call and has no moment in it",
+        description="For a broken spec rule the classifier found: its probability",
+    )
+    whole_call: bool = Field(
+        default=False,
+        description="A broken spec rule with no moment in the call: the classifier "
+        "found it alone, or the LLM named no line",
+    )
+    reason: str | None = Field(
+        default=None,
+        description="For a broken spec rule an LLM confirmed or found: why, in its "
+        "words",
+    )
+    model: str | None = Field(
+        default=None,
+        description="For a broken spec rule: the model that found it",
+    )
+    confirmed_by: str | None = Field(
+        default=None,
+        description="For a broken spec rule: the LLM that confirmed the classifier's "
+        "flag",
+    )
+    entry_indexes: list[int] = Field(
+        default_factory=list,
+        description="Every timeline entry it rests on; its moment is the last",
     )
 
 

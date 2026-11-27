@@ -125,6 +125,7 @@ from app.crud.invite import (  # noqa: F401
 )
 from app.crud.model_answer import (  # noqa: F401
     calls_waiting_for_models,
+    earlier_model_answer,
     get_model_answers,
     model_spend_since,
     record_model_check,

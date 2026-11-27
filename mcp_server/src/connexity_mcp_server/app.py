@@ -410,8 +410,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         """One call in full: its timeline in order (agent and caller turns, and tool
         calls with arguments and result, secrets masked) and what the checks found,
         worst first, each pointing at its entry and saying whether a rule or a model
-        found it. A broken spec rule judges the whole call: it has a probability and
-        no moment or reason. It says whether the call is graded: one where the agent spoke fewer
+        found it. A broken spec rule the classifier found alone judges the whole call:
+        a probability, no moment or reason. One an LLM confirmed or found has its
+        reason and, when it named lines, its moment (`entry_indexes`). It says whether the call is graded: one where the agent spoke fewer
         than 10 words is never judged against the spec, and with nothing found it is
         not_graded and counts in no score. Find the call_id with list_calls."""
         return await _get_call(
@@ -537,8 +538,9 @@ def build_application(settings: Settings | None = None) -> FastAPI:
         last seen, all-time counts, affected calls per agent version and the version
         live now, whether it is fixed in a version, calls per day with version marks,
         the latest calls it hit, and its history of decisions. A broken spec rule
-        (`whole_call`) is named after the rule, carries the rule's clarifications, and
-        gives each call's probability in place of a moment. `since_version` says
+        (`whole_call`) is named after the rule, carries the rule's clarifications and
+        how it was found (`found_how`), and gives each call's probability, and an
+        LLM's reason and moment when it gave one. `since_version` says
         whether it stopped after a fix: the agent's real calls since that version went
         live (on it or a later one) and how many have this issue; for an issue marked
         fixed it is given for the fix's version without asking. For the calls it was

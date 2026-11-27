@@ -76,23 +76,45 @@ def issue_moments(
     }
 
 
-def issue_probabilities(
+class SpecSeen(NamedTuple):
+    probability: float | None
+    reason: str | None
+
+
+def issue_spec_findings(
     *, session: Session, issue_id: uuid.UUID, call_ids: list[uuid.UUID]
-) -> dict[uuid.UUID, float]:
-    """For an issue whose findings judge the whole call: the classifier's probability
-    on each call, the highest when there are several."""
+) -> dict[uuid.UUID, SpecSeen]:
+    """For a broken spec rule: the classifier's probability on each call, the highest
+    when there are several, and the LLM's reason, when one gave it."""
     if not call_ids:
         return {}
-    best: dict[uuid.UUID, float] = {}
+    seen: dict[uuid.UUID, SpecSeen] = {}
     for call_id, detail in session.exec(
-        select(Finding.call_id, Finding.detail).where(
-            Finding.issue_id == issue_id, col(Finding.call_id).in_(call_ids)
-        )
+        select(Finding.call_id, Finding.detail)
+        .where(Finding.issue_id == issue_id, col(Finding.call_id).in_(call_ids))
+        .order_by(col(Finding.created_at))
     ).all():
         value = (detail or {}).get("probability")
-        if isinstance(value, int | float):
-            best[call_id] = max(best.get(call_id, 0.0), float(value))
-    return best
+        reason = (detail or {}).get("reason")
+        before = seen.get(call_id, SpecSeen(None, None))
+        probability = float(value) if isinstance(value, int | float) else None
+        seen[call_id] = SpecSeen(
+            probability=max(
+                (p for p in (before.probability, probability) if p is not None),
+                default=None,
+            ),
+            reason=reason if isinstance(reason, str) and reason else before.reason,
+        )
+    return seen
+
+
+def newest_finding(*, session: Session, issue_id: uuid.UUID) -> Finding | None:
+    return session.exec(
+        select(Finding)
+        .where(Finding.issue_id == issue_id)
+        .order_by(col(Finding.created_at).desc(), col(Finding.id).desc())
+        .limit(1)
+    ).first()
 
 
 def issue_calls(
