@@ -345,10 +345,10 @@ def spec_answer(
             classifier_on_call=sum(
                 1 for r in rules if r.check is SpecCheckType.CLASSIFIER and not r.inputs
             ),
-            held_for_llm=sum(
+            confirmed_by_llm=sum(
                 1 for r in rules if r.check is SpecCheckType.CLASSIFIER_THEN_LLM
             ),
-            llm_only=sum(1 for r in rules if r.check is SpecCheckType.LLM),
+            judged_by_llm=sum(1 for r in rules if r.check is SpecCheckType.LLM),
         )
         if earlier is not None:
             kept = sum(1 for r in rules if old_text.get(r.key) == r.text)

@@ -1,10 +1,16 @@
 """The spec check: each real call judged against its agent's spec by a classifier (Jev,
-faked), on invented agents and calls (plan `plans/2026-11-26-spec-check.md`)."""
+faked) and the LLM step (faked), on invented agents and calls (plans
+`plans/2026-11-26-spec-check.md` and `plans/2026-11-27-llm-step.md`)."""
 
+import asyncio
+import json
+import re
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from litellm.exceptions import Timeout as LLMTimeout
 from sqlmodel import Session, select
 
 from app import crud
@@ -12,10 +18,12 @@ from app.core.config import settings
 from app.models import Agent, Call, CallCheck, Finding, Spec
 from app.models.check import Issue
 from app.models.enums import (
+    CheckKind,
     CheckMode,
     CheckOutcome,
     DecisionKind,
     FindingEffect,
+    ModelAnswerStatus,
     SpecCheckType,
     TraceSource,
 )
@@ -38,6 +46,7 @@ from app.services.clarification import AnswerDraft, QuestionDraft
 from app.services.grading import NOT_GRADED_REASON
 from app.services.issue_page import issue_page
 from app.services.jev import Decision, JevError, Usage, YesNoAnswer
+from app.services.llm import LLMCallConfig, LLMMessage, LLMResponse
 from app.services.spec import write_agent_spec
 from app.tests.api.routes.test_issue_page import _call
 from app.tests.api.routes.test_mcp_issues import (  # noqa: F401
@@ -84,6 +93,62 @@ class FakeJev:
             answers=answers,
             usage=Usage(input_tokens=2000, output_tokens=0),
         )
+
+
+class FakeLLM:
+    """The LLM step's model: answers each request by the rule it ends with.
+
+    ``verdicts`` maps a rule's text to (outcome, which lines by position in the call,
+    with -1 the last). A rule not in it did not come up.
+    """
+
+    def __init__(self) -> None:
+        self.verdicts: dict[str, tuple[str, list[int]]] = {}
+        self.requests: list[tuple[str, str]] = []
+        self.reply: str | None = None  # a raw answer, for the malformed cases
+        self.error: Exception | None = None
+        self.delay = 0.0
+
+    async def call_llm(
+        self, messages: list[LLMMessage], config: LLMCallConfig | None = None
+    ) -> LLMResponse:
+        system, user = (m.content or "" for m in messages)
+        self.requests.append((system, user))
+        if self.delay:
+            await asyncio.sleep(self.delay)
+        if self.error is not None:
+            raise self.error
+        ids = re.findall(r"^\[([^\]]+)\]", user, re.MULTILINE)
+        rule = user.rsplit("## The rule", 1)[1]
+        outcome, lines = next(
+            (v for t, v in self.verdicts.items() if t in rule),
+            ("did_not_come_up", []),
+        )
+        content = (
+            self.reply
+            if self.reply is not None
+            else json.dumps(
+                {
+                    "reason": f"Invented reason: {outcome}",
+                    "event_ids": [ids[i] for i in lines] + ["not-in-the-call"],
+                    "outcome": outcome,
+                }
+            )
+        )
+        assert config is not None and config.model == settings.SPEC_LLM_MODEL
+        return LLMResponse(
+            content=content,
+            model=settings.SPEC_LLM_MODEL,
+            usage={"prompt_tokens": 800, "completion_tokens": 60},
+        )
+
+
+@pytest.fixture(autouse=True)
+def fake_llm(monkeypatch: pytest.MonkeyPatch) -> FakeLLM:
+    """Never a real model request from these tests."""
+    fake = FakeLLM()
+    monkeypatch.setattr("app.services.checks.judge.call_llm", fake.call_llm)
+    return fake
 
 
 @pytest.fixture
@@ -310,7 +375,7 @@ async def test_rules_with_inputs_get_a_second_request_with_their_short_inputs(
             RULES[1]._replace(
                 key=_rule_key(db, agent, PRICE),
                 inputs=["previous_conversations"],
-                check=SpecCheckType.LLM,  # not asked until 105.16
+                check=SpecCheckType.LLM,  # only the LLM step asks
             ),
             RULES[0]._replace(text="Greet the caller by the clinic's name"),
         ],
@@ -488,7 +553,7 @@ async def test_screens_and_mcp_show_the_rule_with_no_moment(
         headers=_headers(user),
     ).json()
     assert any(f["probability"] == 0.92 for f in call["data"]["findings"])
-    assert any("has no moment" in s for s in call["next_steps"])
+    assert any("with no moment (`whole_call`)" in s for s in call["next_steps"])
     listed = client.get(
         f"{settings.API_V1_STR}/mcp/workspaces/{user.company_id}/issues",
         headers=_headers(user),
@@ -520,3 +585,349 @@ async def test_retyping_every_rule_keeps_the_findings_of_calls_already_judged(
 
     assert _outcome(db, calls[0]) == (CheckOutcome.RAN, None)
     assert len(_spec_findings(db, calls[0])) == 1
+
+
+# ── The LLM step (105.16) ─────────────────────────────────────────
+
+
+def _retype(
+    db: Session,
+    user: Any,
+    agent: Agent,
+    hours: SpecCheckType,
+    price: SpecCheckType,
+    price_inputs: list[str] | None = None,
+) -> None:
+    write_agent_spec(
+        session=db,
+        agent=agent,
+        drafts=[
+            RULES[0]._replace(key=_rule_key(db, agent, HOURS), check=hours),
+            RULES[1]._replace(
+                key=_rule_key(db, agent, PRICE), check=price, inputs=price_inputs
+            ),
+        ],
+        author=user,
+        assistant_name=ASSISTANT,
+    )
+
+
+def _ids(db: Session, call_id: object) -> list[str]:
+    """The ids of the call's lines, as the LLM step reads them."""
+    row = db.get(Call, call_id)
+    assert row is not None
+    trace = crud.get_trace(session=db, call=row)
+    assert trace is not None
+    return re.findall(r"^\[([^\]]+)\]", spec_rule.render(trace), re.MULTILINE)
+
+
+def _answer_of(db: Session, call_id: object) -> dict[str, Any]:
+    stored = crud.get_model_answers(
+        session=db,
+        call_id=call_id,
+        versions={SPEC_CHECK_TYPE: SPEC_RULE_BROKEN.version},
+    )[SPEC_CHECK_TYPE]
+    assert isinstance(stored.answer, dict)
+    return stored.answer
+
+
+async def test_a_flag_the_llm_confirms_has_its_moment_and_reason(
+    client: TestClient, db: Session, fake_jev: FakeJev, fake_llm: FakeLLM
+) -> None:
+    user, agent, calls = _ready(db)
+    _retype(
+        db, user, agent, SpecCheckType.CLASSIFIER_THEN_LLM, SpecCheckType.CLASSIFIER
+    )
+    fake_llm.verdicts = {HOURS: ("failed", [0, -1])}
+
+    await _judge(db, agent)
+
+    hours = _rule_key(db, agent, HOURS)
+    for call_id in calls:
+        ids = _ids(db, call_id)
+        (finding,) = _spec_findings(db, call_id)
+        # The id the LLM made up is dropped; the moment is in the call's order.
+        assert ids[0] != ids[-1]
+        assert (finding.key, finding.event_keys) == (hours, [ids[0], ids[-1]])
+        assert finding.kind.value == "classifier"
+        assert finding.detail == {
+            "rule_text": HOURS,
+            "spec_version": 2,
+            "reason": "Invented reason: failed",
+            "probability": 0.92,
+            "model": "jev-1.14.0",
+            "confirmed_by": settings.SPEC_LLM_MODEL,
+        }
+    # One LLM request per call: the flag. The price rule scored 0.5 and is not sent.
+    assert len(fake_llm.requests) == len(calls)
+    system, user_text = fake_llm.requests[0]
+    assert user_text.index("## The call") < user_text.index("## The rule")
+    assert user_text.rstrip().endswith(HOURS)
+    assert PRICE not in user_text and "0.92" not in user_text
+    assert "prompt" not in system.lower()
+
+    row = db.get(Call, calls[0])
+    assert row is not None
+    screen = call_screen(session=db, call=row)
+    assert screen is not None
+    (seen,) = (f for f in screen.findings if f.model is not None)
+    assert (seen.whole_call, seen.reason, seen.confirmed_by, seen.probability) == (
+        False,
+        "Invented reason: failed",
+        settings.SPEC_LLM_MODEL,
+        0.92,
+    )
+    assert seen.entry_index == max(seen.entry_indexes)
+    assert len(seen.entry_indexes) == 2
+
+    issue = db.exec(
+        select(Issue).where(
+            Issue.agent_id == agent.id, Issue.check_type == SPEC_CHECK_TYPE
+        )
+    ).one()
+    page = issue_page(
+        session=db, issue=issue, summary=crud.summarise_issue(session=db, issue=issue)
+    )
+    assert page.found_how == "confirmed"
+    assert all(
+        c.moment is not None and c.reason == "Invented reason: failed"
+        for c in page.affected_calls
+    )
+
+    call = client.get(
+        f"{settings.API_V1_STR}/mcp/workspaces/{user.company_id}/calls/{calls[0]}",
+        headers=_headers(user),
+    ).json()
+    (mcp_finding,) = (f for f in call["data"]["findings"] if f["model"])
+    assert mcp_finding["reason"] == "Invented reason: failed"
+    assert mcp_finding["confirmed_by"] == settings.SPEC_LLM_MODEL
+    assert any("`entry_indexes`" in s for s in call["next_steps"])
+    body = client.get(
+        f"{settings.API_V1_STR}/mcp/workspaces/{user.company_id}/issues/{issue.id}",
+        headers=_headers(user),
+    ).json()
+    assert body["data"]["found_how"] == "confirmed"
+
+
+async def test_a_flag_the_llm_dismisses_raises_nothing_and_is_stored(
+    db: Session, fake_jev: FakeJev, fake_llm: FakeLLM
+) -> None:
+    user, agent, calls = _ready(db)
+    _retype(
+        db, user, agent, SpecCheckType.CLASSIFIER_THEN_LLM, SpecCheckType.CLASSIFIER
+    )
+    fake_llm.verdicts = {HOURS: ("passed", [1])}
+
+    await _judge(db, agent)
+
+    assert _outcome(db, calls[0]) == (CheckOutcome.RAN, None)
+    assert _spec_findings(db, calls[0]) == []
+    verdict = _answer_of(db, calls[0])["rules"][_rule_key(db, agent, HOURS)]["verdict"]
+    assert (verdict["outcome"], verdict["reason"]) == (
+        "passed",
+        "Invented reason: passed",
+    )
+
+
+async def test_an_llm_rule_is_judged_alone_on_every_call_with_its_long_inputs(
+    db: Session, fake_jev: FakeJev, fake_llm: FakeLLM
+) -> None:
+    user, agent, calls = _ready(db)
+    history = "Earlier call about a cleaning. " * 10  # long: only the LLM step
+    for call_id in calls:
+        row = db.get(Call, call_id)
+        assert row is not None
+        row.inputs = {"previous_conversations": history, "attempt_number": "2"}
+        db.add(row)
+    db.commit()
+    _retype(
+        db,
+        user,
+        agent,
+        SpecCheckType.CLASSIFIER_THEN_LLM,
+        SpecCheckType.LLM,
+        price_inputs=["previous_conversations"],
+    )
+    # Both rules broken at the same lines: two findings, told apart by rule.
+    fake_llm.verdicts = {HOURS: ("failed", [1]), PRICE: ("failed", [1])}
+
+    await _judge(db, agent)
+
+    asked = [text for _, texts in fake_jev.requests for text in texts]
+    assert not any(PRICE in t for t in asked)  # never the classifier
+    price_requests = [u for _, u in fake_llm.requests if u.rstrip().endswith(PRICE)]
+    assert len(price_requests) == len(calls)
+    assert all(history.strip() in u for u in price_requests)
+    assert all("attempt_number" not in u for u in price_requests)  # not named
+    for call_id in calls:
+        findings = {f.key: f for f in _spec_findings(db, call_id)}
+        price = findings[_rule_key(db, agent, PRICE)]
+        hours = findings[_rule_key(db, agent, HOURS)]
+        assert price.event_keys == hours.event_keys == [_ids(db, call_id)[1]]
+        assert price.kind.value == "judge"
+        assert price.detail is not None
+        assert "probability" not in price.detail
+        assert price.detail["model"] == settings.SPEC_LLM_MODEL
+        assert price.effect is FindingEffect.FLAGS
+
+
+def test_a_verdict_naming_no_line_of_the_call_is_on_the_whole_call() -> None:
+    trace = Trace(
+        provider="invented",
+        external_id="c",
+        started_at=datetime.now(UTC),
+        events=[UtteranceEvent(id="a1", speaker="agent", text="Hi")],
+    )
+    answer = _stored(k1=(0.9, "classifier_then_llm", True))
+    rules: Any = answer["rules"]
+    rules["k1"]["verdict"] = {
+        "outcome": "failed",
+        "reason": "Booked at 7:00",
+        "event_ids": ["made-up"],
+        "model": "claude-haiku-5-5",
+    }
+    rules["k2"] = {
+        "probability": None,
+        "check": "llm",
+        "critical": False,
+        "category": "booking",
+        "text": "Rule k2",
+        "fingerprint": "f",
+        "verdict": {
+            "outcome": "failed",
+            "reason": "Said a price",
+            "event_ids": ["a1"],
+            "model": "claude-haiku-5-5",
+        },
+    }
+    raised = SPEC_RULE_BROKEN.run(CheckInput(trace=trace, executions=[], answer=answer))
+    assert [(r.key, r.event_ids, r.flags_only, r.kind) for r in raised] == [
+        ("k1", (), False, None),
+        ("k2", ("a1",), True, CheckKind.JUDGE),
+    ]
+    assert raised[0].detail is not None
+    assert raised[0].detail["confirmed_by"] == "claude-haiku-5-5"
+
+
+async def test_a_call_version_1_judged_keeps_its_answer_and_is_not_asked_again(
+    db: Session, fake_jev: FakeJev, fake_llm: FakeLLM
+) -> None:
+    user, agent, calls = _ready(db)
+    hours, price = _rule_key(db, agent, HOURS), _rule_key(db, agent, PRICE)
+    row = db.get(Call, calls[0])
+    assert row is not None
+
+    def rule(probability: float, check: str, text: str) -> dict[str, Any]:
+        return {
+            "probability": probability,
+            "check": check,
+            "critical": False,
+            "category": "booking",
+            "text": text,
+            "fingerprint": "f",
+        }
+
+    crud.save_model_answer(
+        session=db,
+        call=row,
+        check_type=SPEC_CHECK_TYPE,
+        check_version=1,
+        status=ModelAnswerStatus.OK,
+        model="jev-1.14.0",
+        answer={
+            "model": "jev-1.14.0",
+            "spec_version": 1,
+            "rules": {
+                hours: rule(0.92, "classifier", HOURS),
+                price: rule(0.95, "classifier_then_llm", PRICE),
+            },
+        },
+    )
+
+    check_call(session=db, call=row, checks=[SPEC_RULE_BROKEN])
+
+    # Version 2 read version 1's answer: ran, nothing left to ask about this call.
+    assert _outcome(db, calls[0]) == (CheckOutcome.RAN, None)
+    (finding,) = _spec_findings(db, calls[0])
+    assert (finding.key, finding.event_keys, finding.check_version) == (hours, [], 2)
+    waiting = crud.calls_waiting_for_models(
+        session=db,
+        versions={SPEC_CHECK_TYPE: SPEC_RULE_BROKEN.version},
+        agent_ids=[agent.id],
+        limit=10,
+    )
+    assert calls[0] not in {c.id for c, _ in waiting}  # the held flag stays held
+
+
+async def test_without_the_llm_key_the_classifier_part_still_counts(
+    db: Session,
+    fake_jev: FakeJev,
+    fake_llm: FakeLLM,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(settings, "ANTHROPIC_API_KEY", None)
+    user, agent, calls = _ready(db)
+    write_agent_spec(
+        session=db,
+        agent=agent,
+        drafts=[
+            RULES[0]._replace(
+                key=_rule_key(db, agent, HOURS), check=SpecCheckType.CLASSIFIER_THEN_LLM
+            ),
+            RULES[1]._replace(key=_rule_key(db, agent, PRICE)),
+            RULES[0]._replace(text="Say the clinic's name first"),
+        ],
+        author=user,
+        assistant_name=ASSISTANT,
+    )
+    fake_jev.scores["Say the clinic's name first"] = 0.9
+
+    await _judge(db, agent)
+
+    assert fake_llm.requests == []
+    (finding,) = _spec_findings(db, calls[0])
+    assert finding.detail is not None
+    assert finding.detail["rule_text"] == "Say the clinic's name first"
+    assert _answer_of(db, calls[0])["llm_missing"] == "ANTHROPIC_API_KEY"
+
+
+@pytest.mark.parametrize(
+    "fault",
+    ["timeout", "slow", "empty", "not json", "unknown verdict"],
+)
+async def test_a_failed_llm_request_fails_the_answer_and_raises_nothing(
+    db: Session,
+    fake_jev: FakeJev,
+    fake_llm: FakeLLM,
+    fault: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user, agent, calls = _ready(db)
+    _retype(
+        db, user, agent, SpecCheckType.CLASSIFIER_THEN_LLM, SpecCheckType.CLASSIFIER
+    )
+    if fault == "timeout":
+        fake_llm.error = LLMTimeout(
+            message="timed out", model="claude-haiku-5-5", llm_provider="anthropic"
+        )
+    elif fault == "slow":
+        # Slower than the step's own bound: a counted attempt, not the pass's time.
+        monkeypatch.setattr(spec_rule, "_LLM_SECONDS", 0.01)
+        fake_llm.delay = 0.2
+    else:
+        fake_llm.reply = {
+            "empty": "",
+            "not json": "The agent broke it.",
+            "unknown verdict": '{"reason": "x", "event_ids": [], "outcome": "maybe"}',
+        }[fault]
+
+    await _judge(db, agent)
+
+    assert _outcome(db, calls[0]) == (CheckOutcome.PENDING, None)
+    assert _spec_findings(db, calls[0]) == []
+    stored = crud.get_model_answers(
+        session=db, call_id=calls[0], versions={SPEC_CHECK_TYPE: 2}
+    )[SPEC_CHECK_TYPE]
+    assert (stored.status.value, stored.attempts) == ("failed", 1)
+    # What was billed before the failure still counts for the daily budget.
+    assert stored.cost_usd > 0

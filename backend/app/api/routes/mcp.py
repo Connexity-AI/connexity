@@ -697,11 +697,17 @@ def get_call(
             "Call `list_issues` with this agent's id to see how often each finding "
             "happens across calls."
         )
-    if any(f.probability is not None for f in screen.findings):
+    if any(f.whole_call for f in screen.findings):
         next_steps.append(
-            "A broken spec rule has no moment: read the transcript against the rule "
-            "to find where, and open its issue (`get_issue` with its `issue_id`) for "
-            "the rule's clarifications."
+            "A broken spec rule with no moment (`whole_call`): read the transcript "
+            "against the rule to find where, and open its issue (`get_issue` with its "
+            "`issue_id`) for the rule's clarifications."
+        )
+    if any(f.reason for f in screen.findings):
+        next_steps.append(
+            "A broken spec rule an LLM confirmed or found gives its `reason` and the "
+            "entries it rests on (`entry_indexes`): check the reason against those "
+            "entries before you act on it."
         )
     return McpAnswer[CallScreenPublic](
         data=screen,
@@ -834,12 +840,14 @@ def _mcp_issue(
 
 
 SPEC_FINDING_RULE = (
-    "A finding with a `probability` is a broken spec rule (`spec_rule_broken`): a "
-    f"classifier said yes at {SPEC_BAR} or above, reading the whole call with the "
-    "rule's clarifications and the short inputs the spec's rules name. It has no "
-    "moment and no reason; never invent either. A critical rule fails the call; any "
-    "other only flags it. A call is judged once: a later change to the rule does not "
-    "judge it again."
+    "A finding of `spec_rule_broken` is a broken spec rule, named by its key and "
+    "`detail.rule_text`. Found by the classifier alone (`detail.probability` at "
+    f"{SPEC_BAR} or above, no `detail.reason`), it reads the whole call and has no "
+    "moment and no reason; never invent either. Confirmed by an LLM "
+    "(`detail.confirmed_by`) or found by one alone (found_by judge), it has the "
+    "LLM's reason and, when the LLM named lines, the moment. A critical rule fails "
+    "the call; any other only flags it. A call is judged once: a later change to the "
+    "rule does not judge it again."
 )
 
 
@@ -849,8 +857,10 @@ _ISSUE_RULES = [
     "deterministic code over the call; classifier or judge means a model.",
     "An affected call's moment is when the issue first happened in it, and how many "
     "times; open the call with `get_call` to see it. A broken spec rule "
-    "(`whole_call` true) has no moment; its calls give the classifier's "
-    "`probability` instead.",
+    "(`whole_call` true) found by the classifier alone has no moment; its calls give "
+    "the classifier's `probability` instead. One an LLM confirmed or found "
+    "(`found_how` confirmed or llm) gives each call's moment, when it named lines, and "
+    "its `reason`.",
     SPEC_FINDING_RULE,
     "Archiving is the person's decision. Before `archive_issue` or `unarchive_issue`, "
     "say which issue, its size and the duration, and wait for the person's yes; put "
@@ -1004,10 +1014,12 @@ def get_issue(
 def _spec_issue_steps(issue: Issue) -> list[str]:
     """What to do with a broken spec rule, in order."""
     return [
-        f"This is the spec rule `{issue.key}` broken, found by a classifier with no "
-        "moment or reason. Read the rule and its clarifications (`clarifications` "
-        "here, or `get_spec`), then read the calls (`list_calls` with this issue_id) "
-        "against it to find where.",
+        f"This is the spec rule `{issue.key}` broken. Read the rule and its "
+        "clarifications (`clarifications` here, or `get_spec`), then the calls "
+        "(`list_calls` with this issue_id) against it. A finding the classifier "
+        "raised alone has no moment or reason: find where yourself. One an LLM "
+        "confirmed or found gives its reason and moment: check the reason against "
+        "the call.",
         "If the flags look wrong because the rule is unclear, ask the person: raise a "
         f"clarification on the rule with `raise_clarifications` and `rule_key` "
         f"`{issue.key}`, these calls as evidence.",
@@ -1314,10 +1326,14 @@ _SPEC_RULES = [
     "step, so a rule that needs one cannot be `classifier`. Name inputs from "
     "known_inputs; contact details, ids and secrets are never inputs.",
     f"Every real call that qualifies is judged against the spec covering its agent "
-    f"version: `classifier` rules raise a finding at {SPEC_BAR} or above, "
-    "`classifier_then_llm` rules are judged but their flags wait for the LLM step "
-    "(counts.held_for_llm), and `llm` rules are not judged yet (counts.llm_only). A "
-    "call is judged once: a rule you change judges the calls after it, not those "
+    f"version: `classifier` rules raise a finding at {SPEC_BAR} or above; "
+    "`classifier_then_llm` flags at that bar are confirmed or dismissed by an LLM "
+    "(counts.confirmed_by_llm); `llm` rules are judged by the LLM alone on every call "
+    "(counts.judged_by_llm). The LLM gets one rule per request with the call and the "
+    "rule's inputs, never the agent's prompt, so a rule that rests on a list or a "
+    "number in the prompt must say it itself. Each `llm` rule is one more request on "
+    "every judged call: type a rule `llm` only when the classifier cannot judge it. "
+    "A call is judged once: a rule you change judges the calls after it, not those "
     "before. The agent's first spec judges its last 30 days once.",
     "A critical rule is one whose failure must stop a release; a failure of any other "
     "rule is a Warning. Marking is yours to decide, without asking the person: mark "

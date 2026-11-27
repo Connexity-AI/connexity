@@ -93,8 +93,8 @@ def _validated(check: Check, raised: list[Raised], event_ids: set[str]) -> None:
         if not item.event_ids and not check.whole_call:
             msg = f"check '{check.type}' raised a finding that points at no event"
             raise CheckError(msg)
-        if check.whole_call and (item.event_ids or not item.key):
-            msg = f"check '{check.type}' judges the whole call: no events, and a key"
+        if check.whole_call and not item.key:
+            msg = f"check '{check.type}' tells its findings apart by key: it needs one"
             raise CheckError(msg)
         if any(key not in event_ids for key in item.event_ids):
             msg = f"check '{check.type}' pointed at events the trace does not have"
@@ -235,6 +235,13 @@ def check_call(
             outcomes[check.type] = (CheckOutcome.SKIPPED, applies.skip)
         elif isinstance(check, ModelCheck):
             stored = stored_answers.get(check.type)
+            if stored is None and check.answers_carry_over:
+                stored = crud.earlier_model_answer(
+                    session=session,
+                    call_id=call.id,
+                    check_type=check.type,
+                    below=check.version,
+                )
             no_key = missing_key(check.provider)
             if stored is not None and stored.status is ModelAnswerStatus.OK:
                 answers[check.type] = stored.answer
@@ -269,6 +276,7 @@ def check_call(
         session=session,
         call=call,
         categories={check.type: check.category for check in checks},
+        keyed={check.type for check in checks if check.whole_call},
         issue_categories={
             (check.type, raised.key or ""): raised.category
             for check, raised in run.found
@@ -288,7 +296,7 @@ def check_call(
                 call_id=call.id,
                 check_type=check.type,
                 check_version=check.version,
-                kind=check.kind,
+                kind=raised.kind or check.kind,
                 key=raised.key,
                 event_keys=list(raised.event_ids),
                 detail=raised.detail,

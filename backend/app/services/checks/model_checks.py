@@ -26,7 +26,7 @@ from app.core.config import settings
 from app.models.call import Call
 from app.models.enums import ModelAnswerStatus
 from app.models.trace import Trace
-from app.services.checks.base import ModelCheck, ModelReply
+from app.services.checks.base import AskFailed, ModelCheck, ModelReply
 from app.services.checks.engine import check_call
 from app.services.checks.providers import keys_present, missing_key
 from app.services.checks.registry import CHECKS
@@ -125,6 +125,8 @@ async def answer_model_checks(
                 # Out of time, not a failure: the call waits for the next pass.
                 return None
             except Exception as exc:  # noqa: BLE001 - recorded as a failed attempt
+                if isinstance(exc, AskFailed):
+                    spent += exc.cost_usd
                 return exc
             spent += reply.cost_usd
             return reply
@@ -152,6 +154,7 @@ async def answer_model_checks(
                 status=ModelAnswerStatus.FAILED,
                 model=check.model,
                 error=_error(reply),
+                cost_usd=reply.cost_usd if isinstance(reply, AskFailed) else 0.0,
             )
             result.failed += 1
         else:

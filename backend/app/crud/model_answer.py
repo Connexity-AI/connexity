@@ -34,6 +34,24 @@ def get_model_answers(
     return {row.check_type: row for row in rows}
 
 
+def earlier_model_answer(
+    *, session: Session, call_id: uuid.UUID, check_type: str, below: int
+) -> ModelAnswer | None:
+    """The newest answer an earlier version of ``check_type`` stored for the call
+    without failing, or None."""
+    return session.exec(
+        select(ModelAnswer)
+        .where(
+            ModelAnswer.call_id == call_id,
+            ModelAnswer.check_type == check_type,
+            col(ModelAnswer.check_version) < below,
+            ModelAnswer.status == ModelAnswerStatus.OK,
+        )
+        .order_by(col(ModelAnswer.check_version).desc())
+        .limit(1)
+    ).first()
+
+
 def model_spend_since(*, session: Session, since: datetime) -> float:
     """What model checks have cost the whole product since ``since``, in dollars."""
     total = session.exec(

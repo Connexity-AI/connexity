@@ -6,6 +6,7 @@ applies to calls, not to its own page.
 """
 
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from sqlmodel import Session, col, select
 
@@ -20,13 +21,14 @@ from app.crud.issue_page import (
     issue_calls_per_day,
     issue_decisions,
     issue_moments,
-    issue_probabilities,
+    issue_spec_findings,
+    newest_finding,
     period_days,
 )
 from app.models.agent import Agent
 from app.models.call import Call
 from app.models.call_list import CallFilterOption, IssueMomentPublic
-from app.models.check import DecisionRecord, Issue
+from app.models.check import DecisionRecord, Finding, Issue
 from app.models.enums import CallCheckStatus, CheckKind, IssueState
 from app.models.issue_page import (
     ArchiveDuration,
@@ -193,13 +195,14 @@ def issue_page(
     results = crud.call_check_statuses(session=session, call_ids=[c.id for c in calls])
     check = get_check(issue.check_type)
     whole_call = bool(check and check.whole_call)
-    probabilities = (
-        issue_probabilities(
+    spec_seen = (
+        issue_spec_findings(
             session=session, issue_id=issue.id, call_ids=[c.id for c in calls]
         )
         if whole_call
         else {}
     )
+    newest = newest_finding(session=session, issue_id=issue.id) if whole_call else None
     clarifications = (
         rule_clarifications_public(
             session,
@@ -265,14 +268,30 @@ def issue_page(
                 else None
                 if whole_call
                 else IssueMomentPublic(at_seconds=0, times=1),
-                probability=probabilities.get(call.id),
+                probability=spec_seen[call.id].probability
+                if call.id in spec_seen
+                else None,
+                reason=spec_seen[call.id].reason if call.id in spec_seen else None,
             )
             for call in calls
         ],
         history=history,
         whole_call=whole_call,
+        found_how=_found_how(newest) if whole_call else None,
         clarifications=clarifications,
     )
+
+
+def _found_how(finding: Finding | None) -> Literal["classifier", "confirmed", "llm"]:
+    """How a broken spec rule's finding was found: the classifier alone, confirmed by
+    an LLM, or by an LLM alone."""
+    if finding is None:
+        return "classifier"
+    if finding.kind is CheckKind.JUDGE:
+        return "llm"
+    if (finding.detail or {}).get("confirmed_by"):
+        return "confirmed"
+    return "classifier"
 
 
 def _kind_of(check_type: str) -> CheckKind:

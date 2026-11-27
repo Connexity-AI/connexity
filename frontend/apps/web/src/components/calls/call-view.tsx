@@ -41,13 +41,28 @@ const FOUND_BY: Record<CallScreenFinding['found_by'], string> = {
 
 const foundBy = (finding: CallScreenFinding) => FOUND_BY[finding.found_by];
 
-/** A broken spec rule: the classifier judged the whole call, so it has no moment. */
-const isWholeCall = (finding: CallScreenFinding) => finding.probability != null;
+/** A broken spec rule: every one names the model that found it. */
+const isSpec = (finding: CallScreenFinding) => finding.model != null;
 
-const findingMeta = (finding: CallScreenFinding) =>
-  finding.probability != null
-    ? `Spec rule broken · no moment in the call · found by the classifier, ${finding.probability.toFixed(2)}`
-    : `${finding.category} · ${foundBy(finding)}`;
+/** A broken spec rule with no moment: the classifier found it alone, or the LLM named no line. */
+const isWholeCall = (finding: CallScreenFinding) => finding.whole_call === true;
+
+/** "claude-haiku-5-5" (or a dated "claude-haiku-5-5-20261101") reads "Claude Haiku 5.5"; any other model id as it is. */
+export const modelName = (model: string) => {
+  const claude = /^claude-([a-z]+)-(\d+)-(\d+)(?:-\d{8})?$/.exec(model.split('/').pop() ?? model);
+  if (!claude) return model;
+  const [, family = '', major, minor] = claude;
+  return `Claude ${family.charAt(0).toUpperCase()}${family.slice(1)} ${major}.${minor}`;
+};
+
+const findingMeta = (finding: CallScreenFinding) => {
+  if (!isSpec(finding)) return `${finding.category} · ${foundBy(finding)}`;
+  const score = finding.probability != null ? finding.probability.toFixed(2) : '';
+  if (finding.confirmed_by)
+    return `Spec rule broken · found by the classifier, ${score} · confirmed by ${modelName(finding.confirmed_by)}`;
+  if (finding.reason) return `Spec rule broken · found by ${modelName(finding.model ?? '')}`;
+  return `Spec rule broken · no moment in the call · found by the classifier, ${score}`;
+};
 
 const ResultLabel: FC<{ result: CallScreenPublic['result'] }> = ({ result }) => {
   if (result === 'failed')
@@ -244,6 +259,8 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
   // A simulated call has no recording and no timing: rows are picked, not played.
   const sim = call.simulated ?? null;
   const [picked, setPicked] = useState<number | null>(null);
+  // The entries a spec finding's reason rests on, lit after jumping to it.
+  const [lit, setLit] = useState<number[] | null>(null);
   const turnNumbers = useMemo(() => {
     const numbers: number[] = [];
     let n = 0;
@@ -286,10 +303,17 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
     scrollTo(index, true);
   };
 
-  const seek = (seconds: number) => {
+  const seek = (seconds: number, rests?: number[]) => {
     const at = Math.min(Math.max(seconds, 0), duration);
     setT(at);
-    follow.current = true;
+    setLit(rests && rests.length > 0 ? rests : null);
+    if (rests && rests.length > 0) {
+      // Show where the reason starts, not only its last line.
+      const first = Math.min(...rests);
+      setTimeout(() => scrollTo(first, true), 0);
+    } else {
+      follow.current = true;
+    }
     if (audio.current && hasAudio) audio.current.currentTime = at;
   };
 
@@ -308,6 +332,8 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
     const critical = call.findings.find((f) => f.severity === 'critical' && !isWholeCall(f));
     if (critical) {
       setT(critical.at_seconds);
+      if (isSpec(critical) && (critical.entry_indexes ?? []).length > 0)
+        setLit(critical.entry_indexes ?? null);
       if (critical.entry_index != null) {
         const index = critical.entry_index;
         if (sim) setPicked(index);
@@ -477,7 +503,7 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
                     title={`${clock(finding.at_seconds)} · ${finding.text}`}
                     onClick={(event) => {
                       event.stopPropagation();
-                      seek(finding.at_seconds);
+                      seek(finding.at_seconds, isSpec(finding) ? finding.entry_indexes : undefined);
                     }}
                     className={cn(
                       'absolute top-0 h-3 w-4 border-0 bg-transparent p-0',
@@ -520,26 +546,46 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
           )}
         </div>
         {call.findings.map((finding) =>
-          isWholeCall(finding) ? (
-            <Link
+          isSpec(finding) ? (
+            <div
               key={finding.id}
-              href={finding.issue_id ? UrlGenerator.issue(finding.issue_id) : UrlGenerator.issues()}
-              title="Open the issue"
-              className="grid min-h-14 w-full grid-cols-[48px_16px_minmax(0,1fr)] items-center gap-3 border-t border-hairline px-6 py-2 text-left text-ink no-underline hover:bg-wash"
+              className="grid min-h-14 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-3 border-t border-hairline px-6 py-2 hover:bg-wash"
             >
-              <span className="text-label text-ink-secondary">—</span>
-              <span className="flex">
-                {finding.severity === 'critical' ? (
-                  <OctagonAlert className="size-4 text-critical" aria-hidden />
-                ) : (
-                  <TriangleAlert className="size-4 text-warning" aria-hidden />
-                )}
-              </span>
-              <span className="flex min-w-0 flex-col">
-                <span className="text-body text-ink">{finding.text}</span>
-                <span className="text-label text-ink-muted">{findingMeta(finding)}</span>
-              </span>
-            </Link>
+              {isWholeCall(finding) ? (
+                <span className="text-label text-ink-secondary">—</span>
+              ) : (
+                <button
+                  type="button"
+                  title="Jump to this moment"
+                  onClick={() => seek(finding.at_seconds, finding.entry_indexes)}
+                  className="-ml-1.5 h-6 justify-self-start rounded-md border-0 bg-transparent px-1.5 text-label text-ink-secondary underline underline-offset-2 hover:text-ink"
+                >
+                  {clock(finding.at_seconds)}
+                </button>
+              )}
+              <Link
+                href={
+                  finding.issue_id ? UrlGenerator.issue(finding.issue_id) : UrlGenerator.issues()
+                }
+                title="Open the issue"
+                className="grid grid-cols-[16px_minmax(0,1fr)] items-center gap-3 text-left text-ink no-underline"
+              >
+                <span className="flex">
+                  {finding.severity === 'critical' ? (
+                    <OctagonAlert className="size-4 text-critical" aria-hidden />
+                  ) : (
+                    <TriangleAlert className="size-4 text-warning" aria-hidden />
+                  )}
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-body text-ink">{finding.text}</span>
+                  {finding.reason && (
+                    <span className="text-body text-ink-secondary">{finding.reason}</span>
+                  )}
+                  <span className="text-label text-ink-muted">{findingMeta(finding)}</span>
+                </span>
+              </Link>
+            </div>
           ) : (
             <button
               key={finding.id}
@@ -587,7 +633,7 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
         </div>
         <div ref={transcript} className="relative max-h-[560px] overflow-auto py-2">
           {call.entries.map((entry, i) => {
-            const on = sim ? i === picked : i === activeIndex;
+            const on = sim ? i === picked : i === activeIndex || (lit?.includes(i) ?? false);
             const findings = (entry.finding_ids ?? [])
               .map((id) => findingsById[id])
               .filter((f): f is CallScreenFinding => Boolean(f));

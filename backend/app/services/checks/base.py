@@ -68,6 +68,8 @@ class Raised:
     # The one thing that says what broke, for grouping into an issue.
     key: str | None = None
     # Small and structured. Never what a party said, a tool's arguments or its result.
+    # A model's reason is its own paraphrase, told not to repeat names, numbers or
+    # addresses (the spec check's LLM step).
     detail: dict[str, JsonValue] | None = None
     # The category key of the issue it joins, when it differs by finding (a spec rule's
     # category); the check's own otherwise.
@@ -78,6 +80,9 @@ class Raised:
     # Never fails the call, whatever the check is set to (a spec rule not marked
     # critical).
     flags_only: bool = False
+    # How this finding was found, when it differs from the check's kind (a spec rule
+    # an LLM judged alone is a judge's finding in a classifier check).
+    kind: CheckKind | None = None
 
 
 @dataclass(frozen=True)
@@ -110,7 +115,8 @@ class Check:
     kind: CheckKind = CheckKind.CODE_BASED
     # What each key of a finding's ``detail`` means, for the assistant (``get_issue``).
     detail_fields: Mapping[str, str] = field(default_factory=dict)
-    # Its findings point at no event: it judges the call as a whole.
+    # Its findings may point at no event, when it judges the call as a whole; each
+    # finding's key tells it apart, also from another at the same events.
     whole_call: bool = False
     # Reads the database to say whether it judges a call at all (the spec check needs
     # the agent's spec), given when the check was released. None: every call with what
@@ -138,6 +144,15 @@ class ModelReply:
     requests: int = 1
 
 
+class AskFailed(Exception):
+    """``ask`` failed after some of its requests were billed: their cost still counts
+    for the daily budget."""
+
+    def __init__(self, message: str, *, cost_usd: float) -> None:
+        super().__init__(message)
+        self.cost_usd = cost_usd
+
+
 @dataclass(frozen=True, kw_only=True)
 class ModelCheck(Check):
     """A classifier or a judge: ``ask`` once per call and version, then ``run``."""
@@ -150,6 +165,11 @@ class ModelCheck(Check):
     # Reads what ``ask`` needs beyond the trace, before it is called (the spec check:
     # the rules and the call's inputs). Never what was said.
     prepare: Callable[[Session, Call], JsonValue] | None = None
+    # An answer an earlier version stored stands for this one: a call is judged once,
+    # and a new version reads the stored answer again instead of asking (the spec
+    # check, Dmytro 2026-11-26: "New calls only"). ``run`` must read every earlier
+    # version's answers.
+    answers_carry_over: bool = False
 
     def __post_init__(self) -> None:
         if self.kind is CheckKind.CODE_BASED:

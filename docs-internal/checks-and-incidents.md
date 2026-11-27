@@ -264,8 +264,9 @@ rate and no outcome dashboard.
   classifier's own noise, at $0.21 per 1,000 observed minutes.
 - **Bar:** 0.8 (Decided, Dmytro 2026-11-26). Every probability is stored with the rule's
   fingerprint, so a new bar needs no new model request.
-- **`classifier_then_llm` flags are held** (Decided, Dmytro 2026-11-26): judged and
-  stored, no finding until the LLM step confirms one. `llm` rules wait for 105.16.
+- **`classifier_then_llm` flags go to the LLM step** (105.16), which confirms or
+  dismisses each; until it answers, a flag raises nothing (Decided, Dmytro 2026-11-26).
+  `llm` rules are judged by the LLM step alone, on every judged call.
 - **Which calls:** real, graded (105.11), on an agent version a spec covers
   (`crud.spec_covering`). A check may say from the database whether it judges a call
   (`Check.applies`); a call it skips is recorded as skipped with the reason.
@@ -281,6 +282,39 @@ rate and no outcome dashboard.
 - **One issue per rule,** keyed by the rule's key, in the rule's category, named after
   the rule (`issue.subject`). A critical rule's finding fails the call; any other only
   flags it (`Raised.flags_only`). Set to Flags, nothing fails; Off, nothing runs.
+
+**The LLM step (built in 105.16, `plans/2026-11-27-llm-step.md`).**
+
+- **Version 2 of the spec check,** not a new check: the same issue per rule and the
+  same settings. The classifier asks first; then the LLM is asked about each
+  `classifier_then_llm` rule the classifier scored at 0.8 or above, and each `llm`
+  rule.
+- **One rule per request** (Decided, Dmytro 2026-11-27: "I don't see reason not to do
+  separate requests"; "lets start with separate for now"). A request holds the whole
+  call, the inputs the rule names (long ones too), and last the rule with its
+  clarifications, so a call's requests start the same way.
+- **Never the prompt** (Decided, Dmytro 2026-11-27: "we use prompt only as
+  prerequisite for spec, and then everything we do is 100% based on spec"). No other
+  rule and no classifier score either.
+- **The verdict** follows the test-run judge's shape: the reason, then the lines it
+  rests on, then broken, kept or did not come up. Broken is a finding at those lines
+  (the whole call when none are in it) with the reason. Kept or did not come up is
+  stored and shown nowhere until false positives can be marked (105.17).
+- **Who found it:** a confirmed flag is the classifier's finding, confirmed by the LLM
+  (`detail.confirmed_by`); an `llm` rule's finding is a judge's.
+- **The model:** Claude Haiku 5.5 to start (Decided, Dmytro 2026-11-27: "agree start
+  with smaller"), set by `SPEC_LLM_MODEL` and `SPEC_LLM_PROVIDER`, priced by
+  `checks/judge.py`. How good it is per kind of rule is lab work (Decided, Dmytro
+  2026-11-27: "right now we just build the system").
+- **A call is judged once:** a later version reads the answer an earlier one stored
+  (`ModelCheck.answers_carry_over`) instead of asking again. Calls version 1 judged
+  keep their findings, and their held flags stay held.
+- **Without the LLM's key** the classifier part still counts; the flags it would
+  confirm stay held and `llm` rules are not judged on that call. The answer names the
+  missing setting (`llm_missing`).
+- **Cost:** each `llm` rule is one more request on every judged call. Estimated from the
+  lab's token counts, not measured: about $0.05 per 1,000 observed minutes to confirm
+  flags, and $0.10 for each `llm` rule.
 
 **Adding a check.** Dmytro names it in the Issue library. Then:
 

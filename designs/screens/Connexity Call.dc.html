@@ -102,12 +102,12 @@
 <div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Findings</h2><span style="font-size:13px;color:var(--ink3)">{{ findCount }}</span></div>
 <sc-for list="{{ findings }}" as="f" hint-placeholder-count="3">
 <div onClick="{{ f.jump }}" title="{{ f.rowTitle }}" style="display:grid;grid-template-columns:48px 16px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:56px;padding:8px 24px;border-top:1px solid var(--border);cursor:pointer" style-hover="background:var(--wash)">
-<span style="font-size:13px;color:var(--ink2)">{{ f.time }}</span>
+<span style="display:flex"><sc-if value="{{ f.timePlain }}"><span style="font-size:13px;color:var(--ink2)">{{ f.time }}</span></sc-if><sc-if value="{{ f.timeJump }}"><button onClick="{{ f.jumpMoment }}" title="Jump to this moment" style="height:24px;margin-left:-6px;padding:0 6px;border:0;border-radius:6px;background:transparent;color:var(--ink2);font-size:13px;text-decoration:underline;text-underline-offset:2px;cursor:pointer" style-hover="color:var(--ink)">{{ f.time }}</button></sc-if></span>
 <span style="display:flex">
 <sc-if value="{{ f.isCrit }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--crit)"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg></sc-if>
 <sc-if value="{{ f.isWarn }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--warn)"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
 </span>
-<div style="display:flex;flex-direction:column;min-width:0"><span style="text-wrap:pretty">{{ f.text }}</span><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ f.cat }}</span></div>
+<div style="display:flex;flex-direction:column;min-width:0"><span style="text-wrap:pretty">{{ f.text }}</span><sc-if value="{{ f.hasReason }}"><span style="color:var(--ink2);text-wrap:pretty">{{ f.reason }}</span></sc-if><span style="font-size:13px;line-height:18px;color:var(--ink3)">{{ f.cat }}</span></div>
 <a href="{{ f.href }}" onClick="{{ f.stop }}" title="{{ f.linkTitle }}" style="display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink2);white-space:nowrap">{{ f.link }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg></a>
 </div>
 </sc-for>
@@ -173,14 +173,14 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;,&quot;S-0916&quot;,&quot;C-20492&quot;,&quot;C-20490&quot;,&quot;C-20497&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20502&quot;,&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;,&quot;S-0916&quot;,&quot;C-20492&quot;,&quot;C-20490&quot;,&quot;C-20497&quot;],&quot;default&quot;:&quot;C-20502&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
   static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
-  // findings: [t seconds or null, crit|warn, sentence, category, issue name or null, issue id, classifier probability]; by: 'rule'|'model'|'spec' per finding. Spec findings have no moment.
+  // findings: [t seconds or null, crit|warn, sentence, category, issue name or null, issue id, classifier probability]; by: 'rule'|'model'|'spec'|'spec-confirmed'|'spec-llm' per finding. 'spec' (classifier only) has no moment; LLM spec findings add [7] reason and [8] entry indices it rests on, moment may be null.
   // entries: turns [t, 'A'|'C', text, finding index, flagged reply delay]; tools [t, 'T', tool name, finding index, { st: ok|failed|timeout, ms, args, res, wf }]
   static CALLS = {
     'C-20481': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:42', dur:298, last4:'4821', result:'failed', src:'real', version:14, recording:true,
@@ -320,6 +320,28 @@ class Component extends DCLogic {
         [77,'C','No, thanks.'],
         [81,'A','Thanks for calling. Goodbye.']
       ]},
+    'C-20502': { agentId:'dental', agent:'Dental reception', when:'Today 10:52', dur:97, last4:'5581', result:'failed', src:'real', version:11, recording:true,
+      findings:[[42,'crit','Cancel tool returned an error','tools','Cancel tool returned an error'],[72,'crit','On a reschedule, never book a new appointment','resched','On a reschedule, never book a new appointment',null,0.93,'The caller asked to move Tuesday\u2019s visit, and the agent booked a second appointment for Thursday without cancelling the first.',[1,12]],[null,'warn','Ask one question at a time','flow','Ask one question at a time','I-1098',0.88]],
+      by:['rule','spec-confirmed','spec'],
+      entries:[
+        [0,'A','Thanks for calling Brightside Dental. This call may be recorded. How can I help?'],
+        [6,'C','Hi, I have a check-up on Tuesday and I need to move it. Could I come in on Thursday instead?'],
+        [14,'A','I can help with that. Can I take your name and date of birth, and what time on Thursday suits you?'],
+        [23,'C','Marcus Webb, third of May, 1984. Thursday morning, if you can.'],
+        [30,'T','find_patient',-1,{ st:'ok', ms:360, args:{ name:'Marcus Webb', date_of_birth:'1984-05-03' }, res:{ patient_id:'P-41588', status:'active', upcoming:'A-88290 · 2026-11-17 10:00' } }],
+        [33,'A','Thanks, Marcus. I can see your check-up on Tuesday at 10:00. Let me look at Thursday.'],
+        [40,'T','check_availability',-1,{ st:'ok', ms:590, args:{ date:'2026-11-19', before:'12:00', type:'check_up' }, res:{ slots:'09:00, 11:30', clinician:'Dr Okafor' } }],
+        [42,'T','cancel_appointment',0,{ st:'failed', ms:2600, args:{ appointment_id:'A-88290', reason:'reschedule', practice_api_key:'••••' }, res:{ error:'409 Conflict', detail:'appointment_locked' } }],
+        [46,'A','I have 9:00 or 11:30 on Thursday with Dr Okafor.'],
+        [53,'C','9:00, please. And that replaces Tuesday, right?'],
+        [60,'A','Yes. Let me book Thursday at 9:00 for you now.'],
+        [68,'T','schedule_appointment',-1,{ st:'ok', ms:810, args:{ patient_id:'P-41588', slot:'2026-11-19 09:00', clinician:'dr_okafor', type:'check_up', practice_api_key:'••••' }, res:{ appointment_id:'A-88437', status:'confirmed' }, wf:'book-appointment v3 · 6 steps' }],
+        [72,'A','You\u2019re booked for Thursday at 9:00 with Dr Okafor.',1],
+        [79,'C','Great, thanks.'],
+        [83,'A','Is there anything else I can help with?'],
+        [89,'C','No, that\u2019s all.'],
+        [93,'A','Thanks, Marcus. See you on Thursday. Goodbye.']
+      ]},
     'C-20466': { agentId:'car', agent:'Car service booking', when:'Today 11:08', dur:134, last4:'5316', result:'failed', src:'real', version:9, recording:false,
       findings:[[102,'crit','Booking tool returned an error','tools','Booking tool returned an error','I-1042']],
       by:['rule'],
@@ -382,7 +404,7 @@ class Component extends DCLogic {
     this.startAt = tp != null && !isNaN(tp) ? Math.max(0, Math.min(this.durOf(c), tp)) : null;
     const open = {};
     if (props.expandFlagged) c.entries.forEach((e, i) => { if (e[1] === 'T' && e[3] >= 0) open[i] = true; });
-    this.state = { t: this.startAt != null ? this.startAt : crit ? crit[0] : 0, playing:false, open, full:{}, reason:null };
+    this.state = { t: this.startAt != null ? this.startAt : crit ? crit[0] : 0, hl: this.startAt == null && crit && crit[8] ? crit[8] : null, playing:false, open, full:{}, reason:null };
     this.trRef = React.createRef();
     this.lastActive = -1;
   }
@@ -407,10 +429,10 @@ class Component extends DCLogic {
   }
   componentDidUpdate() {
     const i = this.activeIdx(this.state.t);
-    if (i !== this.lastActive) { this.lastActive = i; if (this.state.playing || this.jumped) this.scrollTo(i, !!this.jumped); this.jumped = false; }
+    if (i !== this.lastActive) { this.lastActive = i; if (this.state.playing || this.jumped) this.scrollTo(this.jumped && this.state.hl ? Math.min(...this.state.hl) : i, !!this.jumped); this.jumped = false; }
   }
   componentWillUnmount() { clearInterval(this.timer); }
-  seek(t) { this.jumped = true; this.lastActive = -1; this.setState({ t: Math.max(0, Math.min(this.durOf(this.call()), t)) }); }
+  seek(t, hl) { this.jumped = true; this.lastActive = -1; this.setState({ t: Math.max(0, Math.min(this.durOf(this.call()), t)), hl: hl || null }); }
   togglePlay() {
     if (this.state.playing) { clearInterval(this.timer); this.setState({ playing:false }); return; }
     const dur = this.call().dur;
@@ -459,9 +481,17 @@ class Component extends DCLogic {
     const issuesHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=issues';
     const testsHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=tests';
     const active = this.activeIdx(t);
-    const by = i => c.by && c.by[i] === 'model' ? 'Found by a model' : 'Found by a rule';
-    const isSpec = f => f[0] == null;
-    const meta = i => isSpec(c.findings[i]) ? 'Spec rule broken · no moment in the call · found by the classifier, ' + c.findings[i][6].toFixed(2) : C.CATS[c.findings[i][3]] + ' · ' + by(i);
+    const kind = i => (c.by && c.by[i]) || 'rule';
+    const by = i => kind(i) === 'model' ? 'Found by a model' : 'Found by a rule';
+    const isSpec = i => kind(i).slice(0, 4) === 'spec';
+    const LLM = 'Claude Haiku 5.5';
+    const meta = i => {
+      const f = c.findings[i], k = kind(i);
+      if (k === 'spec') return 'Spec rule broken · no moment in the call · found by the classifier, ' + f[6].toFixed(2);
+      if (k === 'spec-confirmed') return 'Spec rule broken · found by the classifier, ' + f[6].toFixed(2) + ' · confirmed by ' + LLM;
+      if (k === 'spec-llm') return 'Spec rule broken · found by ' + LLM;
+      return C.CATS[f[3]] + ' · ' + by(i);
+    };
     const seg = this.segments(c);
     const bar = ([s, e]) => ({ style: { position:'absolute', top:0, bottom:0, left: (s / dur * 100) + '%', width: Math.max(0.25, (e - s) / dur * 100) + '%', borderRadius:4, background:'var(--ink)' } });
     const fmtMs = ms => ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(1) + ' s';
@@ -501,21 +531,27 @@ class Component extends DCLogic {
         jump: ev => { ev.stopPropagation(); this.seek(e[0]); },
         style: { position:'absolute', top:23, width:12, height:12, left:`calc(${e[0] / dur * 100}% - 6px)`, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex:1 }
       })),
-      marks: c.findings.filter(f => !isSpec(f)).map(f => ({
+      marks: c.findings.filter(f => f[0] != null).map(f => ({
         isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', title: mmss(f[0]) + ' · ' + f[2],
-        jump: e => { e.stopPropagation(); this.seek(f[0]); },
+        jump: e => { e.stopPropagation(); this.seek(f[0], f[8]); },
         style: { position:'absolute', top:0, height:12, left:`calc(${f[0] / dur * 100}% - 8px)`, width:16, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex: f[1] === 'crit' ? 3 : 2 }
       })),
       findCount: c.findings.length ? String(c.findings.length) : '',
       noFindings: c.findings.length === 0,
-      findings: fOrder.map(({ f, i }) => ({
-        time: isSpec(f) ? '\u2014' : run ? 'Turn ' + turnOfT(f[0]) : mmss(f[0]), rowTitle: isSpec(f) ? 'Open the issue' : 'Jump to this moment', isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: meta(i),
-        link: isSpec(f) ? 'Open the issue' : f[4] || 'The rule in Tests', linkTitle: f[4] ? 'Open the issue' : 'Open the rule this test proves', href: f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : f[4] ? issuesHref : testsHref,
-        stop: e => e.stopPropagation(), jump: isSpec(f) ? () => { window.location.href = f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : issuesHref; } : () => this.seek(f[0])
-      })),
+      findings: fOrder.map(({ f, i }) => {
+        const sp = isSpec(i), hasT = f[0] != null;
+        return {
+        time: !hasT ? '\u2014' : run ? 'Turn ' + turnOfT(f[0]) : mmss(f[0]), timeJump: sp && hasT, timePlain: !(sp && hasT),
+        jumpMoment: e => { e.stopPropagation(); this.seek(f[0], f[8]); },
+        rowTitle: sp ? 'Open the issue' : 'Jump to this moment', isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: meta(i),
+        hasReason: sp && !!f[7], reason: sp && f[7] ? f[7] : '',
+        link: sp ? 'Open the issue' : f[4] || 'The rule in Tests', linkTitle: f[4] ? 'Open the issue' : 'Open the rule this test proves', href: f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : f[4] ? issuesHref : testsHref,
+        stop: e => e.stopPropagation(), jump: sp ? () => { window.location.href = f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : issuesHref; } : () => this.seek(f[0])
+      }; }),
       trRef: this.trRef,
       entries: c.entries.map(([et, who, text, fi, x], i) => {
-        const f = fi != null && fi >= 0 ? c.findings[fi] : null, on = i === active, tool = who === 'T', open = tool && !!S.open[i];
+        const f = fi != null && fi >= 0 ? c.findings[fi] : null, tool = who === 'T', open = tool && !!S.open[i];
+        const on = i === active || !!(S.hl && S.hl.includes(i));
         const bad = tool && x.st !== 'ok';
         return { i, time: run ? (tool ? '' : String(turnNo[i])) : mmss(et), isTurn: !tool, isTool: tool, who: who === 'A' ? 'Agent' : 'Caller',
           text: tool ? (run ? `${text} · ${stLabel[x.st]}` : `${text} · ${stLabel[x.st]} · ${fmtMs(x.ms)}`) : text,

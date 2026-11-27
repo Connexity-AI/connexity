@@ -256,15 +256,15 @@ class SpecCountsPublic(BaseModel):
         description="Rules that are classifier checks on the call alone, the default: "
         "check each one's type and inputs are right",
     )
-    held_for_llm: int = Field(
+    confirmed_by_llm: int = Field(
         default=0,
-        description="Rules typed classifier_then_llm: the spec check judges them on "
-        "real calls but shows no flag until the LLM step confirms it (not built yet)",
+        description="Rules typed classifier_then_llm: on real calls the classifier "
+        "flags them and an LLM confirms each flag, one request per flag",
     )
-    llm_only: int = Field(
+    judged_by_llm: int = Field(
         default=0,
-        description="Rules typed llm: not judged on real calls until the LLM step is "
-        "built",
+        description="Rules typed llm: an LLM judges each on every judged real call, "
+        "one request per rule and call",
     )
 
 

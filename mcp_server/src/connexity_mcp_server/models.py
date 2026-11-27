@@ -237,8 +237,27 @@ class CallFinding(BaseModel):
     issue_id: str | None = None
     probability: float | None = Field(
         default=None,
-        description="A broken spec rule: the classifier's probability; it has no "
-        "moment in the call",
+        description="A broken spec rule the classifier found: its probability",
+    )
+    whole_call: bool = Field(
+        default=False,
+        description="A broken spec rule with no moment in the call: found by the "
+        "classifier alone, or the LLM named no line",
+    )
+    reason: str | None = Field(
+        default=None,
+        description="A broken spec rule an LLM confirmed or found: why, in its words",
+    )
+    model: str | None = Field(
+        default=None, description="A broken spec rule: the model that found it"
+    )
+    confirmed_by: str | None = Field(
+        default=None,
+        description="A broken spec rule: the LLM that confirmed the classifier's flag",
+    )
+    entry_indexes: list[int] = Field(
+        default_factory=list,
+        description="Every timeline entry it rests on; entry_index is the last",
     )
 
 
@@ -760,10 +779,17 @@ class IssueAffectedCall(BaseModel):
     duration_seconds: int | None = None
     result: str
     moment: IssueMoment | None = Field(
-        default=None, description="None for a broken spec rule: it has no moment"
+        default=None,
+        description="None for a broken spec rule with no moment: found by the "
+        "classifier alone, or the LLM named no line",
     )
     probability: float | None = Field(
-        default=None, description="A broken spec rule: the classifier's probability"
+        default=None,
+        description="A broken spec rule the classifier found: its probability",
+    )
+    reason: str | None = Field(
+        default=None,
+        description="A broken spec rule an LLM confirmed or found: why, in its words",
     )
 
 
@@ -839,8 +865,13 @@ class IssuePage(BaseModel):
     calls_all_time: int = 0
     whole_call: bool = Field(
         default=False,
-        description="A broken spec rule: its findings judge the whole call, with no "
-        "moment and no reason",
+        description="A broken spec rule: its findings may judge the whole call, with "
+        "no moment and no reason",
+    )
+    found_how: str | None = Field(
+        default=None,
+        description="A broken spec rule, from its newest finding: classifier (alone), "
+        "confirmed (by an LLM) or llm (an LLM alone)",
     )
     clarifications: list[RuleClarification] = Field(
         default_factory=list,
@@ -941,8 +972,8 @@ class SpecCounts(BaseModel):
     in_conflict: int = 0
     critical: int = 0
     classifier_on_call: int = 0
-    held_for_llm: int = 0
-    llm_only: int = 0
+    confirmed_by_llm: int = 0
+    judged_by_llm: int = 0
 
 
 class KnownInput(BaseModel):
