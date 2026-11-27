@@ -88,13 +88,17 @@ def _call_or_404(
 
 def _finding_public(row: Finding) -> FindingPublic:
     check = get_check(row.check_type)
+    # A broken spec rule is named after the rule it judged.
+    subject = (row.detail or {}).get("rule_text")
     return FindingPublic(
         id=row.id,
         issue_id=row.issue_id,
         check_type=row.check_type,
         check_version=row.check_version,
         kind=row.kind,
-        title=check.title if check else "",
+        title=subject
+        if isinstance(subject, str) and subject
+        else (check.title if check else ""),
         key=row.key,
         event_ids=row.event_keys,
         detail=row.detail,

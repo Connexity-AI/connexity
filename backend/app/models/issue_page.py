@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.models.call_list import CallFilterOption, IssueMomentPublic
 from app.models.enums import CallCheckStatus, CheckKind, IssueState
+from app.models.spec import RuleClarificationPublic
 
 ArchiveDuration = Literal["until_spike", "forever"]
 
@@ -70,7 +71,15 @@ class IssueAffectedCallPublic(BaseModel):
     )
     duration_seconds: int | None = None
     result: CallCheckStatus
-    moment: IssueMomentPublic
+    moment: IssueMomentPublic | None = Field(
+        default=None,
+        description="Where it first happened in the call; none for a finding on the "
+        "whole call (a broken spec rule)",
+    )
+    probability: float | None = Field(
+        default=None,
+        description="For a broken spec rule: the classifier's probability on this call",
+    )
 
 
 class IssueHistoryPublic(BaseModel):
@@ -119,4 +128,13 @@ class IssuePagePublic(BaseModel):
     )
     history: list[IssueHistoryPublic] = Field(
         description="Decisions about it, newest first, ending with when it was opened"
+    )
+    whole_call: bool = Field(
+        default=False,
+        description="Its findings judge the whole call, with no moment and no reason "
+        "(a broken spec rule, found by a classifier)",
+    )
+    clarifications: list[RuleClarificationPublic] = Field(
+        default_factory=list,
+        description="For a broken spec rule: the clarifications in force on the rule",
     )

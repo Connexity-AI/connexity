@@ -188,7 +188,9 @@ def dashboard(
                 if counts
                 else None,
                 top_issue_id=top.id if top else None,
-                top_issue_title=issue_title(top.check_type, top.key or None)
+                top_issue_title=issue_title(
+                    top.check_type, top.key or None, top.subject
+                )
                 if top
                 else None,
             )

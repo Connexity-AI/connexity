@@ -52,6 +52,39 @@ def current_agent_version(*, session: Session, agent_id: uuid.UUID) -> str | Non
     ).first()
 
 
+def version_number(text: str | None) -> tuple[int, str]:
+    """An agent version as a number to order by, or -1 when it is not one."""
+    return (int(text), "") if text and text.isdigit() else (-1, text or "")
+
+
+def spec_covering(
+    *, session: Session, agent_id: uuid.UUID, agent_version: str | None
+) -> Spec | None:
+    """The spec in force for an agent version: the newest one written for it or for
+    an earlier version (a spec stays in force until the next is written). None when
+    every spec was written for a later version: that agent was never given its rules."""
+    wanted = version_number(agent_version)[0]
+    best: tuple[tuple[int, int], Spec] | None = None
+    for spec in session.exec(select(Spec).where(Spec.agent_id == agent_id)).all():
+        written = version_number(spec.agent_version)[0]
+        if spec.agent_version == (agent_version or ""):
+            written = max(written, wanted)
+        elif not (wanted >= 0 and 0 <= written <= wanted):
+            continue
+        # The spec written for the highest such agent version, newest spec first.
+        key = (written, spec.version)
+        if best is None or key > best[0]:
+            best = (key, spec)
+    return best[1] if best else None
+
+
+def first_spec_at(*, session: Session, agent_id: uuid.UUID) -> datetime | None:
+    """When the agent's first spec was written."""
+    return session.exec(
+        select(func.min(col(Spec.created_at))).where(Spec.agent_id == agent_id)
+    ).one()
+
+
 def latest_spec(*, session: Session, agent_id: uuid.UUID) -> Spec | None:
     return session.exec(
         select(Spec)

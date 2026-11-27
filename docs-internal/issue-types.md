@@ -24,6 +24,7 @@ Checks are a library: a check is added only when Dmytro names it.
 | `booking_details_missing` | Booking with missing or placeholder details | Code-based | Booking | Critical | The booking tool's name |
 | `booking_duplicated` | Two bookings for one slot | Code-based | Booking | Critical | The booking tool's name |
 | `action_claimed_without_tool` | Action claimed without a tool call | Classifier | Tools and integrations | Critical | None: one issue per agent |
+| `spec_rule_broken` | Spec rule broken | Classifier | The rule's category | Critical | The spec rule's key: one issue per rule, titled by the rule. Only a critical rule fails the call; any other is a Warning |
 
 ## Tool call failed
 
@@ -76,3 +77,34 @@ classifier (Jev), Dmytro 2026-11-17.
   different type. Needs the trace to report tool calls.
 - **Tried on real calls (2026-11-17):** 12 of 85 calls flagged, $0.015; not yet
   reviewed by a person.
+
+## Spec rule broken
+
+The agent broke one of its spec rules in a call (roadmap 105.15,
+`plans/2026-11-26-spec-check.md`).
+
+- **How:** a classifier (Jev) answers one yes or no question per rule, "did the agent
+  break this rule in this call?". Each rule is read with its clarifications in force.
+  The rules that name no input are asked about the call alone, in one request. The rules
+  that name inputs are asked in a second request, with the union of their short inputs.
+- **Bar:** a "yes" at 0.8 or above is a finding (Decided, Dmytro 2026-11-26). Every
+  probability is stored, so a new bar is a new version that reads the stored answers.
+- **Which rules:** `classifier` rules raise findings. `classifier_then_llm` rules are
+  asked and stored, but raise nothing until the LLM step (105.16) confirms them. `llm`
+  rules are not asked.
+- **Which calls:** real calls where the agent said 10 words or more, on an agent version
+  a spec covers.
+  - A call is judged once, against the spec in force when it is judged; changing a rule
+    does not judge it again.
+  - Calls are judged from the check's release. An agent's first spec, written after
+    that, judges its last 30 days once; those findings are retroactive.
+- **The finding** judges the whole call. It points at no event and gives no reason. It
+  carries the rule's key and text, the probability and the model.
+- **Severity:** a critical rule's finding fails the call (when the check is set to
+  fail calls, its default); any other only flags it.
+- **Limits:**
+  - The classifier never sees the prompt, so a rule that rests on facts written in the
+    prompt (approved claims) is typed `llm`.
+  - A strange call on a `classifier` rule is not verified (accepted, Dmytro
+    2026-11-26).
+  - Measured on two agents of one platform in the lab.

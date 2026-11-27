@@ -77,7 +77,11 @@ def _moves(
     return [
         ScoreMovePublic(
             issue_id=issue_id,
-            title=issue_title(issues[issue_id].check_type, issues[issue_id].key or None)
+            title=issue_title(
+                issues[issue_id].check_type,
+                issues[issue_id].key or None,
+                issues[issue_id].subject,
+            )
             if issue_id in issues
             else "",
             points=round(100 * points[issue_id] / checked, 1),

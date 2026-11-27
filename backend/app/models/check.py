@@ -104,6 +104,9 @@ class Issue(SQLModel, table=True):
     )
     # Empty for a type with no key, so that the identity is still unique.
     key: str = Field(default="", max_length=255)
+    # What it is named after when its check's title does not say it: a broken spec
+    # rule's text, as its newest finding judged it. None for every other type.
+    subject: str | None = Field(default=None, sa_column=Column("subject", Text))
     state: IssueState = Field(
         default=IssueState.OPEN, sa_type=enum_type(IssueState), index=True
     )

@@ -88,18 +88,22 @@ class CheckRun:
 
 
 def _validated(check: Check, raised: list[Raised], event_ids: set[str]) -> None:
-    seen: set[tuple[str, ...]] = set()
+    seen: set[tuple[str | None, tuple[str, ...]]] = set()
     for item in raised:
-        if not item.event_ids:
+        if not item.event_ids and not check.whole_call:
             msg = f"check '{check.type}' raised a finding that points at no event"
+            raise CheckError(msg)
+        if check.whole_call and (item.event_ids or not item.key):
+            msg = f"check '{check.type}' judges the whole call: no events, and a key"
             raise CheckError(msg)
         if any(key not in event_ids for key in item.event_ids):
             msg = f"check '{check.type}' pointed at events the trace does not have"
             raise CheckError(msg)
-        if item.event_ids in seen:
+        identity = (item.key if check.whole_call else None, item.event_ids)
+        if identity in seen:
             msg = f"check '{check.type}' raised two findings on the same events"
             raise CheckError(msg)
-        seen.add(item.event_ids)
+        seen.add(identity)
 
 
 def run_checks(
@@ -210,15 +214,25 @@ def check_call(
     effects: dict[str, FindingEffect] = {}
     outcomes: dict[str, tuple[CheckOutcome, str | None]] = {}
     answers: dict[str, JsonValue] = {}
+    # Findings on a call that started before this count for nothing: the check's
+    # release, or what its ``applies`` says.
+    counts_from = {check.type: existed_since[check.type] for check in checks}
     # Model checks that keep the findings they had: waiting, or failed for good.
     kept: set[str] = set()
     for check in checks:
         mode = mode_at(check, history.get(check.type, []), started)
         missing = [need.value for need in check.needs if need not in capabilities]
+        applies = None
+        if mode is not CheckMode.OFF and not missing and check.applies is not None:
+            applies = check.applies(session, call, existed_since[check.type])
+            if applies.counts_from is not None:
+                counts_from[check.type] = applies.counts_from
         if mode is CheckMode.OFF:
             outcomes[check.type] = (CheckOutcome.OFF, None)
         elif missing:
             outcomes[check.type] = (CheckOutcome.SKIPPED, ", ".join(missing))
+        elif applies is not None and applies.skip is not None:
+            outcomes[check.type] = (CheckOutcome.SKIPPED, applies.skip)
         elif isinstance(check, ModelCheck):
             stored = stored_answers.get(check.type)
             no_key = missing_key(check.provider)
@@ -255,6 +269,16 @@ def check_call(
         session=session,
         call=call,
         categories={check.type: check.category for check in checks},
+        issue_categories={
+            (check.type, raised.key or ""): raised.category
+            for check, raised in run.found
+            if raised.category is not None
+        },
+        subjects={
+            (check.type, raised.key or ""): raised.subject
+            for check, raised in run.found
+            if raised.subject is not None
+        },
         # A broken check keeps the findings it had: the fault is ours, not the call's.
         check_types={check.type for check in checks} - set(run.broken) - kept,
         findings=[
@@ -268,8 +292,10 @@ def check_call(
                 key=raised.key,
                 event_keys=list(raised.event_ids),
                 detail=raised.detail,
-                effect=effects[check.type],
-                retroactive=started < existed_since[check.type],
+                effect=FindingEffect.FLAGS
+                if raised.flags_only
+                else effects[check.type],
+                retroactive=started < _aware(counts_from[check.type]),
             )
             for check, raised in run.found
         ],

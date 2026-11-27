@@ -49,6 +49,12 @@ class CallScreenFinding(BaseModel):
     entry_index: int | None = Field(
         default=None, description="The timeline entry it sits on"
     )
+    issue_id: uuid.UUID | None = Field(default=None, description="The issue it joins")
+    probability: float | None = Field(
+        default=None,
+        description="For a broken spec rule: the classifier's probability. Such a "
+        "finding judges the whole call and has no moment in it",
+    )
 
 
 class SimulatedVerdictPublic(BaseModel):

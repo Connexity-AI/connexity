@@ -30,8 +30,9 @@ def _item(row: CallRow, moment: Moment | None = None) -> CallListItemPublic:
     if row.worst is not None:
         check = get_check(row.worst.check_type)
         worst = WorstFindingPublic(
-            title=check.title if check else row.worst.check_type,
-            key=row.worst.key,
+            title=row.worst.subject or (check.title if check else row.worst.check_type),
+            # A spec issue is named by its rule; its key is the rule's id.
+            key=None if row.worst.subject else row.worst.key,
             category=row.worst.category,
             severity="critical" if row.worst.critical else "warning",
             found_by=check.kind if check else CheckKind.CODE_BASED,
@@ -111,5 +112,6 @@ def _issue_option(
     if issue is None:
         return None
     return CallFilterOption(
-        value=str(issue.id), label=issue_title(issue.check_type, issue.key or None)
+        value=str(issue.id),
+        label=issue_title(issue.check_type, issue.key or None, issue.subject),
     )

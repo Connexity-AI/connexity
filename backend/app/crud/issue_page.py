@@ -65,12 +65,34 @@ def issue_moments(
     )
     per_call: dict[uuid.UUID, list[int]] = defaultdict(list)
     for call_id, keys in findings:
+        if not keys:
+            # A finding on the whole call (a broken spec rule) has no moment.
+            continue
         ms = [starts[(call_id, key)] for key in keys if (call_id, key) in starts]
         per_call[call_id].append(max(ms) if ms else 0)
     return {
         call_id: Moment(at_seconds=round(min(ms) / 1000, 3), times=len(ms))
         for call_id, ms in per_call.items()
     }
+
+
+def issue_probabilities(
+    *, session: Session, issue_id: uuid.UUID, call_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, float]:
+    """For an issue whose findings judge the whole call: the classifier's probability
+    on each call, the highest when there are several."""
+    if not call_ids:
+        return {}
+    best: dict[uuid.UUID, float] = {}
+    for call_id, detail in session.exec(
+        select(Finding.call_id, Finding.detail).where(
+            Finding.issue_id == issue_id, col(Finding.call_id).in_(call_ids)
+        )
+    ).all():
+        value = (detail or {}).get("probability")
+        if isinstance(value, int | float):
+            best[call_id] = max(best.get(call_id, 0.0), float(value))
+    return best
 
 
 def issue_calls(

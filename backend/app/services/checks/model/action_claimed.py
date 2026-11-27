@@ -95,7 +95,7 @@ def _agent_turns(trace: Trace) -> list[tuple[UtteranceEvent, str]]:
     return turns
 
 
-async def _ask(trace: Trace) -> ModelReply:
+async def _ask(trace: Trace, _prepared: JsonValue = None) -> ModelReply:
     turns = _agent_turns(trace)
     if not turns:
         return ModelReply(

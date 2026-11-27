@@ -101,7 +101,7 @@
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
 <div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Findings</h2><span style="font-size:13px;color:var(--ink3)">{{ findCount }}</span></div>
 <sc-for list="{{ findings }}" as="f" hint-placeholder-count="3">
-<div onClick="{{ f.jump }}" title="Jump to this moment" style="display:grid;grid-template-columns:48px 16px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:56px;padding:8px 24px;border-top:1px solid var(--border);cursor:pointer" style-hover="background:var(--wash)">
+<div onClick="{{ f.jump }}" title="{{ f.rowTitle }}" style="display:grid;grid-template-columns:48px 16px minmax(0,1fr) auto;gap:12px;align-items:center;min-height:56px;padding:8px 24px;border-top:1px solid var(--border);cursor:pointer" style-hover="background:var(--wash)">
 <span style="font-size:13px;color:var(--ink2)">{{ f.time }}</span>
 <span style="display:flex">
 <sc-if value="{{ f.isCrit }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--crit)"><path d="M12 16h.01"></path><path d="M12 8v4"></path><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"></path></svg></sc-if>
@@ -173,14 +173,14 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;,&quot;S-0916&quot;,&quot;C-20492&quot;,&quot;C-20490&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;call&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;C-20481&quot;,&quot;C-20488&quot;,&quot;C-20477&quot;,&quot;C-20470&quot;,&quot;C-20466&quot;,&quot;S-0915&quot;,&quot;S-0916&quot;,&quot;C-20492&quot;,&quot;C-20490&quot;,&quot;C-20497&quot;],&quot;default&quot;:&quot;C-20481&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;expandFlagged&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
   static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
-  // findings: [t seconds, crit|warn, sentence, category, issue name or null, issue id]; by: 'rule'|'model' per finding
+  // findings: [t seconds or null, crit|warn, sentence, category, issue name or null, issue id, classifier probability]; by: 'rule'|'model'|'spec' per finding. Spec findings have no moment.
   // entries: turns [t, 'A'|'C', text, finding index, flagged reply delay]; tools [t, 'T', tool name, finding index, { st: ok|failed|timeout, ms, args, res, wf }]
   static CALLS = {
     'C-20481': { agentId:'insurance', agent:'Insurance renewals', when:'Today 09:42', dur:298, last4:'4821', result:'failed', src:'real', version:14, recording:true,
@@ -298,6 +298,28 @@ class Component extends DCLogic {
         [84,'C','Perfect. That’s all.'],
         [88,'A','See you on Thursday. Goodbye.']
       ]},
+    'C-20497': { agentId:'car', agent:'Car service booking', when:'Today 10:31', dur:86, last4:'4462', result:'failed', src:'real', version:9, recording:true,
+      findings:[[42,'crit','Address lookup returned an error','tools','Address lookup returned an error'],[null,'crit','Book only after the address and zip code are provided','book','Book only after the address and zip code are provided','I-1099',0.95]],
+      by:['rule','spec'],
+      entries:[
+        [0,'A','Thanks for calling Riverside Motors service desk. How can I help?'],
+        [5,'C','Hi, I\u2019d like a service with pick-up from my house, please.'],
+        [11,'A','Sure. What\u2019s the registration?'],
+        [15,'C','R-T-7-0, B-N-K.'],
+        [21,'A','Thanks, that\u2019s RT70 BNK. What\u2019s the address for the pick-up?'],
+        [27,'C','14 Alder Road. I\u2019ll find the zip code in a second.'],
+        [34,'A','Thanks. Let me look that up.'],
+        [42,'T','find_address',0,{ st:'failed', ms:3100, args:{ street:'14 Alder Road', zip:'', api_key:'••••' }, res:{ error:'422 Unprocessable Entity', detail:'zip_required' } }],
+        [44,'T','check_availability',-1,{ st:'ok', ms:520, args:{ type:'service_pickup' }, res:{ slots:'Tue 09:00, Tue 13:00' } }],
+        [46,'A','I have Tuesday at 9:00 for a pick-up. Shall I book that?'],
+        [52,'C','Yes, fine.'],
+        [55,'T','create_booking',-1,{ st:'ok', ms:720, args:{ registration:'RT70BNK', slot:'2026-11-17 09:00', type:'service_pickup', address:'14 Alder Road' }, res:{ booking_id:'B-41322', status:'confirmed' } }],
+        [58,'A','Booked for Tuesday at 9:00. We\u2019ll collect the car from 14 Alder Road.'],
+        [66,'C','Don\u2019t you need the zip code?'],
+        [71,'A','I have everything I need. Is there anything else?'],
+        [77,'C','No, thanks.'],
+        [81,'A','Thanks for calling. Goodbye.']
+      ]},
     'C-20466': { agentId:'car', agent:'Car service booking', when:'Today 11:08', dur:134, last4:'5316', result:'failed', src:'real', version:9, recording:false,
       findings:[[102,'crit','Booking tool returned an error','tools','Booking tool returned an error','I-1042']],
       by:['rule'],
@@ -353,7 +375,7 @@ class Component extends DCLogic {
   constructor(props) {
     super(props);
     const c = this.call();
-    const crit = c.findings.find(f => f[1] === 'crit');
+    const crit = c.findings.find(f => f[1] === 'crit' && f[0] != null);
     let tq = null;
     try { tq = new URLSearchParams(window.location.search).get('t'); } catch (_) {}
     const tp = props.t != null ? Number(props.t) : tq != null ? Number(tq) : null;
@@ -381,7 +403,7 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     const c = this.call();
-    if (this.startAt != null || c.findings.some(f => f[1] === 'crit')) { const i = this.activeIdx(this.state.t); setTimeout(() => this.scrollTo(i, true), 60); }
+    if (this.startAt != null || c.findings.some(f => f[1] === 'crit' && f[0] != null)) { const i = this.activeIdx(this.state.t); setTimeout(() => this.scrollTo(i, true), 60); }
   }
   componentDidUpdate() {
     const i = this.activeIdx(this.state.t);
@@ -432,12 +454,14 @@ class Component extends DCLogic {
     const openV = run && S.reason != null ? run.verdicts[S.reason] : null;
     const mmss = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
     const pct = dur ? t / dur * 100 : 0;
-    const fOrder = c.findings.map((f, i) => ({ f, i })).sort((a, b) => (a.f[1] === 'crit' ? 0 : 1) - (b.f[1] === 'crit' ? 0 : 1) || a.f[0] - b.f[0]);
+    const tOf = f => f[0] == null ? Infinity : f[0];
+    const fOrder = c.findings.map((f, i) => ({ f, i })).sort((a, b) => (a.f[1] === 'crit' ? 0 : 1) - (b.f[1] === 'crit' ? 0 : 1) || (tOf(a.f) === tOf(b.f) ? 0 : tOf(a.f) < tOf(b.f) ? -1 : 1));
     const issuesHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=issues';
     const testsHref = 'Connexity Agent Profile.dc.html?agent=' + c.agentId + '&tab=tests';
     const active = this.activeIdx(t);
     const by = i => c.by && c.by[i] === 'model' ? 'Found by a model' : 'Found by a rule';
-    const meta = i => C.CATS[c.findings[i][3]] + ' · ' + by(i);
+    const isSpec = f => f[0] == null;
+    const meta = i => isSpec(c.findings[i]) ? 'Spec rule broken · no moment in the call · found by the classifier, ' + c.findings[i][6].toFixed(2) : C.CATS[c.findings[i][3]] + ' · ' + by(i);
     const seg = this.segments(c);
     const bar = ([s, e]) => ({ style: { position:'absolute', top:0, bottom:0, left: (s / dur * 100) + '%', width: Math.max(0.25, (e - s) / dur * 100) + '%', borderRadius:4, background:'var(--ink)' } });
     const fmtMs = ms => ms < 1000 ? ms + ' ms' : (ms / 1000).toFixed(1) + ' s';
@@ -477,7 +501,7 @@ class Component extends DCLogic {
         jump: ev => { ev.stopPropagation(); this.seek(e[0]); },
         style: { position:'absolute', top:23, width:12, height:12, left:`calc(${e[0] / dur * 100}% - 6px)`, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex:1 }
       })),
-      marks: c.findings.map(f => ({
+      marks: c.findings.filter(f => !isSpec(f)).map(f => ({
         isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', title: mmss(f[0]) + ' · ' + f[2],
         jump: e => { e.stopPropagation(); this.seek(f[0]); },
         style: { position:'absolute', top:0, height:12, left:`calc(${f[0] / dur * 100}% - 8px)`, width:16, padding:0, border:0, background:'transparent', cursor:'pointer', zIndex: f[1] === 'crit' ? 3 : 2 }
@@ -485,9 +509,9 @@ class Component extends DCLogic {
       findCount: c.findings.length ? String(c.findings.length) : '',
       noFindings: c.findings.length === 0,
       findings: fOrder.map(({ f, i }) => ({
-        time: run ? 'Turn ' + turnOfT(f[0]) : mmss(f[0]), isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: meta(i),
-        link: f[4] || 'The rule in Tests', linkTitle: f[4] ? 'Open the issue' : 'Open the rule this test proves', href: f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : f[4] ? issuesHref : testsHref,
-        stop: e => e.stopPropagation(), jump: () => this.seek(f[0])
+        time: isSpec(f) ? '\u2014' : run ? 'Turn ' + turnOfT(f[0]) : mmss(f[0]), rowTitle: isSpec(f) ? 'Open the issue' : 'Jump to this moment', isCrit: f[1] === 'crit', isWarn: f[1] === 'warn', text: f[2], cat: meta(i),
+        link: isSpec(f) ? 'Open the issue' : f[4] || 'The rule in Tests', linkTitle: f[4] ? 'Open the issue' : 'Open the rule this test proves', href: f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : f[4] ? issuesHref : testsHref,
+        stop: e => e.stopPropagation(), jump: isSpec(f) ? () => { window.location.href = f[5] ? 'Connexity Issue.dc.html?issue=' + f[5] : issuesHref; } : () => this.seek(f[0])
       })),
       trRef: this.trRef,
       entries: c.entries.map(([et, who, text, fi, x], i) => {

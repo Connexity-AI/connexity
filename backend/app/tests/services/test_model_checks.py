@@ -143,7 +143,7 @@ def fake_jev(monkeypatch: pytest.MonkeyPatch) -> FakeJev:
 async def test_ask_labels_each_agent_turn_and_keeps_only_claims(
     fake_jev: FakeJev,
 ) -> None:
-    reply = await CHECK.ask(_trace())
+    reply = await CHECK.ask(_trace(), None)
     assert fake_jev.requests == 2
     assert reply.answer == {
         "model": "jev-1.14.0",
@@ -163,7 +163,7 @@ async def test_a_call_with_no_agent_turn_asks_nothing(fake_jev: FakeJev) -> None
         started_at=NOON,
         events=[UtteranceEvent(id="c1", speaker="caller", text="Hello?")],
     )
-    reply = await CHECK.ask(trace)
+    reply = await CHECK.ask(trace, None)
     assert fake_jev.requests == 0
     assert reply.answer == {"model": settings.JEV_MODEL, "turns": 0, "claims": {}}
 

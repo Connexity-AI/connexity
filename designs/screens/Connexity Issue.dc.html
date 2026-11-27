@@ -60,6 +60,12 @@
 </sc-if>
 </div>
 </div>
+<sc-if value="{{ isSpec }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:4px;margin:-12px 0 0 30px">
+<span style="font-size:13px;line-height:18px;color:var(--ink2)">{{ typeLine }}</span>
+<sc-for list="{{ clars }}" as="c" hint-placeholder-count="0"><div style="display:flex;flex-wrap:wrap;column-gap:8px;font-size:13px;line-height:18px"><span style="color:var(--ink2);text-wrap:pretty">{{ c.text }}</span><span style="color:var(--ink3)">{{ c.by }}</span></div></sc-for>
+</div>
+</sc-if>
 <sc-if value="{{ isArchived }}" hint-placeholder-val="{{ false }}">
 <p style="margin:-12px 0 0 30px;font-size:15px;line-height:22px;color:var(--ink2);text-wrap:pretty">{{ archLine }}</p>
 </sc-if>
@@ -79,6 +85,10 @@
 </sc-if>
 <div style="flex:1;min-width:0;background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px"><span style="font-size:13px;line-height:18px;color:var(--ink2)">Milestone</span><span style="font-size:30px;line-height:36px;font-weight:500">{{ milestone }}</span></div>
 </div>
+<sc-if value="{{ isSpec }}" hint-placeholder-val="{{ false }}">
+<p style="margin:0;font-size:13px;line-height:18px;color:var(--ink3);text-wrap:pretty">Found by a classifier that reads the whole call. It gives no moment or reason.</p>
+</sc-if>
+<sc-if value="{{ notSpec }}" hint-placeholder-val="{{ true }}">
 <div style="display:flex;gap:14px;padding:16px 20px;border-radius:12px;border:1px solid var(--border)">
 <span role="img" aria-label="Connexity" style="flex:none;margin-top:2px;display:block;flex:none;width:20px;height:20px;background:var(--brand);-webkit-mask:url(assets/connexity-logo.png) center/contain no-repeat;mask:url(assets/connexity-logo.png) center/contain no-repeat"></span>
 <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
@@ -86,6 +96,7 @@
 <p style="margin:0;font-size:15px;line-height:22px;text-wrap:pretty;max-width:760px">{{ tip }}</p>
 </div>
 </div>
+</sc-if>
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;padding:20px 24px 24px;display:flex;flex-direction:column;gap:20px">
 <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
 <h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Progress</h2>
@@ -133,10 +144,10 @@
 <div style="background:var(--s1);border:1px solid var(--border);border-radius:12px;overflow:hidden">
 <div style="display:flex;align-items:baseline;gap:12px;padding:20px 24px 12px"><h2 style="margin:0;font-size:15px;line-height:22px;font-weight:500">Affected calls</h2><span style="font-size:13px;color:var(--ink3)">Latest first</span></div>
 <div style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;height:40px;padding:0 24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink2)">
-<span>Time</span><span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><span>Moment</span><span></span>
+<span>Time</span><span>Caller</span><span style="text-align:right">Duration</span><span>Result</span><sc-if value="{{ notSpec }}" hint-placeholder-val="{{ true }}"><span>Moment</span></sc-if><sc-if value="{{ isSpec }}" hint-placeholder-val="{{ false }}"><span>Probability</span></sc-if><span></span>
 </div>
 <sc-for list="{{ occ }}" as="o" hint-placeholder-count="6">
-<a href="{{ o.href }}" title="Open the call at this moment" style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
+<a href="{{ o.href }}" title="{{ o.title }}" style="display:grid;grid-template-columns:136px 96px 72px 104px minmax(0,1fr) 16px;gap:16px;align-items:center;min-height:44px;padding:0 24px;border-top:1px solid var(--border);color:var(--ink);text-decoration:none" style-hover="background:var(--wash);opacity:1">
 <span style="white-space:nowrap">{{ o.when }}</span>
 <span style="color:var(--ink2);white-space:nowrap">{{ o.caller }}</span>
 <span style="color:var(--ink2);text-align:right">{{ o.dur }}</span>
@@ -180,14 +191,28 @@
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;,&quot;I-1043&quot;],&quot;default&quot;:&quot;I-1042&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;issue&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;I-1042&quot;,&quot;I-1053&quot;,&quot;I-0988&quot;,&quot;I-1043&quot;,&quot;I-1098&quot;,&quot;I-1099&quot;],&quot;default&quot;:&quot;I-1042&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
   static THEMES = {
     dark: { '--s0':'#121314','--s1':'#1a1b1d','--s2':'#232427','--border':'#2a2c2f','--bc':'#6b6f75','--ink':'#ececea','--ink2':'#a3a5a9','--ink3':'#8b8e93','--accent':'#ececea','--on-accent':'#121314','--brand':'#ee6a40','--crit':'#f59ab0','--crit-bg':'#3a1420','--warn':'#f2c46b','--warn-bg':'#33260f','--pass':'#8fd3a9','--pass-bg':'#14291d','--unch':'#b5b7ba','--unch-bg':'#2a2b2e','--wash':'#26282b' },
     light: { '--s0':'#f5f4f2','--s1':'#ffffff','--s2':'#ffffff','--border':'#e3e1dd','--bc':'#85837e','--ink':'#17181a','--ink2':'#5e6065','--ink3':'#6e7075','--accent':'#17181a','--on-accent':'#f5f4f2','--brand':'#e8552a','--crit':'#a3173f','--crit-bg':'#fbe4ea','--warn':'#7a4d07','--warn-bg':'#fbf0d9','--pass':'#1c5c38','--pass-bg':'#e2f2e8','--unch':'#45474b','--unch-bg':'#ecebe8','--wash':'#efeeea' }
   };
-  // steps: [name, done|current|later, detail, href]; series: 30 days ending 12 Nov; occ: [when, last4, seconds, result, moment s]
+  // steps: [name, done|current|later, detail, href]; series: 30 days ending 12 Nov; occ: [when, last4, seconds, result, moment s]. spec issues: occ moment is the classifier probability; clars: [sentence, A|Y, d Mon]
   static D = {
+    'I-1098': { spec:true, cat:'flow', title:'Ask one question at a time', agentId:'car', agent:'Car service booking', sev:'w', status:'o', calls:7, of:'310', first:'5 Nov', last:'45 minutes ago', milestone:'75',
+      clars:[['An either/or question is one question','A','26 Nov']],
+      steps:[['Found','done','5 Nov · call •••• 6634','call'],['In the spec','done','Ask one question at a time','spec'],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1], marks:[],
+      occ:[['Today 10:02','2817',118,'degraded',0.91],['Yesterday 16:44','5093',142,'degraded',0.84],['10 Nov 11:20','7741',96,'degraded',0.94],['9 Nov 14:05','3368',131,'degraded',0.81],['8 Nov 09:47','9120',104,'degraded',0.88],['6 Nov 15:12','4405',157,'degraded',0.86],['5 Nov 10:38','6634',122,'degraded',0.92]],
+      callId:'C-20477', incidents:[],
+      history:[['Opened','Connexity','5 Nov','First seen on call •••• 6634']] },
+    'I-1099': { spec:true, cat:'book', title:'Book only after the address and zip code are provided', agentId:'car', agent:'Car service booking', sev:'c', status:'o', calls:3, of:'310', first:'10 Nov', last:'2 hours ago', milestone:'64',
+      clars:[],
+      steps:[['Found','done','10 Nov · call •••• 8804','call'],['In the spec','done','Book only after the address and zip code are provided','spec'],['Tested','later','Not yet',null],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
+      series:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,2], marks:[],
+      occ:[['Today 10:31','4462',86,'failed',0.95],['Today 08:15','1270',102,'failed',0.89],['10 Nov 13:52','8804',94,'failed',0.83]],
+      callId:'C-20497', incidents:[],
+      history:[['Marked critical','Connexity','10 Nov','The rule is critical in the spec'],['Opened','Connexity','10 Nov','First seen on call •••• 8804']] },
     'I-1042': { title:'Booking tool returned an error', agentId:'car', agent:'Car service booking', sev:'c', status:'o', calls:38, of:'1,120', first:'2 Nov', last:'4 minutes ago', milestone:'64', incident:['INC-0412','Part of an active incident across 4 agents'],
       tip:'The booking tool times out when the caller gives a date without a year. Send the year explicitly, or handle an empty result by offering to call back.',
       steps:[['Found','done','2 Nov · call •••• 2207','call'],['In the spec','done','Offer a callback when the booking tool fails','spec'],['Tested','current','4 test cases · 3 failing','tests'],['Fixed in a version','later','Not yet',null],['Confirmed on real calls','later','After the fix ships',null]],
@@ -218,6 +243,7 @@ class Component extends DCLogic {
       callId:'C-20470', incidents:[],
       history:[['Came back: it spiked',null,'10 Nov','8 calls this week, twice as often as when it was archived',false,null,true],['Archived','your assistant, approved by Dmytro','31 Oct','Most of these calls come from the patio during dinner service',false,'until it spikes'],['Opened','Connexity','19 Oct','First seen on call •••• 4410']] }
   };
+  static CATS = { greet:'Greeting and identification', collect:'Information collection', book:'Booking', resched:'Rescheduling and cancelling', price:'Pricing and quotes', objection:'Objection handling', transfer:'Transfers and escalation', compliance:'Compliance and privacy', flow:'Conversation flow quality', end:'Ending the call', fast:'Responsiveness', tools:'Tools and integrations', speech:'Speech recognition', other:'Other' };
   static M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   constructor(props) {
     super(props);
@@ -233,7 +259,7 @@ class Component extends DCLogic {
   issueId() {
     let q = null;
     try { q = new URLSearchParams(window.location.search).get('issue'); } catch (_) {}
-    const id = this.props.issue || q || 'I-1042';
+    const id = (q && Component.D[q] ? q : null) || this.props.issue || 'I-1042';
     return Component.D[id] ? id : 'I-1042';
   }
   renderVals() {
@@ -243,7 +269,7 @@ class Component extends DCLogic {
     const mmss = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
     const profile = 'Connexity Agent Profile.dc.html?agent=' + d.agentId;
     const callHref = (t) => 'Connexity Call.dc.html?call=' + d.callId + '&t=' + t;
-    const links = { call: callHref(d.occ[d.occ.length - 1][4]), spec: profile + '&tab=spec', tests: profile + '&tab=tests', actions: 'Connexity Action items.dc.html' };
+    const links = { call: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(d.occ[d.occ.length - 1][4]), spec: profile + '&tab=spec', tests: profile + '&tab=tests', actions: 'Connexity Action items.dc.html' };
     const steps = d.steps.map(([name, state, detail, link], i) => {
       const next = d.steps[i + 1];
       return {
@@ -269,6 +295,8 @@ class Component extends DCLogic {
     return {
       rootStyle: { ...C.THEMES[this.props.theme === 'light' ? 'light' : 'dark'], background:'var(--s0)', color:'var(--ink)', fontFamily:"'Figtree', system-ui, sans-serif", fontSize:15, lineHeight:'22px', fontVariantNumeric:'tabular-nums', minHeight:'100vh', WebkitFontSmoothing:'antialiased' },
       title: d.title, agent: d.agent, agentHref: profile + '&tab=issues',
+      isSpec: !!d.spec, notSpec: !d.spec, typeLine: d.spec ? 'Spec rule broken · ' + C.CATS[d.cat] : '',
+      clars: (d.clars || []).map(([t, w, dt]) => { const [dd, mm] = dt.split(' '); return { text: 'Clarified: ' + t, by: 'answered by ' + (w === 'Y' ? 'your assistant' : 'Alex') + ' on ' + mm + ' ' + dd }; }),
       isCrit: d.sev === 'c', isWarn: d.sev === 'w',
       stOpen: status === 'o', stReop: status === 'r', stRes: status === 'd', stKnown: status === 'k', resText: 'Resolved in version ' + (d.version || ''),
       canAccept: status !== 'k', askOpen: st.askOpen && status !== 'k', askRef: this.askRef, reasonRef: this.reasonRef,
@@ -286,7 +314,7 @@ class Component extends DCLogic {
       tip: d.tip,
       stopped: status === 'k', stoppedNote: 'Stopped: archived on ' + (arch ? arch.when : ''),
       steps, days, marks, yMax, yMid: yMax / 2,
-      occ: d.occ.map(([when, last4, dur, res, at, times]) => ({ when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: 'at ' + mmss(at), times: times > 1 ? ` · ${times} times` : '', href: callHref(at) })),
+      occ: d.occ.map(([when, last4, dur, res, at, times]) => ({ when, caller: '•••• ' + last4, dur: mmss(dur), isFailed: res === 'failed', isDegraded: res === 'degraded', at: d.spec ? at.toFixed(2) : 'at ' + mmss(at), times: !d.spec && times > 1 ? ` · ${times} times` : '', href: d.spec ? 'Connexity Call.dc.html?call=' + d.callId : callHref(at), title: d.spec ? 'Open the call' : 'Open the call at this moment' })),
       allText: `All ${d.calls} calls`, allHref: 'Connexity Calls.dc.html?issue=' + id,
       incidents: d.incidents.map(([iid, period, failed, how]) => ({ period, failed, how, href:'Connexity Incident.dc.html?incident=' + iid })),
       history

@@ -105,6 +105,12 @@ async def _main(args: argparse.Namespace) -> None:
         query = query.order_by(col(Call.started_at).desc()).limit(args.limit)
         calls = list(session.exec(query).all())
         traces = [(call, crud.get_trace(session=session, call=call)) for call in calls]
+        # What a model check reads beyond the trace (the spec check: its rules).
+        prepared = {
+            call.id: check.prepare(session, call)
+            for call in calls
+            if isinstance(check, ModelCheck) and check.prepare is not None
+        }
     traces = [(call, trace) for call, trace in traces if trace is not None]
     usable = [
         (call, trace)
@@ -117,7 +123,7 @@ async def _main(args: argparse.Namespace) -> None:
     limiter = asyncio.Semaphore(settings.MODEL_CHECK_CONCURRENCY)
     started = time.monotonic()
 
-    async def answer(trace):  # noqa: ANN001, ANN202
+    async def answer(call, trace):  # noqa: ANN001, ANN202
         nonlocal spent, stopped
         if not isinstance(check, ModelCheck):
             return None
@@ -126,13 +132,13 @@ async def _main(args: argparse.Namespace) -> None:
                 stopped = True
                 return False
             try:
-                reply = await check.ask(trace)
+                reply = await check.ask(trace, prepared.get(call.id))
             except Exception as exc:  # noqa: BLE001 - one call's failure is reported
                 return exc
             spent += reply.cost_usd
             return reply
 
-    replies = await asyncio.gather(*(answer(trace) for _, trace in usable))
+    replies = await asyncio.gather(*(answer(call, trace) for call, trace in usable))
 
     findings = []
     model = check.model if isinstance(check, ModelCheck) else None

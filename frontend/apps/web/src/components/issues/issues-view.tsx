@@ -25,6 +25,9 @@ import { Picker } from '@/components/common/picker';
 import type { IssueGroupPublic, IssueListItemPublic, IssueListPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
+/** The check behind a broken spec rule: its issue is titled by the rule. */
+const SPEC_RULE_BROKEN = 'spec_rule_broken';
+
 const PERIOD_LABELS: Record<string, string> = {
   '7d': 'Last 7 days',
   '30d': 'Last 30 days',
@@ -140,7 +143,12 @@ const Group: FC<{ group: IssueGroupPublic; expanded: boolean; onToggle: () => vo
               COLUMNS
             )}
           >
-            <span className="py-2.5 text-pretty">{issue.title}</span>
+            <span className="flex flex-col py-2.5">
+              <span className="text-pretty">{issue.title}</span>
+              {issue.check_type === SPEC_RULE_BROKEN && (
+                <span className="text-label text-ink-muted">Spec rule broken</span>
+              )}
+            </span>
             <span className="truncate text-label text-ink-secondary">{issue.agent_name}</span>
             <span className="flex">
               <SeverityLabel severity={issue.severity} />

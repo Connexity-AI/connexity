@@ -57,7 +57,11 @@ class IssueFilters(NamedTuple):
     version: str | None = None
 
 
-def issue_title(check_type: str, key: str | None) -> str:
+def issue_title(check_type: str, key: str | None, subject: str | None = None) -> str:
+    """What an issue or a finding is called: its check's title and key, or its subject
+    when it has one (a broken spec rule is named after the rule)."""
+    if subject:
+        return subject
     check = get_check(check_type)
     title = check.title if check else check_type
     return f"{title}: {key}" if key else title
@@ -138,7 +142,7 @@ def workspace_issues(
                 id=issue.id,
                 agent_id=issue.agent_id,
                 agent_name=names.get(issue.agent_id, ""),
-                title=issue_title(issue.check_type, issue.key or None),
+                title=issue_title(issue.check_type, issue.key or None, issue.subject),
                 check_type=issue.check_type,
                 key=issue.key or None,
                 category=by_id[issue.category_id].key,

@@ -793,7 +793,11 @@ def _done(session: Session, company_id: uuid.UUID) -> list[WorkDonePublic]:
         session=session, company_id=company_id, since=since
     ):
         issue = session.get(Issue, uuid.UUID(record.subject))
-        what = issue_title(issue.check_type, issue.key or None) if issue else "An issue"
+        what = (
+            issue_title(issue.check_type, issue.key or None, issue.subject)
+            if issue
+            else "An issue"
+        )
         verb = (
             "resolved" if record.new_value == IssueState.RESOLVED.value else "archived"
         )

@@ -41,6 +41,14 @@ const FOUND_BY: Record<CallScreenFinding['found_by'], string> = {
 
 const foundBy = (finding: CallScreenFinding) => FOUND_BY[finding.found_by];
 
+/** A broken spec rule: the classifier judged the whole call, so it has no moment. */
+const isWholeCall = (finding: CallScreenFinding) => finding.probability != null;
+
+const findingMeta = (finding: CallScreenFinding) =>
+  finding.probability != null
+    ? `Spec rule broken · no moment in the call · found by the classifier, ${finding.probability.toFixed(2)}`
+    : `${finding.category} · ${foundBy(finding)}`;
+
 const ResultLabel: FC<{ result: CallScreenPublic['result'] }> = ({ result }) => {
   if (result === 'failed')
     return (
@@ -297,7 +305,7 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
       setTimeout(() => scrollTo(index, true), 60);
       return;
     }
-    const critical = call.findings.find((f) => f.severity === 'critical');
+    const critical = call.findings.find((f) => f.severity === 'critical' && !isWholeCall(f));
     if (critical) {
       setT(critical.at_seconds);
       if (critical.entry_index != null) {
@@ -460,34 +468,36 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
                   </button>
                 ) : null
               )}
-              {call.findings.map((finding) => (
-                <button
-                  key={`mark-${finding.id}`}
-                  type="button"
-                  title={`${clock(finding.at_seconds)} · ${finding.text}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    seek(finding.at_seconds);
-                  }}
-                  className={cn(
-                    'absolute top-0 h-3 w-4 border-0 bg-transparent p-0',
-                    finding.severity === 'critical' ? 'z-[3]' : 'z-[2]'
-                  )}
-                  style={{ left: `calc(${pct(finding.at_seconds)} - 8px)` }}
-                >
-                  {finding.severity === 'critical' ? (
-                    <>
-                      <span className="absolute top-2 left-[7px] h-10 w-0.5 rounded-[1px] bg-critical" />
-                      <OctagonAlert
-                        className="absolute -top-2.5 left-0 size-4 text-critical"
-                        aria-hidden
-                      />
-                    </>
-                  ) : (
-                    <span className="absolute top-0.5 left-[7px] h-2 w-0.5 rounded-[1px] bg-warning" />
-                  )}
-                </button>
-              ))}
+              {call.findings
+                .filter((finding) => !isWholeCall(finding))
+                .map((finding) => (
+                  <button
+                    key={`mark-${finding.id}`}
+                    type="button"
+                    title={`${clock(finding.at_seconds)} · ${finding.text}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      seek(finding.at_seconds);
+                    }}
+                    className={cn(
+                      'absolute top-0 h-3 w-4 border-0 bg-transparent p-0',
+                      finding.severity === 'critical' ? 'z-[3]' : 'z-[2]'
+                    )}
+                    style={{ left: `calc(${pct(finding.at_seconds)} - 8px)` }}
+                  >
+                    {finding.severity === 'critical' ? (
+                      <>
+                        <span className="absolute top-2 left-[7px] h-10 w-0.5 rounded-[1px] bg-critical" />
+                        <OctagonAlert
+                          className="absolute -top-2.5 left-0 size-4 text-critical"
+                          aria-hidden
+                        />
+                      </>
+                    ) : (
+                      <span className="absolute top-0.5 left-[7px] h-2 w-0.5 rounded-[1px] bg-warning" />
+                    )}
+                  </button>
+                ))}
               <div
                 className="pointer-events-none absolute top-2.5 -ml-px h-[38px] w-0.5 rounded-[1px] bg-ink"
                 style={{ left: pct(t) }}
@@ -509,40 +519,60 @@ export const CallView: FC<Props> = ({ call, recordingUrl, startAt }) => {
             <span className="text-label text-ink-muted">{call.findings.length}</span>
           )}
         </div>
-        {call.findings.map((finding) => (
-          <button
-            key={finding.id}
-            type="button"
-            title="Jump to this moment"
-            onClick={() =>
-              sim && finding.entry_index != null
-                ? pick(finding.entry_index)
-                : seek(finding.at_seconds)
-            }
-            className="grid min-h-14 w-full grid-cols-[48px_16px_minmax(0,1fr)] items-center gap-3 border-0 border-t border-hairline bg-transparent px-6 py-2 text-left hover:bg-wash"
-          >
-            <span className="text-label text-ink-secondary">
-              {sim
-                ? finding.entry_index != null
-                  ? `Turn ${turnOf(finding.entry_index)}`
-                  : ''
-                : clock(finding.at_seconds)}
-            </span>
-            <span className="flex">
-              {finding.severity === 'critical' ? (
-                <OctagonAlert className="size-4 text-critical" aria-hidden />
-              ) : (
-                <TriangleAlert className="size-4 text-warning" aria-hidden />
-              )}
-            </span>
-            <span className="flex min-w-0 flex-col">
-              <span className="text-body text-ink">{finding.text}</span>
-              <span className="text-label text-ink-muted">
-                {finding.category} · {foundBy(finding)}
+        {call.findings.map((finding) =>
+          isWholeCall(finding) ? (
+            <Link
+              key={finding.id}
+              href={finding.issue_id ? UrlGenerator.issue(finding.issue_id) : UrlGenerator.issues()}
+              title="Open the issue"
+              className="grid min-h-14 w-full grid-cols-[48px_16px_minmax(0,1fr)] items-center gap-3 border-t border-hairline px-6 py-2 text-left text-ink no-underline hover:bg-wash"
+            >
+              <span className="text-label text-ink-secondary">—</span>
+              <span className="flex">
+                {finding.severity === 'critical' ? (
+                  <OctagonAlert className="size-4 text-critical" aria-hidden />
+                ) : (
+                  <TriangleAlert className="size-4 text-warning" aria-hidden />
+                )}
               </span>
-            </span>
-          </button>
-        ))}
+              <span className="flex min-w-0 flex-col">
+                <span className="text-body text-ink">{finding.text}</span>
+                <span className="text-label text-ink-muted">{findingMeta(finding)}</span>
+              </span>
+            </Link>
+          ) : (
+            <button
+              key={finding.id}
+              type="button"
+              title="Jump to this moment"
+              onClick={() =>
+                sim && finding.entry_index != null
+                  ? pick(finding.entry_index)
+                  : seek(finding.at_seconds)
+              }
+              className="grid min-h-14 w-full grid-cols-[48px_16px_minmax(0,1fr)] items-center gap-3 border-0 border-t border-hairline bg-transparent px-6 py-2 text-left hover:bg-wash"
+            >
+              <span className="text-label text-ink-secondary">
+                {sim
+                  ? finding.entry_index != null
+                    ? `Turn ${turnOf(finding.entry_index)}`
+                    : ''
+                  : clock(finding.at_seconds)}
+              </span>
+              <span className="flex">
+                {finding.severity === 'critical' ? (
+                  <OctagonAlert className="size-4 text-critical" aria-hidden />
+                ) : (
+                  <TriangleAlert className="size-4 text-warning" aria-hidden />
+                )}
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span className="text-body text-ink">{finding.text}</span>
+                <span className="text-label text-ink-muted">{findingMeta(finding)}</span>
+              </span>
+            </button>
+          )
+        )}
         {call.findings.length === 0 && (
           <div className="flex items-center gap-2 border-t border-hairline px-6 pt-4 pb-5 text-ink-secondary">
             <CircleCheck className="size-4 text-passed" aria-hidden />

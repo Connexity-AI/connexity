@@ -11,6 +11,7 @@ from sqlmodel import Session, col, select
 
 from app import crud
 from app.crud.check import CONNEXITY, IssueSummary
+from app.crud.clarification import clarifications_in_force
 from app.crud.issue_page import (
     agent_calls_since,
     agent_version_starts,
@@ -19,6 +20,7 @@ from app.crud.issue_page import (
     issue_calls_per_day,
     issue_decisions,
     issue_moments,
+    issue_probabilities,
     period_days,
 )
 from app.models.agent import Agent
@@ -42,6 +44,7 @@ from app.models.issue_page import (
 from app.models.user import User
 from app.services.checks.registry import get_check
 from app.services.issue_list import issue_title
+from app.services.spec import rule_clarifications_public
 
 DAYS = 30
 AFFECTED_CALLS = 10
@@ -188,6 +191,23 @@ def issue_page(
         session=session, issue_id=issue.id, call_ids=[c.id for c in calls]
     )
     results = crud.call_check_statuses(session=session, call_ids=[c.id for c in calls])
+    check = get_check(issue.check_type)
+    whole_call = bool(check and check.whole_call)
+    probabilities = (
+        issue_probabilities(
+            session=session, issue_id=issue.id, call_ids=[c.id for c in calls]
+        )
+        if whole_call
+        else {}
+    )
+    clarifications = (
+        rule_clarifications_public(
+            session,
+            clarifications_in_force(session=session, agent_id=issue.agent_id),
+        ).get(issue.key, [])
+        if whole_call and issue.key
+        else []
+    )
 
     def duration(call: Call) -> int | None:
         if call.ended_at is None:
@@ -196,7 +216,7 @@ def issue_page(
 
     return IssuePagePublic(
         id=issue.id,
-        title=issue_title(issue.check_type, issue.key or None),
+        title=issue_title(issue.check_type, issue.key or None, issue.subject),
         check_type=issue.check_type,
         key=issue.key or None,
         agent_id=issue.agent_id,
@@ -242,11 +262,16 @@ def issue_page(
                     times=moments[call.id].times,
                 )
                 if call.id in moments
+                else None
+                if whole_call
                 else IssueMomentPublic(at_seconds=0, times=1),
+                probability=probabilities.get(call.id),
             )
             for call in calls
         ],
         history=history,
+        whole_call=whole_call,
+        clarifications=clarifications,
     )
 
 

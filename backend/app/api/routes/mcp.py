@@ -175,6 +175,8 @@ from app.services.call_read import read_calls
 from app.services.call_screen import call_screen
 from app.services.checks.base import Check, ModelCheck
 from app.services.checks.engine import current_mode
+from app.services.checks.model.spec_rule import BAR as SPEC_BAR
+from app.services.checks.model.spec_rule import SPEC_CHECK_TYPE
 from app.services.checks.registry import get_check
 from app.services.clarification import (
     AnswerDraft,
@@ -695,6 +697,12 @@ def get_call(
             "Call `list_issues` with this agent's id to see how often each finding "
             "happens across calls."
         )
+    if any(f.probability is not None for f in screen.findings):
+        next_steps.append(
+            "A broken spec rule has no moment: read the transcript against the rule "
+            "to find where, and open its issue (`get_issue` with its `issue_id`) for "
+            "the rule's clarifications."
+        )
     return McpAnswer[CallScreenPublic](
         data=screen,
         rules=[
@@ -708,6 +716,7 @@ def get_call(
             "Do not raise clarifications or fixes from what the agent did not say.",
             "Do not repeat a caller's name, address or other personal details back "
             "unless the person asks about this call.",
+            SPEC_FINDING_RULE,
         ],
         next_steps=next_steps,
         guide=GUIDE_CALLS,
@@ -824,12 +833,25 @@ def _mcp_issue(
     return issue
 
 
+SPEC_FINDING_RULE = (
+    "A finding with a `probability` is a broken spec rule (`spec_rule_broken`): a "
+    f"classifier said yes at {SPEC_BAR} or above, reading the whole call with the "
+    "rule's clarifications and the short inputs the spec's rules name. It has no "
+    "moment and no reason; never invent either. A critical rule fails the call; any "
+    "other only flags it. A call is judged once: a later change to the rule does not "
+    "judge it again."
+)
+
+
 _ISSUE_RULES = [
     "Give the size as 'in N of M calls' (tiles.calls_affected of tiles.calls_total, "
     "the last 30 days), and say how it was found: found_by code_based means "
     "deterministic code over the call; classifier or judge means a model.",
     "An affected call's moment is when the issue first happened in it, and how many "
-    "times; open the call with `get_call` to see it.",
+    "times; open the call with `get_call` to see it. A broken spec rule "
+    "(`whole_call` true) has no moment; its calls give the classifier's "
+    "`probability` instead.",
+    SPEC_FINDING_RULE,
     "Archiving is the person's decision. Before `archive_issue` or `unarchive_issue`, "
     "say which issue, its size and the duration, and wait for the person's yes; put "
     "their words in the reason.",
@@ -960,17 +982,41 @@ def get_issue(
 ) -> McpAnswer[McpIssue]:
     issue = _mcp_issue(session, workspace, issue_id)
     next_steps = _fix_steps(issue)
+    spec_rule = issue.check_type == SPEC_CHECK_TYPE
+    if spec_rule:
+        next_steps.extend(_spec_issue_steps(issue))
     if issue.state is not IssueState.ARCHIVED:
         next_steps.append(
             "If the person decides nobody will fix it, ask them, then call "
             "`archive_issue` with their reason."
         )
-    if crud.latest_spec(session=session, agent_id=issue.agent_id) is not None:
+    if (
+        not spec_rule
+        and crud.latest_spec(session=session, agent_id=issue.agent_id) is not None
+    ):
         next_steps.append(
             "If the agent's spec does not say whether this behaviour is allowed, raise "
             "a question with `raise_clarifications` and these calls as evidence."
         )
     return _issue_answer(session, issue, next_steps, since_version)
+
+
+def _spec_issue_steps(issue: Issue) -> list[str]:
+    """What to do with a broken spec rule, in order."""
+    return [
+        f"This is the spec rule `{issue.key}` broken, found by a classifier with no "
+        "moment or reason. Read the rule and its clarifications (`clarifications` "
+        "here, or `get_spec`), then read the calls (`list_calls` with this issue_id) "
+        "against it to find where.",
+        "If the flags look wrong because the rule is unclear, ask the person: raise a "
+        f"clarification on the rule with `raise_clarifications` and `rule_key` "
+        f"`{issue.key}`, these calls as evidence.",
+        "If the rule's check type or inputs are wrong (it has a condition the call "
+        "alone cannot settle, or needs a value the agent was given), fix them with "
+        "`write_spec`.",
+        "If the agent did break the rule, fix the agent as for any issue, then "
+        "`mark_issue_fixed`.",
+    ]
 
 
 def _fix_steps(issue: Issue) -> list[str]:
@@ -1267,6 +1313,12 @@ _SPEC_RULES = [
     "characters on the agent's calls, such as the call history) only to the LLM "
     "step, so a rule that needs one cannot be `classifier`. Name inputs from "
     "known_inputs; contact details, ids and secrets are never inputs.",
+    f"Every real call that qualifies is judged against the spec covering its agent "
+    f"version: `classifier` rules raise a finding at {SPEC_BAR} or above, "
+    "`classifier_then_llm` rules are judged but their flags wait for the LLM step "
+    "(counts.held_for_llm), and `llm` rules are not judged yet (counts.llm_only). A "
+    "call is judged once: a rule you change judges the calls after it, not those "
+    "before. The agent's first spec judges its last 30 days once.",
     "A critical rule is one whose failure must stop a release; a failure of any other "
     "rule is a Warning. Marking is yours to decide, without asking the person: mark "
     "with `critical` in `write_spec` or with `mark_critical_rules`. Marks carry into "
